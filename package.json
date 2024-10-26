@@ -1,0 +1,41 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@headlessui/react": "^1.4.2",
+    "@inertiajs/react": "^1.0.0",
+    "@tailwindcss/forms": "^0.5.3",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.12",
+    "axios": "^1.6.4",
+    "dat.gui": "^0.7.9",
+    "laravel-vite-plugin": "^1.0.0",
+    "postcss": "^8.4.31",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.2.1",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "gsap": "3.12",
+    "jquery": "^3.7.1",
+    "lil-gui": "^0.19.2",
+    "php": "^1.1.0",
+    "three": "^0.169.0",
+    "tween": "^0.9.0"
+  },
+  "name": "dev",
+  "description": "<p align=\"center\"><a href=\"https://laravel.com\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg\" width=\"400\" alt=\"Laravel Logo\"></a></p>",
+  "version": "1.0.0",
+  "main": "postcss.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
