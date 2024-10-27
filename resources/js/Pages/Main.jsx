@@ -1,32 +1,59 @@
-import React from 'react';
-import { Link, Head } from '@inertiajs/react';
+import React, { useState } from "react";
+import { Link, Head } from "@inertiajs/react";
+import logo from "/resources/img/REMS_logo_light.png";
+import backgroundImage from "/resources/img/estate_property_background.jpg";
 
 export default function Main({ auth }) {
+    const [isBuy, setIsBuy] = useState(true);
+
     return (
         <>
             <Head title="Main" />
             {/* Header Section */}
-            <header className="bg-gray-100 p-6 border-b border-gray-300">
+            <header className="bg-gray-100 p-6 border-b border-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
                 <div className="container mx-auto flex justify-between items-center">
                     {/* Logo */}
                     <div className="flex items-center space-x-4">
-                        <img src="/path/to/logo.png" alt="Real Estate Logo" className="w-12 h-12" />
-                        {/* <h1 className="text-xl font-bold text-gray-800">REAL ESTATE</h1> */}
+                        <img
+                            src={logo}
+                            alt="Real Estate Logo"
+                            className="w-12 h-12"
+                        />
                     </div>
 
                     {/* Tab Bar */}
                     <nav className="flex-grow flex justify-center space-x-8">
-                        <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">Buy</Link>
-                        <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">Rent</Link>
-                        <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">New Launches</Link>
-                        <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">Find Agent</Link>
+                        <Link
+                            href="#"
+                            className="text-gray-600 hover:text-gray-900 font-medium"
+                        >
+                            Buy
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-gray-600 hover:text-gray-900 font-medium"
+                        >
+                            Rent
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-gray-600 hover:text-gray-900 font-medium"
+                        >
+                            New Launches
+                        </Link>
+                        <Link
+                            href="#"
+                            className="text-gray-600 hover:text-gray-900 font-medium"
+                        >
+                            Find Agent
+                        </Link>
                     </nav>
 
                     {/* User Bar */}
                     <div className="flex items-center space-x-4">
                         {auth.user ? (
                             <Link
-                                href={route('dashboard')}
+                                href={route("dashboard")}
                                 className="font-semibold text-gray-600 hover:text-gray-900"
                             >
                                 Dashboard
@@ -34,13 +61,13 @@ export default function Main({ auth }) {
                         ) : (
                             <>
                                 <Link
-                                    href={route('login')}
+                                    href={route("login")}
                                     className="text-gray-600 hover:text-gray-900 font-medium"
                                 >
                                     Log in
                                 </Link>
                                 <Link
-                                    href={route('register')}
+                                    href={route("register")}
                                     className="text-gray-600 hover:text-gray-900 font-medium"
                                 >
                                     Register
@@ -50,32 +77,73 @@ export default function Main({ auth }) {
                     </div>
                 </div>
             </header>
-            
+
             {/* Main Content Section */}
-            <main className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="bg-white shadow-lg rounded-lg p-6 max-w-lg w-full">
-                    {/* Search Bar */}
-                    <div className="flex items-center space-x-4 mb-6">
-                        <button className="bg-red-500 text-white px-4 py-2 rounded-l-lg">Buy</button>
-                        <button className="bg-gray-200 text-gray-600 px-4 py-2 rounded-r-lg">Rent</button>
-                    </div>
-                    {/* Filter Options */}
-                    <div className="space-y-4">
-                        <input
-                            type="text"
-                            placeholder="Property Type"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Price Range"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Bedroom Count"
-                            className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                        />
+            <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
+                {/* Background Image */}
+                <div
+                    className="relative w-full max-w-4xl h-80 bg-cover bg-center mb-8"
+                    style={{ backgroundImage: `url(${backgroundImage})` }}
+                >
+                    {/* Overlay with Search Options */}
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-full max-w-3xl bg-[#f7f1e8] p-8 rounded-xl shadow-lg">
+                        {/* Buy / Rent Toggle Buttons */}
+                        <div className="flex justify-center mb-4">
+                            <button
+                                onClick={() => setIsBuy(true)}
+                                className={`px-6 py-2 font-bold rounded-l-full ${
+                                    isBuy
+                                        ? "bg-red-500 text-white"
+                                        : "bg-gray-200 text-gray-600"
+                                }`}
+                            >
+                                Buy
+                            </button>
+                            <button
+                                onClick={() => setIsBuy(false)}
+                                className={`px-6 py-2 font-bold rounded-r-full ${
+                                    !isBuy
+                                        ? "bg-red-500 text-white"
+                                        : "bg-gray-200 text-gray-600"
+                                }`}
+                            >
+                                Rent
+                            </button>
+                        </div>
+
+                        {/* Search Bar */}
+                        <div className="flex items-center bg-white p-2 rounded-full shadow-md mb-4">
+                            <input
+                                type="text"
+                                placeholder="Search here..."
+                                className="flex-grow bg-transparent border-none focus:outline-none px-4 rounded-full"
+                            />
+                            <button className="bg-red-500 text-white px-6 py-2 rounded-full">
+                                Search
+                            </button>
+                        </div>
+
+                        {/* Filter Options */}
+                        <div className="flex justify-around">
+                            <select className="bg-transparent border-none focus:outline-none text-gray-700 rounded-full">
+                                <option>Categories</option>
+                                <option>Residential</option>
+                                <option>Commercial</option>
+                                <option>Land</option>
+                            </select>
+                            <select className="bg-transparent border-none focus:outline-none text-gray-700 rounded-full">
+                                <option>All Property</option>
+                                <option>House</option>
+                                <option>Apartment</option>
+                                <option>Office</option>
+                            </select>
+                            <select className="bg-transparent border-none focus:outline-none text-gray-700 rounded-full">
+                                <option>Price Range</option>
+                                <option>$0 - $100,000</option>
+                                <option>$100,000 - $500,000</option>
+                                <option>$500,000+</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </main>
