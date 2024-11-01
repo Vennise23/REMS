@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PropertyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,7 +18,7 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
-    return Inertia::render('Main ', [
+    return Inertia::render('Main', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
@@ -40,3 +41,8 @@ Route::get('/dbconn',function(){
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/apply-property', [PropertyController::class, 'create']);
+Route::post('/apply-property', [PropertyController::class, 'store']);
+
+Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
