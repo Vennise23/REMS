@@ -24,7 +24,7 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
+})->name('main');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -46,3 +46,7 @@ Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
 
 Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
+
+Route::get('/buy', function () {
+    return Inertia::render('Buy');
+})->name('buy');

@@ -39,7 +39,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     });
 
     const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(true);
-    const [isPropertyDetailsOpen, setIsPropertyDetailsOpen] = useState(true);
+    const [isPropertyDetailsOpen, setIsPropertyDetailsOpen] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const handleChange = (e) => {
@@ -592,7 +592,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                         </button>
                         <button
                             type="submit"
-                            className="bg-blue-500 text-white px-6 py-2 rounded-md"
+                            className="bg-red-500 text-white px-6 py-2 rounded-md"
                         >
                             Submit
                         </button>
