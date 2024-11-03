@@ -4,30 +4,21 @@ import ShowSuccessModal from "./ShowSuccessModal";
 
 const PropertyFormModal = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({
-        first_name: "",
-        last_name: "",
-        relation_to_property: "",
-        address_line_1: "",
-        address_line_2: "",
-        city: "",
-        phone1: "",
-        phone2: "",
-        fax: "",
-        email: "",
-        heard_about_us: "",
         property_name: "",
+        property_title: "",
+        property_type: "",
         property_address_line_1: "",
         property_address_line_2: "",
         property_city: "",
-        postal_code: "",
+        property_postal_code: "",
         number_of_units: "",
         total_commercial_units: "",
         total_commercial_space_sqft: "",
         year_built: "",
         developer: "",
-        condominium_plan_number: "",
-        property_type: "",
-        property_styles: [],
+        certificate_number: "",
+        certificate_photos: [],
+        property_photos: [],
         each_unit_has_furnace: false,
         each_unit_has_electrical_meter: false,
         has_onsite_caretaker: false,
@@ -35,36 +26,40 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         amenities: [],
         other_amenities: "",
         additional_info: "",
-        image: null,
     });
 
-    const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(true);
-    const [isPropertyDetailsOpen, setIsPropertyDetailsOpen] = useState(false);
+    const [certificatePhotoPreview, setCertificatePhotoPreview] = useState([]);
+    const [propertyPhotoPreview, setPropertyPhotoPreview] = useState([]);
+    const [isPropertyDetailsOpen, setIsPropertyDetailsOpen] = useState(true);
+    const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type, files, checked } = e.target;
 
-        if (
-            type === "checkbox" &&
-            (name === "property_styles" || name === "amenities")
-        ) {
+        if (type === "file") {
+            // For certificate photos preview
+            if (name === "certificate_photos") {
+                const filePreviews = Array.from(files).map(file => URL.createObjectURL(file));
+                setCertificatePhotoPreview(filePreviews);
+            }
+            // For property photos preview
+            if (name === "property_photos") {
+                const filePreviews = Array.from(files).map(file => URL.createObjectURL(file));
+                setPropertyPhotoPreview(filePreviews);
+            }
+            // Handle multiple file uploads for photos
+            setFormData({ ...formData, [name]: files });
+        } else if (type === "checkbox") {
+            // Handle checkbox inputs for amenities
             setFormData({
                 ...formData,
                 [name]: formData[name].includes(value)
                     ? formData[name].filter((item) => item !== value)
                     : [...formData[name], value],
             });
-        } else if (
-            type === "radio" &&
-            (name === "each_unit_has_furnace" ||
-                name === "each_unit_has_electrical_meter" ||
-                name === "has_onsite_caretaker")
-        ) {
-            // Handle radio buttons for boolean fields
+        } else if (type === "radio") {
             setFormData({ ...formData, [name]: value === "true" });
-        } else if (type === "file") {
-            setFormData({ ...formData, [name]: e.target.files[0] });
         } else {
             setFormData({ ...formData, [name]: value });
         }
@@ -77,19 +72,14 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
         // Process each field in formData
         Object.keys(formData).forEach((key) => {
-            if (Array.isArray(formData[key])) {
-                // Append each element of the array separately for arrays
+            if (key === "certificate_photos" || key === "property_photos") {
+                // Handle file arrays (multiple photos)
+                Array.from(formData[key]).forEach((file) => {
+                    data.append(`${key}[]`, file);
+                });
+            } else if (Array.isArray(formData[key])) {
+                // Append arrays like amenities
                 formData[key].forEach((item) => data.append(`${key}[]`, item));
-            } else if (key === "image" && formData[key] instanceof File) {
-                // Check if 'image' is a valid file, then append it
-                data.append(key, formData[key]);
-            } else if (
-                key === "each_unit_has_furnace" ||
-                key === "each_unit_has_electrical_meter" ||
-                key === "has_onsite_caretaker"
-            ) {
-                // Convert booleans to integers (1 for true, 0 for false)
-                data.append(key, formData[key] ? 1 : 0);
             } else {
                 // Append all other fields normally
                 data.append(key, formData[key]);
@@ -102,11 +92,9 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     "Content-Type": "multipart/form-data",
                 },
             });
-            // alert("Property applied successfully!");
-            setShowSuccessModal(true); 
+            setShowSuccessModal(true);
         } catch (error) {
             if (error.response && error.response.data.errors) {
-                // console.log("Validation Errors:", error.response.data.errors);
                 alert("Error: Please check the form for validation errors.");
             } else {
                 console.log("Submission Error:", error);
@@ -134,109 +122,6 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                         <h3
                             className="text-xl font-semibold mb-2 cursor-pointer flex justify-between items-center"
                             onClick={() =>
-                                setIsPersonalInfoOpen(!isPersonalInfoOpen)
-                            }
-                        >
-                            Personal Information
-                            <span>{isPersonalInfoOpen ? "▽" : "▷"}</span>
-                        </h3>
-                        {isPersonalInfoOpen && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <input
-                                    type="text"
-                                    name="first_name"
-                                    placeholder="First Name"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="text"
-                                    name="last_name"
-                                    placeholder="Last Name"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <select
-                                    name="relation_to_property"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                >
-                                    <option value="">
-                                        Relation to Property
-                                    </option>
-                                    <option value="Owner">Owner</option>
-                                    <option value="Board Member">
-                                        Board Member
-                                    </option>
-                                    <option value="Developer">Developer</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    name="address_line_1"
-                                    placeholder="Address Line 1"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="text"
-                                    name="address_line_2"
-                                    placeholder="Address Line 2"
-                                    onChange={handleChange}
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="text"
-                                    name="city"
-                                    placeholder="City"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="text"
-                                    name="phone1"
-                                    placeholder="Phone 1"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="text"
-                                    name="phone2"
-                                    placeholder="Phone 2"
-                                    onChange={handleChange}
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="text"
-                                    name="fax"
-                                    placeholder="Fax"
-                                    onChange={handleChange}
-                                    className="p-2 border rounded-md w-full"
-                                />
-                                <input
-                                    type="email"
-                                    name="email"
-                                    placeholder="Email"
-                                    onChange={handleChange}
-                                    required
-                                    className="p-2 border rounded-md w-full"
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <hr className="my-10 border-t border-gray-300" />
-
-                    <div>
-                        <h3
-                            className="text-xl font-semibold mt-6 mb-2 cursor-pointer flex justify-between items-center"
-                            onClick={() =>
                                 setIsPropertyDetailsOpen(!isPropertyDetailsOpen)
                             }
                         >
@@ -250,6 +135,14 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         type="text"
                                         name="property_name"
                                         placeholder="Property Name"
+                                        onChange={handleChange}
+                                        required
+                                        className="p-2 border rounded-md w-full"
+                                    />
+                                    <input
+                                        type="text"
+                                        name="property_title"
+                                        placeholder="Property Title"
                                         onChange={handleChange}
                                         required
                                         className="p-2 border rounded-md w-full"
@@ -279,7 +172,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     />
                                     <input
                                         type="text"
-                                        name="postal_code"
+                                        name="property_postal_code"
                                         placeholder="Postal Code"
                                         onChange={handleChange}
                                         required
@@ -323,88 +216,130 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     />
                                     <input
                                         type="text"
-                                        name="condominium_plan_number"
-                                        placeholder="Condominium Plan Number"
+                                        name="certificate_number"
+                                        placeholder="Certificate Number"
                                         onChange={handleChange}
                                         className="p-2 border rounded-md w-full"
                                     />
                                 </div>
+
                                 <h3 className="text-xl font-semibold mt-6 mb-2">
                                     Property Type:
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-red-50 transition">
                                         <input
                                             type="radio"
                                             name="property_type"
                                             value="Conventional Condominium"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Conventional Condominium</span>
                                     </label>
-                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-red-50 transition">
                                         <input
                                             type="radio"
                                             name="property_type"
                                             value="Bare Land Condominium"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Bare Land Condominium</span>
                                     </label>
-                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-red-50 transition">
                                         <input
                                             type="radio"
                                             name="property_type"
                                             value="Commercial"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Commercial</span>
                                     </label>
-                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                                    <label className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-red-50 transition">
                                         <input
                                             type="radio"
                                             name="property_type"
                                             value="Other / Not Sure"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Other / Not Sure</span>
                                     </label>
                                 </div>
 
-                                <h3 className="text-xl font-semibold mt-6 mb-2">
-                                    Property Style:
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {[
-                                        "Duplex",
-                                        "Townhouse",
-                                        "Carriage Style",
-                                        "Low-rise",
-                                        "High-rise",
-                                        "Mixed Use (Commercial & Residential)",
-                                        "Office Building",
-                                        "Shopping Mall / Plaza / Common",
-                                    ].map((style) => (
-                                        <label
-                                            key={style}
-                                            className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-green-50 transition"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                name="property_styles"
-                                                value={style}
-                                                onChange={handleChange}
-                                                className="text-green-500"
-                                            />
-                                            <span>{style}</span>
-                                        </label>
-                                    ))}
+                                <div className="mt-4">
+                                    <label className="block font-semibold">
+                                        Upload Certificate Photos:
+                                    </label>
+                                    <input
+                                        type="file"
+                                        name="certificate_photos"
+                                        onChange={handleChange}
+                                        accept="image/*"
+                                        multiple
+                                        className="p-2 border rounded-md w-full"
+                                    />
+                                    {/* Show certificate photo previews */}
+                                    {certificatePhotoPreview.length > 0 && (
+                                        <div className="mt-4 grid grid-cols-3 gap-2">
+                                            {certificatePhotoPreview.map((src, index) => (
+                                                <img
+                                                    key={index}
+                                                    src={src}
+                                                    alt={`Certificate Preview ${index}`}
+                                                    className="w-full h-auto object-cover rounded-md"
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
+                                <div className="mt-4">
+                                    <label className="block font-semibold">
+                                        Upload Property Photos:
+                                    </label>
+                                    <input
+                                        type="file"
+                                        name="property_photos"
+                                        onChange={handleChange}
+                                        accept="image/*"
+                                        multiple
+                                        className="p-2 border rounded-md w-full"
+                                    />
+                                    {/* Show property photo previews */}
+                                    {propertyPhotoPreview.length > 0 && (
+                                        <div className="mt-4 grid grid-cols-3 gap-2">
+                                            {propertyPhotoPreview.map((src, index) => (
+                                                <img
+                                                    key={index}
+                                                    src={src}
+                                                    alt={`Property Preview ${index}`}
+                                                    className="w-full h-auto object-cover rounded-md"
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <hr className="my-10 border-t border-gray-300" />
+
+                    <div>
+                        <h3
+                            className="text-xl font-semibold mt-6 mb-2 cursor-pointer flex justify-between items-center"
+                            onClick={() =>
+                                setIsAdditionalInfoOpen(!isAdditionalInfoOpen)
+                            }
+                        >
+                            Additional Information
+                            <span>{isAdditionalInfoOpen ? "▽" : "▷"}</span>
+                        </h3>
+                        {isAdditionalInfoOpen && (
+                            <>
                                 <h3 className="font-semibold mt-4 mb-2">
                                     Does each unit have its own furnace?
                                 </h3>
@@ -415,7 +350,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="each_unit_has_furnace"
                                             value={true}
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Yes</span>
                                     </label>
@@ -425,7 +360,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="each_unit_has_furnace"
                                             value={false}
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>No</span>
                                     </label>
@@ -442,7 +377,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="each_unit_has_electrical_meter"
                                             value={true}
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Yes</span>
                                     </label>
@@ -452,7 +387,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="each_unit_has_electrical_meter"
                                             value={false}
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>No</span>
                                     </label>
@@ -469,7 +404,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="has_onsite_caretaker"
                                             value={true}
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Yes</span>
                                     </label>
@@ -479,7 +414,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="has_onsite_caretaker"
                                             value={false}
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>No</span>
                                     </label>
@@ -495,7 +430,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="parking"
                                             value="Above ground"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Above ground</span>
                                     </label>
@@ -505,7 +440,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="parking"
                                             value="Underground"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Underground</span>
                                     </label>
@@ -515,7 +450,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="parking"
                                             value="Both"
                                             onChange={handleChange}
-                                            className="text-blue-500"
+                                            className="text-red-500"
                                         />
                                         <span>Both</span>
                                     </label>
@@ -538,14 +473,14 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     ].map((amenity) => (
                                         <label
                                             key={amenity}
-                                            className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-yellow-50 transition"
+                                            className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-red-50 transition"
                                         >
                                             <input
                                                 type="checkbox"
                                                 name="amenities"
                                                 value={amenity}
                                                 onChange={handleChange}
-                                                className="text-yellow-500"
+                                                className="text-red-500"
                                             />
                                             <span>{amenity}</span>
                                         </label>
@@ -565,19 +500,6 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     onChange={handleChange}
                                     className="p-2 border rounded-md w-full mt-4"
                                 ></textarea>
-
-                                <div className="mt-4">
-                                    <label className="block font-semibold">
-                                        Upload Image:
-                                    </label>
-                                    <input
-                                        type="file"
-                                        name="image"
-                                        onChange={handleChange}
-                                        accept="image/*"
-                                        className="p-2 border rounded-md w-full"
-                                    />
-                                </div>
                             </>
                         )}
                     </div>
