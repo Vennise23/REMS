@@ -40,25 +40,37 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         if (type === "file") {
             // For certificate photos preview
             if (name === "certificate_photos") {
-                const filePreviews = Array.from(files).map(file => URL.createObjectURL(file));
+                const filePreviews = Array.from(files).map((file) =>
+                    URL.createObjectURL(file)
+                );
                 setCertificatePhotoPreview(filePreviews);
             }
             // For property photos preview
             if (name === "property_photos") {
-                const filePreviews = Array.from(files).map(file => URL.createObjectURL(file));
+                const filePreviews = Array.from(files).map((file) =>
+                    URL.createObjectURL(file)
+                );
                 setPropertyPhotoPreview(filePreviews);
             }
             // Handle multiple file uploads for photos
             setFormData({ ...formData, [name]: files });
-        } else if (type === "checkbox") {
-            // Handle checkbox inputs for amenities
+        } else if (
+            type === "checkbox" &&
+            (name === "property_styles" || name === "amenities")
+        ) {
             setFormData({
                 ...formData,
                 [name]: formData[name].includes(value)
                     ? formData[name].filter((item) => item !== value)
                     : [...formData[name], value],
             });
-        } else if (type === "radio") {
+        } else if (
+            type === "radio" &&
+            (name === "each_unit_has_furnace" ||
+                name === "each_unit_has_electrical_meter" ||
+                name === "has_onsite_caretaker")
+        ) {
+            // Handle radio buttons for boolean fields
             setFormData({ ...formData, [name]: value === "true" });
         } else {
             setFormData({ ...formData, [name]: value });
@@ -80,6 +92,13 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             } else if (Array.isArray(formData[key])) {
                 // Append arrays like amenities
                 formData[key].forEach((item) => data.append(`${key}[]`, item));
+            } else if (
+                key === "each_unit_has_furnace" ||
+                key === "each_unit_has_electrical_meter" ||
+                key === "has_onsite_caretaker"
+            ) {
+                // Convert booleans to integers (1 for true, 0 for false)
+                data.append(key, formData[key] ? 1 : 0);
             } else {
                 // Append all other fields normally
                 data.append(key, formData[key]);
@@ -284,14 +303,16 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     {/* Show certificate photo previews */}
                                     {certificatePhotoPreview.length > 0 && (
                                         <div className="mt-4 grid grid-cols-3 gap-2">
-                                            {certificatePhotoPreview.map((src, index) => (
-                                                <img
-                                                    key={index}
-                                                    src={src}
-                                                    alt={`Certificate Preview ${index}`}
-                                                    className="w-full h-auto object-cover rounded-md"
-                                                />
-                                            ))}
+                                            {certificatePhotoPreview.map(
+                                                (src, index) => (
+                                                    <img
+                                                        key={index}
+                                                        src={src}
+                                                        alt={`Certificate Preview ${index}`}
+                                                        className="w-full h-auto object-cover rounded-md"
+                                                    />
+                                                )
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -311,14 +332,16 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     {/* Show property photo previews */}
                                     {propertyPhotoPreview.length > 0 && (
                                         <div className="mt-4 grid grid-cols-3 gap-2">
-                                            {propertyPhotoPreview.map((src, index) => (
-                                                <img
-                                                    key={index}
-                                                    src={src}
-                                                    alt={`Property Preview ${index}`}
-                                                    className="w-full h-auto object-cover rounded-md"
-                                                />
-                                            ))}
+                                            {propertyPhotoPreview.map(
+                                                (src, index) => (
+                                                    <img
+                                                        key={index}
+                                                        src={src}
+                                                        alt={`Property Preview ${index}`}
+                                                        className="w-full h-auto object-cover rounded-md"
+                                                    />
+                                                )
+                                            )}
                                         </div>
                                     )}
                                 </div>
