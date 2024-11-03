@@ -35,9 +35,17 @@ export default function AdminLogin({ status, canResetPassword }) {
         });
     };
 
+    const logo = '/img/REMS_logo_light.png';
+
     return (
+
+
         <GuestLayout>
             <Head title="Admin Log in" />
+
+            {/* <div className="flex justify-center mb-6">
+                        <img src={logo} alt="Logo" className="w-24 h-24 object-contain" />
+                    </div> */}
 
             {status && <div className="mb-4 font-medium text-sm text-green-600">{status}</div>}
 

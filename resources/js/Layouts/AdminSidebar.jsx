@@ -1,9 +1,12 @@
 // resources/js/Layouts/AdminSidebar.jsx
 
 import React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 export default function AdminSidebar({ isOpen, toggleSidebar }) {
+
+    const { csrf_token } = usePage().props;
+
     return (
         <aside
             className={`fixed inset-y-0 left-0 z-20 w-64 bg-blue-800 text-white p-6 transform ${
@@ -33,6 +36,7 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                     Reports
                 </Link>
                 <form method="POST" action={route('admin.logout')} className="mt-auto">
+                    <input type="hidden" name="_token" value={csrf_token} /> {/* CSRF token */}
                     <button type="submit" className="w-full text-left hover:bg-blue-700 p-2 rounded">
                         Logout
                     </button>

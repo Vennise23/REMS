@@ -127,7 +127,7 @@ export default function AdminUserMng() {
             )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col h-full ">
+            <div className="flex-1 flex flex-col h-full overflow-y-auto">
                 <AdminLayout>
                     {/* Mobile toggle button for sidebar */}
                     <button
@@ -153,7 +153,7 @@ export default function AdminUserMng() {
                    
 
                     {/* Page Content */}
-                    <main className="p-6 bg-white rounded-lg shadow-md flex-1 overflow-y-auto max-h-[86vh]">
+                    <main className="p-6 bg-white rounded-lg shadow-md flex-1 ">
 
         
                         <p>Manage user / User Management</p>
