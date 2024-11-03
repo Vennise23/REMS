@@ -50,16 +50,23 @@ Route::get('/admin/login', [AdminLoginController::class, 'showLoginForm'])->name
 Route::post('/admin/login', [AdminLoginController::class, 'login']);
 Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->name('admin.logout');
 
-// Admin routes protected by 'auth' and 'admin' middleware
+// Admin routes for managing user
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/users', [AdminController::class, 'manageUsers'])->name('admin.users');
 });
 
 //user data show
-Route::get('/users/data', [UserController::class, 'getUsers'])->name('users.data');
+Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
 //add user
 Route::post('/users', [UserController::class, 'store'])->name('users.store');
+
+// Routes for user management
+Route::get('/users', [UserController::class, 'index']);
+// Route::put('/api/users/{id}', [UserController::class, 'update']);
+
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
 
 
 require __DIR__.'/auth.php';

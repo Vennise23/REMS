@@ -5,6 +5,7 @@ import axios from "axios";
 import AdminLayout from "@/Layouts/AdminLayout";
 import AdminSidebar from "@/Layouts/AdminSidebar";
 import { router } from "@inertiajs/react";
+import EditUserModal from './EditUserModal';
 
 export default function AdminUserMng() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -18,6 +19,10 @@ export default function AdminUserMng() {
         password: "",
     }); // Include password in newUser state
     const [showAddUserForm, setShowAddUserForm] = useState(false); // Toggle add user form
+
+    //add user
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
 
     const toggleSidebar = () => {
         setSidebarOpen(!isSidebarOpen);
@@ -56,6 +61,24 @@ export default function AdminUserMng() {
             console.error("Error adding user:", error);
             if (error.response && error.response.data.errors) {
                 console.error("Validation Errors:", error.response.data.errors);
+            }
+        }
+    };
+
+    //function edit
+    const handleEditClick = (user) => {
+        setSelectedUser(user);
+        setShowEditModal(true);
+    };
+
+    //function delete
+    const handleDeleteClick = async (id) => {
+        if (window.confirm("Are you sure you want to delete this user?")) {
+            try {
+                await axios.delete(`/users/${id}`);
+                setUsers(users.filter(user => user.id !== id));
+            } catch (error) {
+                console.error("Error deleting user:", error);
             }
         }
     };
@@ -104,7 +127,7 @@ export default function AdminUserMng() {
             )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col h-full">
+            <div className="flex-1 flex flex-col h-full ">
                 <AdminLayout>
                     {/* Mobile toggle button for sidebar */}
                     <button
@@ -127,12 +150,15 @@ export default function AdminUserMng() {
                         </svg>
                     </button>
 
-                    <div className="p-3 shadow-md flex-1">
-                        <h5>Manage user / User Management</h5>
-                    </div>
+                   
 
                     {/* Page Content */}
-                    <main className="p-6 bg-white rounded-lg shadow-md flex-1 overflow-y-auto max-h-full">
+                    <main className="p-6 bg-white rounded-lg shadow-md flex-1 overflow-y-auto max-h-[86vh]">
+
+        
+                        <p>Manage user / User Management</p>
+                        <br></br>
+
                         <h2 className="text-2xl font-bold mb-4">
                             User Management
                         </h2>
@@ -267,12 +293,8 @@ export default function AdminUserMng() {
                                                 ).toLocaleDateString()}
                                             </td>
                                             <td className="px-4 py-2 border-b">
-                                                <button className="text-blue-600 hover:underline mr-2">
-                                                    Edit
-                                                </button>
-                                                <button className="text-red-600 hover:underline">
-                                                    Delete
-                                                </button>
+                                            <button onClick={() => handleEditClick(user)} className="text-blue-600 hover:underline mr-2">Edit</button>
+                                            <button onClick={() => handleDeleteClick(user.id)} className="text-red-600 hover:underline">Delete</button>
                                             </td>
                                         </tr>
                                     ))}
@@ -324,6 +346,14 @@ export default function AdminUserMng() {
                     </main>
                 </AdminLayout>
             </div>
+            {/* edit modal */}
+            {showEditModal && (
+                <EditUserModal 
+                    user={selectedUser} 
+                    onClose={() => setShowEditModal(false)} 
+                    onUpdate={fetchUsers} 
+                />
+            )}
         </div>
     );
 }

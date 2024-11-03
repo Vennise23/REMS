@@ -27,16 +27,10 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                     Manage Users
                 </Link>
                 <Link href="/admin/settings" className="hover:bg-blue-700 p-2 rounded">
-                    Settings
+                    Manage Property 
                 </Link>
                 <Link href="/admin/reports" className="hover:bg-blue-700 p-2 rounded">
                     Reports
-                </Link>
-                <Link href="/admin/notifications" className="hover:bg-blue-700 p-2 rounded">
-                    Notifications
-                </Link>
-                <Link href="/admin/profile" className="hover:bg-blue-700 p-2 rounded">
-                    Profile
                 </Link>
                 <form method="POST" action={route('admin.logout')} className="mt-auto">
                     <button type="submit" className="w-full text-left hover:bg-blue-700 p-2 rounded">
