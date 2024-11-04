@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PropertyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,13 +18,13 @@ use Inertia\Inertia;
 */
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
+    return Inertia::render('Main', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
+})->name('main');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
@@ -44,3 +45,12 @@ Route::get('/three',function(){
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/apply-property', [PropertyController::class, 'create']);
+Route::post('/apply-property', [PropertyController::class, 'store']);
+
+Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
+
+Route::get('/buy', function () {
+    return Inertia::render('Buy');
+})->name('buy');
