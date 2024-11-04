@@ -1,6 +1,8 @@
 import Webcam from "react-webcam";
 import {useRef} from "react";
 
+import PrimaryButton from "@/Components/PrimaryButton";
+
 export default function VideoCamera() {
     const webRef = useRef(null);
     let img = "null";
@@ -11,9 +13,9 @@ export default function VideoCamera() {
     return (
         <>
         <Webcam ref={webRef}/>
-        <button onclick={()=>{
+        <PrimaryButton onclick={()=>{
             showImage()
-        }}>click</button>
+        }}>click</PrimaryButton>
         </>
     )
 };

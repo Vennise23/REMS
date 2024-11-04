@@ -53,6 +53,9 @@
     "extra": {
         "laravel": {
             "dont-discover": []
+        },
+        "symfony":{
+            "require":"5.2.*"
         }
     },
     "config": {

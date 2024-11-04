@@ -39,4 +39,8 @@ Route::get('/dbconn',function(){
     return view('dbconn');
 });
 
+Route::get('/three',function(){
+    return Inertia::render('EntryPage');
+});
+
 require __DIR__.'/auth.php';
