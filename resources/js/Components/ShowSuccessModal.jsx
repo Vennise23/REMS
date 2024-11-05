@@ -7,13 +7,18 @@ const ShowSuccessModal = ({ isOpen, message, onClose }) => {
 
     if (!isOpen) return null;
 
+    const handleModalClose = () => {
+        onClose();
+        window.location.reload();
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-60">
             <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center">
                 <h3 className="text-lg font-semibold mb-4">Success!</h3>
                 <p className="text-gray-700">{message || "Your action was successful."}</p>
                 <button
-                    onClick={onClose}
+                    onClick={handleModalClose}
                     className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition"
                 >
                     OK
