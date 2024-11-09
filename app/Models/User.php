@@ -18,9 +18,20 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'firstname',
+        'lastname',
         'email',
         'password',
+        'ic_number',
+        'age',
+        'born_date',
+        'phone',
+        'profile_picture',
+        'address_line_1',
+        'address_line_2',
+        'city',
+        'postal_code',
+        'role',
     ];
 
     /**
@@ -42,4 +53,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    // To check roles
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
 }

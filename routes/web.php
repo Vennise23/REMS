@@ -2,12 +2,12 @@
 
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Auth\AdminLoginController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,43 +29,31 @@ Route::get('/', function () {
     ]);
 })->name('main');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
+// User Profile and Logout routes
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
 
-Route::get('/dbconn',function(){
+Route::get('/dbconn', function () {
     return view('dbconn');
 });
 
-// Route::middleware(['web', 'auth:admin'])->post('/admin/logout', [AdminLoginController::class, 'logout'])->name('admin.logout');
+// Admin Login
+Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])->name('admin.login');
+Route::post('/admin/login', [AuthenticatedSessionController::class, 'storeAdmin'])->name('admin.login.store');
 
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
+});
 
-// Admin Authentication Routes
-
-// Admin routes for managing user
-Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-// Route::get('/users', [AdminController::class, 'manageUsers'])->name('admin.users');
-Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
-
-
-
-//user data show
+// User Management routes for admin
 Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-//add user
 Route::post('/users', [UserController::class, 'store'])->name('users.store');
-
-// Routes for user management
 Route::get('/users', [UserController::class, 'index']);
-// Route::put('/api/users/{id}', [UserController::class, 'update']);
-
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
-
 
 
 require __DIR__.'/auth.php';
