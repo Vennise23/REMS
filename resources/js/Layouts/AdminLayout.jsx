@@ -8,7 +8,7 @@ export default function AdminLayout({ children }) {
         <div className="min-h-screen bg-gray-100">
             {/* Header */}
             <header className="bg-blue-800 text-white p-4 flex justify-between items-center">
-                <h1 className="text-xl font-bold">REMS</h1>
+                <h1 className="text-xl font-bold">Real Estate Management System</h1>
                 {/* <nav>
                     <Link href="/admin/settings" className="text-white hover:underline">Log Out</Link>
                 </nav> */}

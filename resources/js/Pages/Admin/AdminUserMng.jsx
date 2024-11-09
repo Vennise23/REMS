@@ -167,7 +167,7 @@ export default function AdminUserMng() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-4 sm:space-y-0">
                             <input
                                 type="text"
-                                value={searchTerm}
+                                value={searchTerm || ""}
                                 onChange={handleSearch}
                                 placeholder="Search users..."
                                 className="p-2 border border-gray-300 rounded w-full sm:w-2/3"
