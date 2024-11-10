@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm, Link, Head } from "@inertiajs/react";
 
 export default function Profile({ auth, user }) {
-    const { data, setData, post, errors, processing } = useForm({
+    const { data, setData, post, patch, errors, processing } = useForm({
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.email,
@@ -19,7 +19,7 @@ export default function Profile({ auth, user }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route("profile.update"));
+        patch(route("profile.update"));
     };
 
     const handleFileChange = (e) => {
