@@ -48,7 +48,7 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                 </Link>
                 <form
                     method="POST"
-                    // action={route("admin.logout")}
+                    action={route("logout")}
                     className="mt-auto"
                 >
                     <input type="hidden" name="_token" value={csrf_token || ""} />
