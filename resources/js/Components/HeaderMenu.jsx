@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { Link, Head } from "@inertiajs/react";
 import logo from "/resources/img/REMS_logo_light.png";
-import backgroundImage from "/resources/img/estate_property_background.jpg";
-import { Inertia } from "@inertiajs/inertia";
 import axios from "axios";
 
 export default function Main({ auth }) {
@@ -18,10 +16,17 @@ export default function Main({ auth }) {
         setDropdownOpen((prev) => !prev);
     };
 
-    const handleLogout = (e) => {
+    const handleLogout = async (e) => {
         e.preventDefault();
-        Inertia.post(route('logout')); // Use Inertia.post for logout
+        try {
+            const response = await axios.post(route("logout"));
+            console.log("Logout successful:", response);
+            window.location.href = "/";
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
     };
+
     return (
         <>
             <Head title="Main" />
@@ -39,6 +44,12 @@ export default function Main({ auth }) {
 
                     {/* Tab Bar */}
                     <nav className="flex-grow flex justify-center space-x-8">
+                        <Link
+                            href={route("main")}
+                            className="text-gray-600 hover:text-gray-900 font-medium"
+                        >
+                            Home
+                        </Link>
                         <Link
                             href="#"
                             className="text-gray-600 hover:text-gray-900 font-medium"
@@ -88,11 +99,11 @@ export default function Main({ auth }) {
                                                 Admin Dashboard
                                             </Link>
                                             <button
-                                            onClick={handleLogout}
-                                            className="block px-4 py-2 text-gray-800 hover:bg-gray-100 w-full text-left"
-                                        >
-                                            Logout
-                                        </button>
+                                                onClick={handleLogout}
+                                                className="block px-4 py-2 text-gray-800 hover:bg-gray-100 w-full text-left"
+                                            >
+                                                Logout
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -126,11 +137,11 @@ export default function Main({ auth }) {
                                                 User Profile
                                             </Link>
                                             <button
-                                            onClick={handleLogout}
-                                            className="block px-4 py-2 text-gray-800 hover:bg-gray-100 w-full text-left"
-                                        >
-                                            Logout
-                                        </button>
+                                                onClick={handleLogout}
+                                                className="block px-4 py-2 text-gray-800 hover:bg-gray-100 w-full text-left"
+                                            >
+                                                Logout
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -155,6 +166,6 @@ export default function Main({ auth }) {
                     </div>
                 </div>
             </header>
-            </>
+        </>
     );
-}   
+}

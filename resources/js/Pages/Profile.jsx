@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useForm, Link, Head } from "@inertiajs/react";
+import React from "react";
+import { useForm, Head } from "@inertiajs/react";
+import Header from "@/Components/HeaderMenu";
 
 export default function Profile({ auth, user }) {
     const { data, setData, post, patch, errors, processing } = useForm({
@@ -10,16 +11,20 @@ export default function Profile({ auth, user }) {
         age: user.age,
         born_date: user.born_date,
         phone: user.phone,
-        address_line1: user.address_line1,
-        address_line2: user.address_line2,
+        address_line_1: user.address_line_1,
+        address_line_2: user.address_line_2,
         city: user.city,
         postal_code: user.postal_code,
-        profile_picture: null, // For file upload
+        profile_picture: null,
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        patch(route("profile.update"));
+        post(route("profile.update"), {
+            onSuccess: () => {
+                window.location.reload();
+            }
+        });
     };
 
     const handleFileChange = (e) => {
@@ -28,12 +33,12 @@ export default function Profile({ auth, user }) {
 
     return (
         <>
-             <Head title="Main" />
-             <Header auth={auth} />
+            <Head title="Profile Edit" />
+            <Header auth={auth} />
 
             <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
                 <div className="max-w-2xl w-full bg-white p-8 rounded shadow">
-                    <h2 className="text-2xl font-semibold mb-6">Profile Information</h2>
+                    <h2 className="text-2xl font-semibold mb-6">Edit Profile</h2>
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         <div className="mb-4">
                             <label className="block text-gray-700">First Name</label>
@@ -43,8 +48,11 @@ export default function Profile({ auth, user }) {
                                 value={data.firstname}
                                 onChange={(e) => setData("firstname", e.target.value)}
                             />
-                            {errors.firstname && <div className="text-red-500 text-sm">{errors.firstname}</div>}
+                            {errors.firstname && (
+                                <div className="text-red-500 text-sm">{errors.firstname}</div>
+                            )}
                         </div>
+
                         <div className="mb-4">
                             <label className="block text-gray-700">Last Name</label>
                             <input
@@ -53,8 +61,11 @@ export default function Profile({ auth, user }) {
                                 value={data.lastname}
                                 onChange={(e) => setData("lastname", e.target.value)}
                             />
-                            {errors.lastname && <div className="text-red-500 text-sm">{errors.lastname}</div>}
+                            {errors.lastname && (
+                                <div className="text-red-500 text-sm">{errors.lastname}</div>
+                            )}
                         </div>
+
                         <div className="mb-4">
                             <label className="block text-gray-700">Email</label>
                             <input
@@ -63,9 +74,115 @@ export default function Profile({ auth, user }) {
                                 value={data.email}
                                 onChange={(e) => setData("email", e.target.value)}
                             />
-                            {errors.email && <div className="text-red-500 text-sm">{errors.email}</div>}
+                            {errors.email && (
+                                <div className="text-red-500 text-sm">{errors.email}</div>
+                            )}
                         </div>
-                        {/* Additional fields for other information */}
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">IC Number</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={data.ic_number}
+                                onChange={(e) => setData("ic_number", e.target.value)}
+                            />
+                            {errors.ic_number && (
+                                <div className="text-red-500 text-sm">{errors.ic_number}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">Age</label>
+                            <input
+                                type="number"
+                                className="mt-1 block w-full"
+                                value={data.age}
+                                onChange={(e) => setData("age", e.target.value)}
+                            />
+                            {errors.age && (
+                                <div className="text-red-500 text-sm">{errors.age}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">Born Date</label>
+                            <input
+                                type="date"
+                                className="mt-1 block w-full"
+                                value={data.born_date}
+                                onChange={(e) => setData("born_date", e.target.value)}
+                            />
+                            {errors.born_date && (
+                                <div className="text-red-500 text-sm">{errors.born_date}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">Phone</label>
+                            <input
+                                type="tel"
+                                className="mt-1 block w-full"
+                                value={data.phone}
+                                onChange={(e) => setData("phone", e.target.value)}
+                            />
+                            {errors.phone && (
+                                <div className="text-red-500 text-sm">{errors.phone}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">Address Line 1</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={data.address_line_1}
+                                onChange={(e) => setData("address_line_1", e.target.value)}
+                            />
+                            {errors.address_line1 && (
+                                <div className="text-red-500 text-sm">{errors.address_line_1}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">Address Line 2</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={data.address_line_2}
+                                onChange={(e) => setData("address_line_2", e.target.value)}
+                            />
+                            {errors.address_line2 && (
+                                <div className="text-red-500 text-sm">{errors.address_line_2}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">City</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={data.city}
+                                onChange={(e) => setData("city", e.target.value)}
+                            />
+                            {errors.city && (
+                                <div className="text-red-500 text-sm">{errors.city}</div>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700">Postal Code</label>
+                            <input
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={data.postal_code}
+                                onChange={(e) => setData("postal_code", e.target.value)}
+                            />
+                            {errors.postal_code && (
+                                <div className="text-red-500 text-sm">{errors.postal_code}</div>
+                            )}
+                        </div>
+
                         <div className="mb-4">
                             <label className="block text-gray-700">Profile Picture</label>
                             <input
@@ -73,8 +190,11 @@ export default function Profile({ auth, user }) {
                                 className="mt-1 block w-full"
                                 onChange={handleFileChange}
                             />
-                            {errors.profile_picture && <div className="text-red-500 text-sm">{errors.profile_picture}</div>}
+                            {errors.profile_picture && (
+                                <div className="text-red-500 text-sm">{errors.profile_picture}</div>
+                            )}
                         </div>
+
                         <div className="flex items-center justify-end mt-4">
                             <button
                                 type="submit"
