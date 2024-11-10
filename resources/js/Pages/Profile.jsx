@@ -28,12 +28,8 @@ export default function Profile({ auth, user }) {
 
     return (
         <>
-            <Head title="User Profile" />
-            <header className="bg-gray-100 p-6 border-b border-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
-                <div className="container mx-auto flex justify-between items-center">
-                    {/* Logo and navbar can be added here if needed */}
-                </div>
-            </header>
+             <Head title="Main" />
+             <Header auth={auth} />
 
             <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
                 <div className="max-w-2xl w-full bg-white p-8 rounded shadow">
