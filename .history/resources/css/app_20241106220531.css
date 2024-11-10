@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.suggestions-list {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    z-index: 1000;
+}
+
+.suggestions-list li {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.suggestions-list li:hover {
+    background-color: #f0f0f0;
+}
+
+/* 自定义弹出窗口样式 */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.leaflet-container {
+    font: inherit;
+}
+
+.leaflet-popup-tip-container {
+    display: none;
+}
+
+/* 自定义缩放控件样式 */
+.leaflet-control-zoom a {
+    background-color: white !important;
+    color: #4B5563 !important;
+    border: none !important;
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    font-size: 15px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: #F3F4F6 !important;
+    color: #1F2937 !important;
+}
+
+/* 地图容器样式 */
+.leaflet-container {
+    background-color: #F9FAFB;
+}
