@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AdminController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,11 @@ Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
 Route::post('/users', [UserController::class, 'store'])->name('users.store');
 Route::get('/users', [UserController::class, 'index']);
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+Route::get('/apply-property', [PropertyController::class, 'create']);
+Route::post('/apply-property', [PropertyController::class, 'store']);
+
+Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
 
 
 require __DIR__.'/auth.php';
