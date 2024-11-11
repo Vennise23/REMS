@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, Head } from "@inertiajs/react";
+import { Link, Head, router } from "@inertiajs/react";
 
 import backgroundImage from "/resources/img/estate_property_background.jpg";
 import PropertyFormModal from "@/Components/PropertyFormModal";

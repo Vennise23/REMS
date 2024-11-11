@@ -51,7 +51,7 @@ export default function Main({ auth }) {
                             Home
                         </Link>
                         <Link
-                            href="#"
+                            href={route("buy")}
                             className="text-gray-600 hover:text-gray-900 font-medium"
                         >
                             Buy

@@ -82,7 +82,9 @@ class ProfileController extends Controller
         return redirect()->route('profile')->with('status', 'Profile updated successfully!');
     }
 
+
     /**
+     *
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse
