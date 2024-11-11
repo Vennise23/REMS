@@ -43,4 +43,25 @@ class Property extends Model
         'each_unit_has_electrical_meter' => 'boolean',
         'has_onsite_caretaker' => 'boolean',
     ];
+
+    // 添加默认值属性
+    protected $attributes = [
+        'property_name' => 'Untitled Property',
+        'property_type' => 'Conventional Condominium',
+        'property_address_line_1' => 'Address not provided',
+        'property_address_line_2' => '',
+        'city' => 'Not specified',
+        'postal_code' => '00000',
+        'purchase' => 'For Sale',
+        'sale_type' => 'Subsale',
+        'number_of_units' => 1,
+        'square_feet' => 0,
+        'price' => 0,
+        'parking' => 'Above ground',
+        'each_unit_has_furnace' => false,
+        'each_unit_has_electrical_meter' => false,
+        'has_onsite_caretaker' => false,
+        'additional_info' => '',
+        'username' => 'Anonymous',
+    ];
 }

@@ -29,24 +29,55 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+    // app/Http/Controllers/Auth/RegisteredUserController.php
+    // app/Http/Controllers/Auth/RegisteredUserController.php
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+public function store(Request $request): RedirectResponse
+{
+    $request->validate([
+        'firstname' => 'required|string|max:255',
+        'lastname' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|confirmed|min:8',
+        'ic_number' => 'required|string|max:255',
+        'age' => 'required|integer',
+        'born_date' => 'required|date',
+        'phone' => 'required|string|max:255',
+        'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'address_line_1' => 'required|string|max:255',
+        'address_line_2' => 'nullable|string|max:255',
+        'city' => 'required|string|max:255',
+        'postal_code' => 'required|string|max:10',
+    ]);
 
-        event(new Registered($user));
-
-        Auth::login($user);
-
-        return redirect(RouteServiceProvider::HOME);
+    // Handle profile picture upload
+    $profilePicturePath = null;
+    if ($request->hasFile('profile_picture')) {
+        $profilePicturePath = $request->file('profile_picture')->store('profile_pictures', 'public');
     }
+
+    $user = User::create([
+        'firstname' => $request->firstname,
+        'lastname' => $request->lastname,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'ic_number' => $request->ic_number,
+        'age' => $request->age,
+        'born_date' => $request->born_date,
+        'phone' => $request->phone,
+        'profile_picture' => $profilePicturePath,
+        'address_line_1' => $request->address_line_1,
+        'address_line_2' => $request->address_line_2,
+        'city' => $request->city,
+        'postal_code' => $request->postal_code,
+        'role' => 'user', // Default role for a user
+    ]);
+
+    event(new Registered($user));
+    Auth::login($user);
+
+    return redirect()->route('main'); // Redirect to main page
+}
+
+
 }
