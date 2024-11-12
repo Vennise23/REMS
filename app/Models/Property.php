@@ -64,4 +64,16 @@ class Property extends Model
         'additional_info' => '',
         'username' => 'Anonymous',
     ];
+
+    public function getFullAddress()
+    {
+        $address = $this->property_address_line_1;
+        if (!empty($this->property_address_line_2)) {
+            $address .= ', ' . $this->property_address_line_2;
+        }
+        $address .= ', ' . $this->city;
+        $address .= ', ' . $this->postal_code;
+        $address .= ', Malaysia';
+        return $address;
+    }
 }

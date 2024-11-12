@@ -36,6 +36,13 @@ class PropertyController extends Controller
                 'additional_info' => 'nullable|string',
             ]);
 
+            // 标准化设施名称
+            if (isset($validatedData['amenities'])) {
+                $validatedData['amenities'] = array_map(function($amenity) {
+                    return trim($amenity);
+                }, $validatedData['amenities']);
+            }
+
             if ($request->hasFile('certificate_photos')) {
                 $certificatePhotos = [];
                 foreach ($request->file('certificate_photos') as $photo) {
@@ -66,10 +73,13 @@ class PropertyController extends Controller
     public function index(Request $request)
     {
         try {
-            \Log::info('Received request params:', $request->all());
-            
-            $perPage = $request->query('per_page', 6);
             $query = Property::query();
+
+            // 城市搜索
+            if ($request->has('citySearch') && !empty($request->citySearch)) {
+                $citySearch = strtolower($request->citySearch);
+                $query->whereRaw('LOWER(city) LIKE ?', ['%' . $citySearch . '%']);
+            }
 
             // 处理属性类型筛选
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
@@ -92,15 +102,37 @@ class PropertyController extends Controller
                 $query->where('square_feet', '<=', $request->sizeMax);
             }
 
-            $properties = $query->paginate($perPage);
-            
-            \Log::info('Returning properties:', [
-                'total' => $properties->total(),
-                'per_page' => $properties->perPage(),
-                'current_page' => $properties->currentPage(),
-                'count' => $properties->count()
+            // 修改设施筛选逻辑
+            if ($request->has('amenities') && !empty($request->amenities)) {
+                $amenities = explode(',', $request->amenities);
+                \Log::info('Filtering amenities:', $amenities);
+                
+                // 修改为 AND 条件：必须包含所有选中的设施
+                foreach ($amenities as $amenity) {
+                    $query->whereJsonContains('amenities', trim($amenity));
+                }
+                
+                // 添加调试日志
+                \Log::info('Generated SQL:', [
+                    'sql' => $query->toSql(),
+                    'bindings' => $query->getBindings()
+                ]);
+            }
+
+            // 添加调试日志
+            \Log::info('SQL Query:', [
+                'sql' => $query->toSql(),
+                'bindings' => $query->getBindings()
             ]);
+
+            $properties = $query->paginate($request->input('per_page', 6));
             
+            // 添加调试日志
+            \Log::info('Found properties:', [
+                'count' => $properties->count(),
+                'total' => $properties->total()
+            ]);
+
             return response()->json($properties);
         } catch (\Exception $e) {
             \Log::error('Error in index method: ' . $e->getMessage());
@@ -188,6 +220,63 @@ class PropertyController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error in show method: ' . $e->getMessage());
             return redirect()->route('buy')->with('error', 'Property not found');
+        }
+    }
+
+    public function searchNearby(Request $request)
+    {
+        try {
+            $latitude = $request->input('latitude');
+            $longitude = $request->input('longitude');
+            $radius = $request->input('radius', 10); // 默认10公里
+            $perPage = $request->input('per_page', 6);
+
+            \Log::info('Searching properties near:', [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'radius' => $radius
+            ]);
+
+            // 使用 Haversine 公式计算距离（单位：公里）
+            $query = Property::select('*')
+                ->selectRaw('
+                    (6371 * acos(
+                        cos(radians(?)) * 
+                        cos(radians(CAST(latitude AS DOUBLE PRECISION))) * 
+                        cos(radians(CAST(longitude AS DOUBLE PRECISION)) - radians(?)) + 
+                        sin(radians(?)) * 
+                        sin(radians(CAST(latitude AS DOUBLE PRECISION)))
+                    )) AS distance', 
+                    [$latitude, $longitude, $latitude]
+                )
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->having('distance', '<=', $radius)
+                ->orderBy('distance');
+
+            // 保持现有的筛选条件
+            if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
+                $query->where('property_type', $request->propertyType);
+            }
+
+            if ($request->has('amenities') && !empty($request->amenities)) {
+                $amenities = explode(',', $request->amenities);
+                foreach ($amenities as $amenity) {
+                    $query->whereJsonContains('amenities', trim($amenity));
+                }
+            }
+
+            $properties = $query->paginate($perPage);
+
+            \Log::info('Found nearby properties:', [
+                'count' => $properties->count(),
+                'total' => $properties->total()
+            ]);
+
+            return response()->json($properties);
+        } catch (\Exception $e) {
+            \Log::error('Error in searchNearby method: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }

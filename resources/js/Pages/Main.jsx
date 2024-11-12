@@ -17,9 +17,7 @@ export default function Main({ auth }) {
         setIsModalOpen(false);
     };
 
-    const handleClick = () => {
-        router.get('/buy');
-    };
+   
 
     return (
         <>

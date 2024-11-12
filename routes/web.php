@@ -46,7 +46,6 @@ Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
 // 添加属性详情页面路由
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
-Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
 
 Route::get('/buy', function () {
     return Inertia::render('Buy', [
@@ -60,10 +59,24 @@ Route::get('/buy', function () {
 // 添加这个路由来获取属性列表
 Route::get('/api/properties', [PropertyController::class, 'index']);
 
-// 或者如果你想把它放在api路由组中，可以在 routes/api.php 中添加：
-Route::get('/properties', [PropertyController::class, 'index']);
-
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
+
+// 添加新的路由，不影响原有路由
+Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
+
+// 临时路由，用于调试
+Route::get('/debug/properties', function () {
+    $properties = \App\Models\Property::all();
+    return response()->json([
+        'properties' => $properties->map(function ($property) {
+            return [
+                'id' => $property->id,
+                'property_name' => $property->property_name,
+                'amenities' => $property->amenities
+            ];
+        })
+    ]);
+});
 
 
 

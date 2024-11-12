@@ -9,10 +9,10 @@ const PropertyDetail = ({ property, auth }) => {
     // 初始化状态
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-    // 合并所有照片，但排除最后一张
+    // 修改照片数组的组合顺序和类型
     const allPhotos = [
-        ...(property?.certificate_photos || []),
-        ...(property?.property_photos || []).slice(0, -1)
+        ...(property?.property_photos || []),
+        
     ];
 
     // 照片导航函数
@@ -31,18 +31,40 @@ const PropertyDetail = ({ property, auth }) => {
     // 添加地图相关状态
     const [mapPosition, setMapPosition] = useState([3.1390, 101.6869]); // 默认位置（吉隆坡）
 
+    // 添加新的状态来存储搜索信息
+    const [searchDebugInfo, setSearchDebugInfo] = useState({
+        searchedAddress: '',
+        foundCoordinates: null
+    });
+
     // 在组件加载时获取地理编码（可选）
     useEffect(() => {
-        if (property?.property_address_line_1) {
-            const address = `${property.property_address_line_1}, ${property.city}, ${property.postal_code}`;
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        setMapPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
-                    }
-                })
-                .catch(error => console.error('Error fetching coordinates:', error));
+        if (property) {
+            const fullAddress = `${property.property_address_line_1}, ${property.city}, ${property.postal_code}`;
+            setSearchDebugInfo(prev => ({...prev, searchedAddress: fullAddress}));
+            
+            const searchParams = new URLSearchParams({
+                format: 'json',
+                q: fullAddress,
+                countrycodes: 'my',
+                limit: 1,
+                addressdetails: 1
+            });
+
+            fetch(`https://nominatim.openstreetmap.org/search?${searchParams.toString()}`, {
+                headers: {
+                    'User-Agent': 'PropertyWebsite/1.0'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    setMapPosition([lat, lon]);
+                }
+            })
+            .catch(error => console.error('Error fetching location:', error));
         }
     }, [property]);
 
@@ -147,10 +169,22 @@ const PropertyDetail = ({ property, auth }) => {
                                         Property Details
                                     </h2>
                                     <ul className="space-y-2">
-                                        <li><span className="font-medium">Type:</span> {property?.property_type}</li>
-                                        <li><span className="font-medium">Units:</span> {property?.number_of_units}</li>
-                                        <li><span className="font-medium">City:</span> {property?.city}</li>
-                                        <li><span className="font-medium">Postal Code:</span> {property?.postal_code}</li>
+                                        <li>
+                                            <span className="font-medium">Type:</span> {property?.property_type}
+                                        </li>
+                                        <li>
+                                            <span className="font-medium">Units:</span> {property?.number_of_units}
+                                        </li>
+                                        <li>
+                                            <span className="font-medium">Address:</span> {property?.property_address_line_1}
+                                            {property?.property_address_line_2 && `, ${property.property_address_line_2}`}
+                                        </li>
+                                        <li>
+                                            <span className="font-medium">City:</span> {property?.city}
+                                        </li>
+                                        <li>
+                                            <span className="font-medium">Postal Code:</span> {property?.postal_code}
+                                        </li>
                                     </ul>
                                 </div>
                                 <div className="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition-colors duration-300">
@@ -248,10 +282,17 @@ const PropertyDetail = ({ property, auth }) => {
                         Location
                     </h2>
                     <Map 
-                        position={mapPosition} 
-                        propertyName={property?.property_name} 
-                        address={`${property?.property_address_line_1}, ${property?.city}, ${property?.postal_code}`}
+                        address={`${property?.property_address_line_1}, ${property?.city}, ${property?.postal_code}, MALAYSIA`}
+                        initialSearchQuery={`${property?.property_address_line_1}, ${property?.city}, ${property?.postal_code}, MALAYSIA`}
                     />
+                    
+                    {/* 添加地址调试信息 */}
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm">
+                        <h3 className="font-semibold text-gray-700 mb-2">Location Details:</h3>
+                        <div className="space-y-2">
+                            <p><span className="font-medium">Searched Address:</span> {searchDebugInfo.searchedAddress}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

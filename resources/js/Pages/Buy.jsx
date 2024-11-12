@@ -9,15 +9,25 @@ const Buy = ({ auth }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const propertiesPerPage = 6;
-    const [filters, setFilters] = useState({
-        propertyType: 'All Property',
-        priceMin: 0,
-        priceMax: 100000000000,
-        sizeMin: 0,
-        sizeMax: 100000,
-        bedrooms: 0,
+    const [filters, setFilters] = useState(() => {
+        const savedFilters = localStorage.getItem('propertyFilters');
+        return savedFilters ? JSON.parse(savedFilters) : {
+            propertyType: 'Conventional Condominium',
+            priceMin: '0',
+            priceMax: '1000000000',
+            sizeMin: '0',
+            sizeMax: '100000',
+            amenities: [],
+        };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
+    const [searchQuery, setSearchQuery] = useState('');
+    const [citySearchQuery, setCitySearchQuery] = useState('');
+
+    useEffect(() => {
+        localStorage.setItem('propertyFilters', JSON.stringify(filters));
+        fetchProperties();
+    }, [filters, citySearchQuery, currentPage]);
 
     // 在获取到属性列表后，获取每个属性的照片
     const fetchPropertyPhotos = async (propertyId) => {
@@ -35,80 +45,44 @@ const Buy = ({ auth }) => {
 
     // 添加筛选处理函数
     const handleFilterChange = (newFilters) => {
-        setFilters(newFilters);
-        setCurrentPage(1); // 重置到第一页
-        fetchProperties(newFilters);
+        setFilters(prev => ({
+            ...prev,
+            ...newFilters
+        }));
+        setCurrentPage(1);
     };
 
     // 将获取属性的逻辑抽取为独立函数
-    const fetchProperties = async (currentFilters = filters) => {
+    const fetchProperties = async () => {
         try {
             const queryParams = new URLSearchParams({
                 page: currentPage,
                 per_page: propertiesPerPage,
-                propertyType: currentFilters.propertyType,
-                priceMin: currentFilters.priceMin,
-                priceMax: currentFilters.priceMax,
-                sizeMin: currentFilters.sizeMin,
-                sizeMax: currentFilters.sizeMax,
+                propertyType: filters.propertyType,
+                priceMin: filters.priceMin,
+                priceMax: filters.priceMax,
+                sizeMin: filters.sizeMin,
+                sizeMax: filters.sizeMax,
+                amenities: filters.amenities.join(','),
+                citySearch: citySearchQuery
             });
 
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
-            setProperties(data.data);
-            setTotalPages(Math.ceil(data.total / propertiesPerPage));
-            
-            // 获取每个属性的照片
-            data.data.forEach(property => {
-                fetchPropertyPhotos(property.id);
-            });
+
+            if (data.data) {
+                setProperties(data.data);
+                setTotalPages(Math.ceil(data.total / propertiesPerPage));
+                
+                // 获取每个属性的照片
+                data.data.forEach(property => {
+                    fetchPropertyPhotos(property.id);
+                });
+            }
         } catch (error) {
             console.error('Error fetching properties:', error);
         }
     };
-
-    // 修改 useEffect 使用新的 fetchProperties 函数
-    useEffect(() => {
-        const initializeData = async () => {
-            try {
-                const queryParams = new URLSearchParams({
-                    page: currentPage,
-                    per_page: propertiesPerPage,
-                    propertyType: filters.propertyType,
-                    priceMin: filters.priceMin,
-                    priceMax: filters.priceMax,
-                    sizeMin: filters.sizeMin,
-                    sizeMax: filters.sizeMax,
-                });
-
-                console.log('Fetching properties with params:', queryParams.toString());
-                const response = await fetch(`/api/properties?${queryParams}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('Received data:', data);
-                
-                if (data.data && Array.isArray(data.data)) {
-                    setProperties(data.data);
-                    setTotalPages(Math.ceil(data.total / propertiesPerPage));
-                    
-                    // 获取每个属性的照片
-                    data.data.forEach(property => {
-                        fetchPropertyPhotos(property.id);
-                    });
-                } else {
-                    console.error('Invalid data format:', data);
-                }
-            } catch (error) {
-                console.error('Error fetching properties:', error);
-            }
-        };
-
-        initializeData();
-    }, [currentPage, filters]); // 添加 filters 作为依赖项
 
     // 分页按钮处理函数
     const handlePageChange = (pageNumber) => {
@@ -136,6 +110,52 @@ const Buy = ({ auth }) => {
         return buttons;
     };
 
+    // 添加新的搜索方法
+    const searchNearbyProperties = async (searchParams) => {
+        try {
+            const queryParams = new URLSearchParams({
+                latitude: searchParams.latitude,
+                longitude: searchParams.longitude,
+                radius: searchParams.searchRadius || 10,
+                page: currentPage,
+                per_page: propertiesPerPage,
+                amenities: filters.amenities.join(','),
+            });
+
+            const response = await fetch(`/api/properties/nearby?${queryParams}`);
+            const data = await response.json();
+
+            if (data.data && Array.isArray(data.data)) {
+                setProperties(data.data);
+                setTotalPages(Math.ceil(data.total / propertiesPerPage));
+                
+                // 获取每个属性的照片
+                data.data.forEach(property => {
+                    fetchPropertyPhotos(property.id);
+                });
+            }
+        } catch (error) {
+            console.error('Error searching nearby properties:', error);
+        }
+    };
+
+    // 添加处理地址搜索的方法
+    const handleLocationSearch = (locationData) => {
+        if (locationData.latitude && locationData.longitude) {
+            searchNearbyProperties({
+                latitude: locationData.latitude,
+                longitude: locationData.longitude,
+                searchRadius: locationData.radius || 10
+            });
+        }
+    };
+
+    // 添加城市搜索处理函数
+    const handleCitySearch = (value) => {
+        setCitySearchQuery(value);
+        setCurrentPage(1); // 重置页码
+    };
+
     const defaultAuth = {
         user: null,
         ...auth
@@ -150,16 +170,20 @@ const Buy = ({ auth }) => {
 
             <Header auth={defaultAuth} />
 
-            <div className="pt-24">
+            <div className="min-h-screen bg-gray-50 pt-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
+                    {/* 搜索和筛选区域 */}
+                    <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+                        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Find Your Dream Property</h2>
                         <FilterSection 
                             filters={filters} 
                             setFilters={handleFilterChange}
+                            onCitySearch={handleCitySearch}
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* 属性列表 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {properties.map((property) => (
                             <PropertyCard 
                                 key={property.id} 
@@ -170,20 +194,22 @@ const Buy = ({ auth }) => {
                     </div>
 
                     {/* 分页控件 */}
-                    <div className="flex justify-center mt-8 mb-8">
+                    <div className="flex justify-center mt-12 mb-8 space-x-2">
                         {currentPage > 1 && (
                             <button
                                 onClick={() => handlePageChange(currentPage - 1)}
-                                className="px-4 py-2 mx-1 rounded bg-gray-200 hover:bg-gray-300"
+                                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
                             >
                                 Previous
                             </button>
                         )}
-                        {renderPaginationButtons()}
+                        <div className="flex space-x-2">
+                            {renderPaginationButtons()}
+                        </div>
                         {currentPage < totalPages && (
                             <button
                                 onClick={() => handlePageChange(currentPage + 1)}
-                                className="px-4 py-2 mx-1 rounded bg-gray-200 hover:bg-gray-300"
+                                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
                             >
                                 Next
                             </button>
