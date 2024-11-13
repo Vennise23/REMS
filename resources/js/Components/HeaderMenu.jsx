@@ -16,7 +16,7 @@ export default function Header({ auth = { user: null } }) {
                 <nav className="flex-grow flex justify-center space-x-8">
                     <Link href={route("main")} className="text-gray-600 hover:text-gray-900 font-medium">Home</Link>
                     <Link href={route("buy")} className="text-gray-600 hover:text-gray-900 font-medium">Buy</Link>
-                    <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">Rent</Link>
+                    <Link href={route} className="text-gray-600 hover:text-gray-900 font-medium">Rent</Link>
                     <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">New Launches</Link>
                     <Link href="#" className="text-gray-600 hover:text-gray-900 font-medium">Find Agent</Link>
                 </nav>

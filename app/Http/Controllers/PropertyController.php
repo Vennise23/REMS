@@ -75,6 +75,9 @@ class PropertyController extends Controller
         try {
             $query = Property::query();
 
+            // 确保只返回 For Sale 的属性
+            $query->where('purchase', 'For Sale');
+
             // 城市搜索
             if ($request->has('citySearch') && !empty($request->citySearch)) {
                 $citySearch = strtolower($request->citySearch);
@@ -127,10 +130,10 @@ class PropertyController extends Controller
 
             $properties = $query->paginate($request->input('per_page', 6));
             
-            // 添加调试日志
-            \Log::info('Found properties:', [
+            // 添加日志
+            \Log::info('Properties returned from index:', [
                 'count' => $properties->count(),
-                'total' => $properties->total()
+                'properties' => $properties->toArray()
             ]);
 
             return response()->json($properties);
@@ -143,8 +146,16 @@ class PropertyController extends Controller
     public function showBuyPage()
     {
         try {
-            // 每页显示6个属性
-            $properties = Property::paginate(6);
+            // 添加日志来调试查询
+            \Log::info('Fetching properties for Buy page');
+            
+            $properties = Property::where('purchase', 'For Sale')->paginate(6);
+            
+            // 添加日志来查看获取到的属性
+            \Log::info('Properties fetched:', [
+                'count' => $properties->count(),
+                'properties' => $properties->toArray()
+            ]);
             
             return Inertia::render('Buy', [
                 'auth' => [
@@ -153,6 +164,7 @@ class PropertyController extends Controller
                 'properties' => $properties
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in showBuyPage: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
