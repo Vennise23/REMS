@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const FilterSection = ({ filters, setFilters, onCitySearch }) => {
+const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue' }) => {
     const [expandedSection, setExpandedSection] = useState(null);
     const [amenityFilters, setAmenityFilters] = useState({
         pool: false,
@@ -65,6 +65,24 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
         onCitySearch(value); // 确保这个函数被调用
     };
 
+    // 定义主题样式
+    const themeStyles = {
+        blue: {
+            focus: 'focus:border-blue-500 focus:ring-blue-500',
+            checkbox: 'text-blue-600 focus:ring-blue-500',
+            button: 'bg-blue-600 hover:bg-blue-700',
+            hover: 'hover:border-blue-500',
+        },
+        green: {
+            focus: 'focus:border-green-500 focus:ring-green-500',
+            checkbox: 'text-green-600 focus:ring-green-500',
+            button: 'bg-green-600 hover:bg-green-700',
+            hover: 'hover:border-green-500',
+        }
+    };
+
+    const currentTheme = themeStyles[theme] || themeStyles.blue;
+
     return (
         <div className="space-y-6">
             {/* 主要筛选区域 */}
@@ -76,7 +94,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                         name="propertyType"
                         value={filters.propertyType}
                         onChange={handleInputChange}
-                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
                     >
                         <option value="All Property">All Property</option>
                         <option value="Conventional Condominium">Conventional Condominium</option>
@@ -95,7 +113,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                             value={filters.priceMin}
                             onChange={handleInputChange}
                             placeholder="Min"
-                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
                         />
                         <input
                             type="number"
@@ -103,7 +121,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                             value={filters.priceMax}
                             onChange={handleInputChange}
                             placeholder="Max"
-                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
                         />
                     </div>
                 </div>
@@ -118,7 +136,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                             value={filters.sizeMin}
                             onChange={handleInputChange}
                             placeholder="Min"
-                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
                         />
                         <input
                             type="number"
@@ -126,7 +144,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                             value={filters.sizeMax}
                             onChange={handleInputChange}
                             placeholder="Max"
-                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
                         />
                     </div>
                 </div>
@@ -138,7 +156,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                         type="text"
                         value={citySearchQuery}
                         onChange={handleCitySearchChange}
-                        className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
                         placeholder="Enter a city name..."
                     />
                 </div>
@@ -155,7 +173,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch }) => {
                                 id={amenity}
                                 checked={filters.amenities.includes(amenity)}
                                 onChange={() => handleAmenityChange(amenity)}
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                className={`rounded border-gray-300 ${currentTheme.checkbox}`}
                             />
                             <label htmlFor={amenity} className="text-sm text-gray-600">{amenity}</label>
                         </div>

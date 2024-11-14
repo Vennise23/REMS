@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-const Map = ({ address, initialSearchQuery }) => {
+const Map = ({ address, initialSearchQuery, theme = 'blue' }) => {
     const [searchQuery, setSearchQuery] = useState(address || '');
+
+    const themeClasses = {
+        button: theme === 'green' 
+            ? 'bg-green-600 hover:bg-green-700' 
+            : 'bg-blue-600 hover:bg-blue-700',
+        focus: theme === 'green'
+            ? 'focus:ring-green-500 focus:border-green-500'
+            : 'focus:ring-blue-500 focus:border-blue-500'
+    };
 
     useEffect(() => {
         if (address) {
@@ -33,12 +42,12 @@ const Map = ({ address, initialSearchQuery }) => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg ${themeClasses.focus}`}
                         placeholder="Search address..."
                     />
                     <button
                         type="submit"
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                        className={`px-6 py-2 ${themeClasses.button} text-white rounded-lg transition-colors duration-200`}
                     >
                         Search
                     </button>

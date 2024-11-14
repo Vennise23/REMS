@@ -75,68 +75,50 @@ class PropertyController extends Controller
         try {
             $query = Property::query();
 
-            // 确保只返回 For Sale 的属性
-            $query->where('purchase', 'For Sale');
+            // 根据页面类型设置购买类型
+            $purchaseType = $request->input('purchase', 'For Sale');
+            $query->where('purchase', $purchaseType);
 
-            // 城市搜索
-            if ($request->has('citySearch') && !empty($request->citySearch)) {
-                $citySearch = strtolower($request->citySearch);
-                $query->whereRaw('LOWER(city) LIKE ?', ['%' . $citySearch . '%']);
-            }
-
-            // 处理属性类型筛选
+            // 属性类型筛选
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
             }
 
-            // 处理价格范围筛选
-            if ($request->has('priceMin') && $request->priceMin !== '0') {
+            // 其他筛选条件...
+            if ($request->has('priceMin')) {
                 $query->where('price', '>=', $request->priceMin);
             }
-            if ($request->has('priceMax') && $request->priceMax !== '0') {
+            if ($request->has('priceMax')) {
                 $query->where('price', '<=', $request->priceMax);
             }
-
-            // 处理面积范围筛选
-            if ($request->has('sizeMin') && $request->sizeMin !== '0') {
+            if ($request->has('sizeMin')) {
                 $query->where('square_feet', '>=', $request->sizeMin);
             }
-            if ($request->has('sizeMax') && $request->sizeMax !== '0') {
+            if ($request->has('sizeMax')) {
                 $query->where('square_feet', '<=', $request->sizeMax);
             }
-
-            // 修改设施筛选逻辑
+            if ($request->has('citySearch') && !empty($request->citySearch)) {
+                $query->where('city', 'like', '%' . $request->citySearch . '%');
+            }
             if ($request->has('amenities') && !empty($request->amenities)) {
                 $amenities = explode(',', $request->amenities);
-                \Log::info('Filtering amenities:', $amenities);
-                
-                // 修改为 AND 条件：必须包含所有选中的设施
                 foreach ($amenities as $amenity) {
-                    $query->whereJsonContains('amenities', trim($amenity));
+                    if (!empty(trim($amenity))) {
+                        $query->whereJsonContains('amenities', trim($amenity));
+                    }
                 }
-                
-                // 添加调试日志
-                \Log::info('Generated SQL:', [
-                    'sql' => $query->toSql(),
-                    'bindings' => $query->getBindings()
-                ]);
             }
 
-            // 添加调试日志
-            \Log::info('SQL Query:', [
-                'sql' => $query->toSql(),
-                'bindings' => $query->getBindings()
-            ]);
-
             $properties = $query->paginate($request->input('per_page', 6));
-            
-            // 添加日志
-            \Log::info('Properties returned from index:', [
-                'count' => $properties->count(),
-                'properties' => $properties->toArray()
+
+            return response()->json([
+                'data' => $properties->items(),
+                'total' => $properties->total(),
+                'per_page' => $properties->perPage(),
+                'current_page' => $properties->currentPage(),
+                'last_page' => $properties->lastPage()
             ]);
 
-            return response()->json($properties);
         } catch (\Exception $e) {
             \Log::error('Error in index method: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
@@ -145,28 +127,16 @@ class PropertyController extends Controller
 
     public function showBuyPage()
     {
-        try {
-            // 添加日志来调试查询
-            \Log::info('Fetching properties for Buy page');
-            
-            $properties = Property::where('purchase', 'For Sale')->paginate(6);
-            
-            // 添加日志来查看获取到的属性
-            \Log::info('Properties fetched:', [
-                'count' => $properties->count(),
-                'properties' => $properties->toArray()
-            ]);
-            
-            return Inertia::render('Buy', [
-                'auth' => [
-                    'user' => auth()->user()
-                ],
-                'properties' => $properties
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error in showBuyPage: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return Inertia::render('Buy', [
+            'auth' => ['user' => auth()->user()]
+        ]);
+    }
+
+    public function showRentPage()
+    {
+        return Inertia::render('Rent', [
+            'auth' => ['user' => auth()->user()]
+        ]);
     }
 
     public function getPropertyPhotos($propertyId)

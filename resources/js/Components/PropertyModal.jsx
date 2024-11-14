@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { FaWhatsapp, FaDownload, FaPhone, FaEnvelope, FaUser } from 'react-icons/fa';
 
-const PropertyModal = ({ isOpen, onClose, property, onConfirm }) => {
+const PropertyModal = ({ isOpen, onClose, property, onConfirm, theme = 'blue' }) => {
     if (!isOpen) return null;
 
     // Hardcoded contact info for demo
     const contactInfo = {
         phone: '+60 12-345 6789',
         email: 'owner@example.com'
+    };
+
+    const themeClasses = {
+        button: theme === 'green' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
     };
 
     const handleWhatsApp = () => {

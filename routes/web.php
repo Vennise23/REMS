@@ -46,15 +46,8 @@ Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
 // 添加属性详情页面路由
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
-
-Route::get('/buy', function () {
-    return Inertia::render('Buy', [
-        'auth' => [
-            'user' => auth()->user()
-        ],
-        'properties' => \App\Models\Property::all()
-    ]);
-})->name('buy');
+Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
+Route::get('/buy', [PropertyController::class, 'showBuyPage'])->name('buy');
 
 // 添加这个路由来获取属性列表
 Route::get('/api/properties', [PropertyController::class, 'index']);
