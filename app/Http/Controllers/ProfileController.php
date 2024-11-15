@@ -104,4 +104,32 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    public function checkName(Request $request)
+    {
+        $firstname = $request->input('firstname');
+        $lastname = $request->input('lastname');
+
+        // Check if firstname and lastname already exist in the database
+        $exists = User::where('firstname', $firstname)
+            ->where('lastname', $lastname)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'errors' => [
+                    'nameExists' => 'The combination of first name and last name is already registered. Please use a different name.',
+                ]
+            ], 422);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function checkEmail(Request $request)
+    {
+        $emailExists = User::where('email', $request->input('email'))->exists();
+
+        return response()->json(['exists' => $emailExists]);
+    }
 }

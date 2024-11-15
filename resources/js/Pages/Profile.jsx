@@ -1,210 +1,317 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm, Head } from "@inertiajs/react";
 import Header from "@/Components/HeaderMenu";
+import UserSidebar from "@/Components/UserSidebar";
+import axios from "axios";
 
 export default function Profile({ auth, user }) {
-    const { data, setData, post, patch, errors, processing } = useForm({
-        firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
-        ic_number: user.ic_number,
-        age: user.age,
-        born_date: user.born_date,
-        phone: user.phone,
-        address_line_1: user.address_line_1,
-        address_line_2: user.address_line_2,
-        city: user.city,
-        postal_code: user.postal_code,
+    const originalEmail = user.email; // Define the original email here
+    const { data, setData, post, processing } = useForm({
+        firstname: user.firstname || "",
+        lastname: user.lastname || "",
+        email: user.email || "",
+        ic_number: user.ic_number || "",
+        age: user.age || "",
+        born_date: user.born_date || "",
+        phone: user.phone || "",
+        address_line_1: user.address_line_1 || "",
+        address_line_2: user.address_line_2 || "",
+        city: user.city || "",
+        postal_code: user.postal_code || "",
         profile_picture: null,
     });
 
-    const handleSubmit = (e) => {
+    const [formErrors, setFormErrors] = useState({});
+    const [isIC, setIsIC] = useState(false);
+
+    const validateFields = (field, value) => {
+        let errors = { ...formErrors };
+
+        if (field === "firstname" || field === "lastname") {
+            if (data.firstname === data.lastname) {
+                errors["nameMatch"] = "First name and last name cannot be the same.";
+            } else {
+                delete errors["nameMatch"];
+            }
+        }
+
+        if (field === "age") {
+            const age = parseInt(value);
+            if (age < 1 || age > 100) {
+                errors["age"] = "Age must be between 1 and 100.";
+            } else {
+                delete errors["age"];
+            }
+        }
+
+        if (field === "phone" && /\D/.test(value)) {
+            errors["phone"] = "Phone number can only contain digits.";
+        } else {
+            delete errors["phone"];
+        }
+
+        setFormErrors(errors);
+    };
+
+    const handleChange = (field, value) => {
+        setData(field, value);
+        validateFields(field, value);
+
+        // Check email uniqueness only if the email is different from the original
+        if (field === "email" && value !== originalEmail) {
+            checkEmailUniqueness(value);
+        } else if (field === "email" && value === originalEmail) {
+            // If email is reverted to original, clear any email errors
+            setFormErrors((prevErrors) => {
+                const { email, ...rest } = prevErrors;
+                return rest;
+            });
+        }
+    };
+
+    const checkEmailUniqueness = async (email) => {
+        try {
+            const response = await axios.post(route("profile.checkEmail"), { email });
+            if (response.data.exists) {
+                setFormErrors((prevErrors) => ({
+                    ...prevErrors,
+                    email: "This email is already registered. Please use a different email.",
+                }));
+            } else {
+                setFormErrors((prevErrors) => {
+                    const { email, ...rest } = prevErrors;
+                    return rest;
+                });
+            }
+        } catch (error) {
+            console.error("Error checking email uniqueness:", error);
+        }
+    };
+
+    const handleICorPassport = (e) => {
+        const value = e.target.value;
+    
+        // Update the IC number field directly without any conditions to allow user input
+        setData("ic_number", value);
+    
+        // Check if the input resembles an IC format (12 numeric characters)
+        if (value.length === 12 && /^\d+$/.test(value)) {
+            setIsIC(true);
+    
+            // Auto-populate age and birth date based on IC format
+            const year = parseInt(value.slice(0, 2), 10);
+            const month = parseInt(value.slice(2, 4), 10);
+            const day = parseInt(value.slice(4, 6), 10);
+    
+            const birthYear = year > 20 ? 1900 + year : 2000 + year;
+            const birthDate = new Date(birthYear, month - 1, day);
+    
+            setData("born_date", birthDate.toISOString().split("T")[0]);
+            setData("age", new Date().getFullYear() - birthYear);
+        } else {
+            setIsIC(false);
+            setData("age", "");
+            setData("born_date", "");
+        }
+    };
+    
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (data.firstname === data.lastname) {
+            alert("First name and last name cannot be the same.");
+            return;
+        }
+
         post(route("profile.update"), {
             onSuccess: () => {
                 window.location.reload();
-            }
+            },
         });
+        
     };
 
-    const handleFileChange = (e) => {
-        setData("profile_picture", e.target.files[0]);
-    };
+    const userImage = data.profile_picture
+        ? URL.createObjectURL(data.profile_picture)
+        : auth.user.profile_picture
+        ? `/storage/${auth.user.profile_picture}`
+        : "https://ui-avatars.com/api/?name=User&background=random";
 
     return (
         <>
             <Head title="Profile Edit" />
             <Header auth={auth} />
 
-            <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
-                <div className="max-w-2xl w-full bg-white p-8 rounded shadow">
-                    <h2 className="text-2xl font-semibold mb-6">Edit Profile</h2>
-                    <form onSubmit={handleSubmit} encType="multipart/form-data">
-                        <div className="mb-4">
-                            <label className="block text-gray-700">First Name</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.firstname}
-                                onChange={(e) => setData("firstname", e.target.value)}
-                            />
-                            {errors.firstname && (
-                                <div className="text-red-500 text-sm">{errors.firstname}</div>
-                            )}
+            <main className="flex flex-col md:flex-row pt-20 min-h-screen bg-gray-100">
+                <UserSidebar />
+
+                <div className="flex-1 flex justify-center p-6 md:p-12">
+                    <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 bg-white p-8 rounded shadow-lg">
+                        <div className="col-span-1 text-center">
+                            <div
+                                className="w-32 h-32 rounded-full mx-auto bg-cover bg-center"
+                                style={{ backgroundImage: `url(${userImage})` }}
+                            ></div>
+                            <label className="block mt-2 text-sm text-gray-600 cursor-pointer">
+                                Edit Picture
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(e) => setData("profile_picture", e.target.files[0])}
+                                />
+                            </label>
+                            <p className="text-lg font-semibold mt-4">{`${data.firstname} ${data.lastname}`}</p>
+                            <p className="text-gray-600">{data.phone}</p>
+                            <p className="text-gray-600">{data.email}</p>
                         </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Last Name</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.lastname}
-                                onChange={(e) => setData("lastname", e.target.value)}
-                            />
-                            {errors.lastname && (
-                                <div className="text-red-500 text-sm">{errors.lastname}</div>
-                            )}
-                        </div>
+                        <div className="col-span-2">
+                            <h2 className="text-2xl font-semibold mb-6">My Profile</h2>
+                            <form onSubmit={handleSubmit} encType="multipart/form-data">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">First Name</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.firstname}
+                                            onChange={(e) => handleChange("firstname", e.target.value)}
+                                        />
+                                        {formErrors.nameMatch && (
+                                            <div className="text-red-500 text-sm">{formErrors.nameMatch}</div>
+                                        )}
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Email</label>
-                            <input
-                                type="email"
-                                className="mt-1 block w-full"
-                                value={data.email}
-                                onChange={(e) => setData("email", e.target.value)}
-                            />
-                            {errors.email && (
-                                <div className="text-red-500 text-sm">{errors.email}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Last Name</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.lastname}
+                                            onChange={(e) => handleChange("lastname", e.target.value)}
+                                        />
+                                        {formErrors.nameMatch && (
+                                            <div className="text-red-500 text-sm">{formErrors.nameMatch}</div>
+                                        )}
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">IC Number</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.ic_number}
-                                onChange={(e) => setData("ic_number", e.target.value)}
-                            />
-                            {errors.ic_number && (
-                                <div className="text-red-500 text-sm">{errors.ic_number}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Email</label>
+                                        <input
+                                            type="email"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.email}
+                                            onChange={(e) => handleChange("email", e.target.value)}
+                                        />
+                                        {formErrors.email && (
+                                            <div className="text-red-500 text-sm">{formErrors.email}</div>
+                                        )}
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Age</label>
-                            <input
-                                type="number"
-                                className="mt-1 block w-full"
-                                value={data.age}
-                                onChange={(e) => setData("age", e.target.value)}
-                            />
-                            {errors.age && (
-                                <div className="text-red-500 text-sm">{errors.age}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">IC Number / Passport</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.ic_number}
+                                            onChange={handleICorPassport}
+                                         />
+                                    </div>  
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Born Date</label>
-                            <input
-                                type="date"
-                                className="mt-1 block w-full"
-                                value={data.born_date}
-                                onChange={(e) => setData("born_date", e.target.value)}
-                            />
-                            {errors.born_date && (
-                                <div className="text-red-500 text-sm">{errors.born_date}</div>
-                            )}
-                        </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Phone</label>
-                            <input
-                                type="tel"
-                                className="mt-1 block w-full"
-                                value={data.phone}
-                                onChange={(e) => setData("phone", e.target.value)}
-                            />
-                            {errors.phone && (
-                                <div className="text-red-500 text-sm">{errors.phone}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Age</label>
+                                        <input
+                                            type="number"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.age}
+                                            onChange={(e) => handleChange("age", e.target.value)}
+                                            min="1"
+                                            max="100"
+                                        />
+                                        {formErrors.age && (
+                                            <div className="text-red-500 text-sm">{formErrors.age}</div>
+                                        )}
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Address Line 1</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.address_line_1}
-                                onChange={(e) => setData("address_line_1", e.target.value)}
-                            />
-                            {errors.address_line1 && (
-                                <div className="text-red-500 text-sm">{errors.address_line_1}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Born Date</label>
+                                        <input
+                                            type="date"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.born_date}
+                                            disabled={isIC}
+                                            onChange={(e) => setData("born_date", e.target.value)}
+                                        />
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Address Line 2</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.address_line_2}
-                                onChange={(e) => setData("address_line_2", e.target.value)}
-                            />
-                            {errors.address_line2 && (
-                                <div className="text-red-500 text-sm">{errors.address_line_2}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Phone Number</label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.phone}
+                                            onChange={(e) => handleChange("phone", e.target.value.replace(/\D/g, ''))}
+                                        />
+                                        {formErrors.phone && (
+                                            <div className="text-red-500 text-sm">{formErrors.phone}</div>
+                                        )}
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">City</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.city}
-                                onChange={(e) => setData("city", e.target.value)}
-                            />
-                            {errors.city && (
-                                <div className="text-red-500 text-sm">{errors.city}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Address Line 1</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.address_line_1}
+                                            onChange={(e) => setData("address_line_1", e.target.value)}
+                                        />
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Postal Code</label>
-                            <input
-                                type="text"
-                                className="mt-1 block w-full"
-                                value={data.postal_code}
-                                onChange={(e) => setData("postal_code", e.target.value)}
-                            />
-                            {errors.postal_code && (
-                                <div className="text-red-500 text-sm">{errors.postal_code}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Address Line 2</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.address_line_2}
+                                            onChange={(e) => setData("address_line_2", e.target.value)}
+                                        />
+                                    </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Profile Picture</label>
-                            <input
-                                type="file"
-                                className="mt-1 block w-full"
-                                onChange={handleFileChange}
-                            />
-                            {errors.profile_picture && (
-                                <div className="text-red-500 text-sm">{errors.profile_picture}</div>
-                            )}
-                        </div>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">City</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.city}
+                                            onChange={(e) => setData("city", e.target.value)}
+                                        />
+                                    </div>
 
-                        <div className="flex items-center justify-end mt-4">
-                            <button
-                                type="submit"
-                                className="bg-blue-500 text-white px-4 py-2 rounded"
-                                disabled={processing}
-                            >
-                                {processing ? "Saving..." : "Save Changes"}
-                            </button>
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">Postal Code</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            value={data.postal_code}
+                                            onChange={(e) => setData("postal_code", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-end mt-6">
+                                    <button
+                                        type="submit"
+                                        className="bg-orange-500 text-white px-6 py-2 rounded-full"
+                                        disabled={processing}
+                                    >
+                                        {processing ? "Saving..." : "Save Changes"}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </main>
         </>

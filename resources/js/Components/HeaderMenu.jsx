@@ -118,7 +118,7 @@ export default function Main({ auth }) {
                                             src={
                                                 auth.user.profile_picture
                                                     ? `/storage/${auth.user.profile_picture}`
-                                                    : "/default_profile.png"
+                                                    : "https://ui-avatars.com/api/?name=User&background=random"
                                             }
                                             alt="Profile"
                                             className="w-8 h-8 rounded-full"

@@ -2,9 +2,21 @@
 
 import React from "react";
 import { Link, usePage } from "@inertiajs/react";
+import axios from "axios";
 
 export default function AdminSidebar({ isOpen, toggleSidebar }) {
     const { csrf_token } = usePage().props;
+
+    const handleLogout = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await axios.post(route("logout"));
+            console.log("Logout successful:", response);
+            window.location.href = "/";
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
 
     return (
         <aside
@@ -46,19 +58,19 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                 >
                     Reports
                 </Link>
-                <form
-                    method="POST"
-                    action={route("logout")}
-                    className="mt-auto"
-                >
-                    <input type="hidden" name="_token" value={csrf_token || ""} />
+                <Link>
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value={csrf_token || ""}
+                    />
                     <button
-                        type="submit"
+                        onClick={handleLogout}
                         className="w-full text-left hover:bg-blue-700 p-2 rounded"
                     >
                         Logout
                     </button>
-                </form>
+                </Link>
             </nav>
 
             {/* Close button for mobile view */}
@@ -69,5 +81,5 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                 &times;
             </button>
         </aside>
-    );
+    );
 }

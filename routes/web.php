@@ -45,21 +45,25 @@ Route::get('/dbconn', function () {
 Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])->name('admin.login');
 Route::post('/admin/login', [AuthenticatedSessionController::class, 'storeAdmin'])->name('admin.login.store');
 
+// Admin routes with user management
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
-});
 
-// User Management routes for admin
-Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-Route::post('/users', [UserController::class, 'store'])->name('users.store');
-Route::get('/users', [UserController::class, 'index']);
-Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    // User Management routes for admin
+    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users', [UserController::class, 'index']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});
 
 Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
 
 Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
+
+Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
+
 
 
 require __DIR__.'/auth.php';
