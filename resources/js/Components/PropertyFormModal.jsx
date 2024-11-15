@@ -195,6 +195,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         const data = new FormData();
         console.log("Form submitted:", formData);
 
+        console.log("data : ", data);
         // Process each field in formData
         Object.keys(formData).forEach((key) => {
             if (key === "certificate_photos" || key === "property_photos") {
@@ -218,7 +219,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
         try {
             const response = await axios.post(
-                "http://www.rems.com/apply-property",
+                "http://127.0.0.1:8000/apply-property", // change your url here
                 data,
                 {
                     headers: {
@@ -240,6 +241,13 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             }
         }
     };
+
+
+
+
+
+
+
 
     const handleCloseSuccessModal = () => {
         setShowSuccessModal(false);

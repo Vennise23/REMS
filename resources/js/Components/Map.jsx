@@ -1,67 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { Icon } from 'leaflet';
 
-const Map = ({ position, propertyName, address }) => {
-    const [isClient, setIsClient] = useState(false);
+const Map = ({ address, initialSearchQuery, theme = 'blue' }) => {
+    const [searchQuery, setSearchQuery] = useState(address || '');
+
+    const themeClasses = {
+        button: theme === 'green' 
+            ? 'bg-green-600 hover:bg-green-700' 
+            : 'bg-blue-600 hover:bg-blue-700',
+        focus: theme === 'green'
+            ? 'focus:ring-green-500 focus:border-green-500'
+            : 'focus:ring-blue-500 focus:border-blue-500'
+    };
 
     useEffect(() => {
-        setIsClient(true);
-    }, []);
+        if (address) {
+            setSearchQuery(address);
+            
+            const iframe = document.getElementById('gmap_canvas');
+            if (iframe) {
+                iframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+            }
+        }
+    }, [address]);
 
-    const customIcon = new Icon({
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-        shadowSize: [41, 41]
-    });
-
-    if (!isClient) {
-        return (
-            <div className="h-[400px] bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
-                    <p className="text-gray-600">Loading map...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            const encodedAddress = encodeURIComponent(searchQuery);
+            const iframe = document.getElementById('gmap_canvas');
+            if (iframe) {
+                iframe.src = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+            }
+        }
+    };
 
     return (
         <div className="relative max-w-4xl mx-auto">
-            <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Property Location</h3>
-                <p className="text-gray-600">{address}</p>
-            </div>
-            
-            <div className="rounded-lg overflow-hidden shadow-lg">
-                <MapContainer 
-                    center={position} 
-                    zoom={15} 
-                    style={{ height: '500px' }}
-                    zoomControl={false}
-                    className="z-10"
-                >
-                    <TileLayer
-                        url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            <div className="mb-4">
+                <form onSubmit={handleSearch} className="flex gap-2">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg ${themeClasses.focus}`}
+                        placeholder="Search address..."
                     />
-                    <ZoomControl position="bottomright" />
-                    <Marker position={position} icon={customIcon}>
-                        <Popup className="custom-popup">
-                            <div className="p-3">
-                                <h3 className="font-semibold text-blue-700 mb-2">{propertyName}</h3>
-                                <p className="text-gray-600 text-sm">{address}</p>
-                            </div>
-                        </Popup>
-                    </Marker>
-                </MapContainer>
+                    <button
+                        type="submit"
+                        className={`px-6 py-2 ${themeClasses.button} text-white rounded-lg transition-colors duration-200`}
+                    >
+                        Search
+                    </button>
+                </form>
+            </div>
+
+            <div className="rounded-lg overflow-hidden shadow-lg">
+                <div className="map-svg-container" style={{ height: '500px' }}>
+                    <div className="map-svg h-full">
+                        <div className="gmap_canvas h-full">
+                            <iframe 
+                                width="100%" 
+                                height="100%" 
+                                id="gmap_canvas" 
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(searchQuery)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                                frameBorder="0" 
+                                scrolling="no" 
+                                marginHeight="0" 
+                                marginWidth="0"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-export default Map; 
+export default Map;

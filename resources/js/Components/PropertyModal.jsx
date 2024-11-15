@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { FaWhatsapp, FaDownload, FaPhone, FaEnvelope, FaUser } from 'react-icons/fa';
 
-const PropertyModal = ({ isOpen, onClose, property, onConfirm }) => {
+const PropertyModal = ({ isOpen, onClose, property, onConfirm, theme = 'blue' }) => {
     if (!isOpen) return null;
-
-    const [privacyChecked, setPrivacyChecked] = useState(false);
-    const [purchaseChecked, setPurchaseChecked] = useState(false);
 
     // Hardcoded contact info for demo
     const contactInfo = {
         phone: '+60 12-345 6789',
         email: 'owner@example.com'
+    };
+
+    const themeClasses = {
+        button: theme === 'green' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
     };
 
     const handleWhatsApp = () => {
@@ -52,12 +53,6 @@ const PropertyModal = ({ isOpen, onClose, property, onConfirm }) => {
                         <div className="flex items-center space-x-4 mb-3">
                             <FaPhone className="text-gray-600" />
                             <p>{contactInfo.phone}</p>
-                            <button 
-                                onClick={handleWhatsApp}
-                                className="text-green-500 hover:text-green-600"
-                            >
-                                <FaWhatsapp className="w-6 h-6" />
-                            </button>
                         </div>
 
                         <div className="flex items-center space-x-4">
@@ -67,15 +62,15 @@ const PropertyModal = ({ isOpen, onClose, property, onConfirm }) => {
                     </div>
 
                     {/* Property Photos */}
-                    {property.property_photos && property.property_photos.length > 0 && (
+                    {property.certificate_photos && property.certificate_photos.length > 0 && (
                         <div className="border-b pb-4">
-                            <h3 className="font-semibold mb-2">Property Photos</h3>
+                            <h3 className="font-semibold mb-2">Certificate Photos</h3>
                             <div className="grid grid-cols-2 gap-2">
-                                {property.property_photos.map((photo, index) => (
+                                {property.certificate_photos.map((photo, index) => (
                                     <div key={index} className="relative group">
                                         <img 
                                             src={photo} 
-                                            alt={`Property ${index + 1}`}
+                                            alt={`Certificate ${index + 1}`}
                                             className="w-full h-24 object-cover rounded"
                                         />
                                         <button
@@ -90,46 +85,18 @@ const PropertyModal = ({ isOpen, onClose, property, onConfirm }) => {
                         </div>
                     )}
 
-                    {/* Confirmation Checkboxes */}
-                    <div className="space-y-2">
-                        <div className="flex items-center">
-                            <input 
-                                type="checkbox" 
-                                id="privacy" 
-                                className="mr-2"
-                                checked={privacyChecked}
-                                onChange={(e) => setPrivacyChecked(e.target.checked)}
-                            />
-                            <label htmlFor="privacy">I agree to the privacy terms</label>
-                        </div>
-                        <div className="flex items-center">
-                            <input 
-                                type="checkbox" 
-                                id="purchase" 
-                                className="mr-2"
-                                checked={purchaseChecked}
-                                onChange={(e) => setPurchaseChecked(e.target.checked)}
-                            />
-                            <label htmlFor="purchase">I confirm my interest in purchasing</label>
-                        </div>
-                    </div>
-
                     {/* Action Buttons */}
                     <div className="flex space-x-4 mt-6">
                         <button
-                            onClick={onConfirm}
-                            disabled={!privacyChecked || !purchaseChecked}
-                            className={`px-4 py-2 rounded ${
-                                privacyChecked && purchaseChecked
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
+                            onClick={handleWhatsApp}
+                            className="flex-1 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center justify-center"
                         >
-                            Confirm Interest
+                            <FaWhatsapp className="mr-2" />
+                            Contact Owner
                         </button>
                         <button
                             onClick={onClose}
-                            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                            className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
                         >
                             Close
                         </button>

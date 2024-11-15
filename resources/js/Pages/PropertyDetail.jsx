@@ -6,16 +6,10 @@ import PropertyModal from "@/Components/PropertyModal";
 
 const PropertyDetail = ({ property, auth }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // 初始化状态
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-    // 合并所有照片，但排除最后一张
-    const allPhotos = [
-        ...(property?.certificate_photos || []),
-        ...(property?.property_photos || []).slice(0, -1),
-    ];
+    const allPhotos = [...(property?.property_photos || [])];
 
-    // 照片导航函数
     const nextPhoto = () => {
         if (allPhotos.length > 1) {
             setCurrentPhotoIndex((prev) => (prev + 1) % allPhotos.length);
@@ -30,32 +24,72 @@ const PropertyDetail = ({ property, auth }) => {
         }
     };
 
-    // 添加地图相关状态
-    const [mapPosition, setMapPosition] = useState([3.139, 101.6869]); // 默认位置（吉隆坡）
+    const [searchDebugInfo, setSearchDebugInfo] = useState({
+        searchedAddress: "",
+        foundCoordinates: null,
+    });
 
-    // 在组件加载时获取地理编码（可选）
     useEffect(() => {
-        if (property?.property_address_line_1) {
-            const address = `${property.property_address_line_1}, ${property.city}, ${property.postal_code}`;
+        if (property) {
+            const fullAddress = `${property.property_address_line_1}, ${property.city}, ${property.postal_code}`;
+            setSearchDebugInfo((prev) => ({
+                ...prev,
+                searchedAddress: fullAddress,
+            }));
+
+            const searchParams = new URLSearchParams({
+                format: "json",
+                q: fullAddress,
+                countrycodes: "my",
+                limit: 1,
+                addressdetails: 1,
+            });
+
             fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-                    address
-                )}`
+                `https://nominatim.openstreetmap.org/search?${searchParams.toString()}`,
+                {
+                    headers: {
+                        "User-Agent": "PropertyWebsite/1.0",
+                    },
+                }
             )
                 .then((response) => response.json())
                 .then((data) => {
                     if (data.length > 0) {
-                        setMapPosition([
-                            parseFloat(data[0].lat),
-                            parseFloat(data[0].lon),
-                        ]);
+                        const lat = parseFloat(data[0].lat);
+                        const lon = parseFloat(data[0].lon);
+                        setMapPosition([lat, lon]);
                     }
                 })
                 .catch((error) =>
-                    console.error("Error fetching coordinates:", error)
+                    console.error("Error fetching location:", error)
                 );
         }
     }, [property]);
+
+    const themeColor = property?.purchase === "For Rent" ? "green" : "blue";
+    const themeClasses = {
+        text:
+            property?.purchase === "For Rent"
+                ? "text-green-600"
+                : "text-blue-600",
+        heading:
+            property?.purchase === "For Rent"
+                ? "text-green-700"
+                : "text-blue-700",
+        hover:
+            property?.purchase === "For Rent"
+                ? "hover:text-green-700"
+                : "hover:text-blue-700",
+        button:
+            property?.purchase === "For Rent"
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-blue-600 hover:bg-blue-700",
+        searchButton:
+            property?.purchase === "For Rent"
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-blue-500 hover:bg-blue-600",
+    };
 
     const handleGoBackClick = (e) => {
         e.preventDefault();
@@ -80,7 +114,6 @@ const PropertyDetail = ({ property, auth }) => {
                         &lt; Back
                     </a>
                     <div className="bg-white shadow-xl rounded-xl overflow-hidden transition-shadow duration-300 hover:shadow-2xl relative">
-                        {/* 照片展示区 */}
                         <div className="relative h-[500px]">
                             {allPhotos.length > 0 ? (
                                 <>
@@ -158,13 +191,12 @@ const PropertyDetail = ({ property, auth }) => {
                             )}
                         </div>
 
-                        {/* 属性详情 - 添加图标 */}
                         <div className="p-8">
                             <div className="flex justify-between items-start mb-8">
                                 <div>
                                     <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
                                         <svg
-                                            className="w-8 h-8 mr-3 text-blue-600"
+                                            className={`w-8 h-8 mr-3 ${themeClasses.text}`}
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -204,7 +236,9 @@ const PropertyDetail = ({ property, auth }) => {
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-3xl font-bold text-blue-600 flex items-center justify-end">
+                                    <p
+                                        className={`text-3xl font-bold ${themeClasses.text} flex items-center justify-end`}
+                                    >
                                         <svg
                                             className="w-6 h-6 mr-2"
                                             fill="none"
@@ -218,10 +252,22 @@ const PropertyDetail = ({ property, auth }) => {
                                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                                             />
                                         </svg>
-                                        RM{" "}
-                                        {Number(
-                                            property?.price || 0
-                                        ).toLocaleString()}
+                                        {property?.purchase === "For Rent" ? (
+                                            <>
+                                                RM{" "}
+                                                {Number(
+                                                    property?.price || 0
+                                                ).toLocaleString()}{" "}
+                                                /month
+                                            </>
+                                        ) : (
+                                            <>
+                                                RM{" "}
+                                                {Number(
+                                                    property?.price || 0
+                                                ).toLocaleString()}
+                                            </>
+                                        )}
                                     </p>
                                     <p className="text-gray-600 flex items-center justify-end mt-2">
                                         <svg
@@ -242,10 +288,11 @@ const PropertyDetail = ({ property, auth }) => {
                                 </div>
                             </div>
 
-                            {/* 详细信息 - 添加悬停效果 */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                                 <div className="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition-colors duration-300">
-                                    <h2 className="text-lg font-semibold mb-4 flex items-center text-blue-700">
+                                    <h2
+                                        className={`text-lg font-semibold mb-4 flex items-center ${themeClasses.heading}`}
+                                    >
                                         <svg
                                             className="w-6 h-6 mr-2"
                                             fill="none"
@@ -276,6 +323,14 @@ const PropertyDetail = ({ property, auth }) => {
                                         </li>
                                         <li>
                                             <span className="font-medium">
+                                                Address:
+                                            </span>{" "}
+                                            {property?.property_address_line_1}
+                                            {property?.property_address_line_2 &&
+                                                `, ${property.property_address_line_2}`}
+                                        </li>
+                                        <li>
+                                            <span className="font-medium">
                                                 City:
                                             </span>{" "}
                                             {property?.city}
@@ -289,7 +344,9 @@ const PropertyDetail = ({ property, auth }) => {
                                     </ul>
                                 </div>
                                 <div className="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition-colors duration-300">
-                                    <h2 className="text-lg font-semibold mb-4 flex items-center text-blue-700">
+                                    <h2
+                                        className={`text-lg font-semibold mb-4 flex items-center ${themeClasses.heading}`}
+                                    >
                                         <svg
                                             className="w-6 h-6 mr-2"
                                             fill="none"
@@ -340,7 +397,6 @@ const PropertyDetail = ({ property, auth }) => {
                                 </div>
                             </div>
 
-                            {/* 额外信息 */}
                             {property?.additional_info && (
                                 <div className="mb-8 bg-gray-50 p-6 rounded-lg">
                                     <h2 className="text-lg font-semibold mb-3">
@@ -352,7 +408,6 @@ const PropertyDetail = ({ property, auth }) => {
                                 </div>
                             )}
 
-                            {/* 联系信息 */}
                             <div className="border-t border-gray-100 pt-6">
                                 <h2 className="text-lg font-semibold mb-3">
                                     Contact Information
@@ -376,11 +431,10 @@ const PropertyDetail = ({ property, auth }) => {
                             </div>
                         </div>
 
-                        {/* Add Get Started button */}
                         <div className="absolute bottom-8 right-8">
                             <button
                                 onClick={() => setIsModalOpen(true)}
-                                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2"
+                                className={`${themeClasses.button} text-white px-6 py-3 rounded-lg transition-colors duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2`}
                             >
                                 <span>Get Started</span>
                                 <svg
@@ -399,7 +453,6 @@ const PropertyDetail = ({ property, auth }) => {
                             </button>
                         </div>
 
-                        {/* Property Modal */}
                         <PropertyModal
                             isOpen={isModalOpen}
                             onClose={() => setIsModalOpen(false)}
@@ -408,17 +461,17 @@ const PropertyDetail = ({ property, auth }) => {
                                 console.log("Interest confirmed");
                                 setIsModalOpen(false);
                             }}
+                            theme={themeColor}
                         />
                     </div>
                 </div>
             </div>
 
-            {/* 在属性详情后添加地图 */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
                 <div className="bg-white shadow-xl rounded-xl p-6">
                     <h2 className="text-xl font-semibold mb-6 flex items-center text-gray-800">
                         <svg
-                            className="w-6 h-6 mr-2 text-blue-600"
+                            className={`w-6 h-6 mr-2 ${themeClasses.text}`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -439,10 +492,26 @@ const PropertyDetail = ({ property, auth }) => {
                         Location
                     </h2>
                     <Map
-                        position={mapPosition}
-                        propertyName={property?.property_name}
-                        address={`${property?.property_address_line_1}, ${property?.city}, ${property?.postal_code}`}
+                        address={`${property?.property_address_line_1}, ${property?.city}, ${property?.postal_code}, MALAYSIA`}
+                        initialSearchQuery={`${property?.property_address_line_1}, ${property?.city}, ${property?.postal_code}, MALAYSIA`}
+                        theme={
+                            property?.purchase === "For Rent" ? "green" : "blue"
+                        }
                     />
+
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg text-sm">
+                        <h3 className="font-semibold text-gray-700 mb-2">
+                            Location Details:
+                        </h3>
+                        <div className="space-y-2">
+                            <p>
+                                <span className="font-medium">
+                                    Searched Address:
+                                </span>{" "}
+                                {searchDebugInfo.searchedAddress}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

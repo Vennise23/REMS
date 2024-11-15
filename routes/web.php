@@ -65,6 +65,30 @@ Route::get('/buy', function () {
     ]);
 })->name('buy');
 
+// Property Route
+Route::post('/apply-property', [PropertyController::class, 'store']);
+Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
+Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
+Route::get('/buy', [PropertyController::class, 'showBuyPage'])->name('buy');
+
+Route::get('/api/properties', [PropertyController::class, 'index']);
+Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
+Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
+
+// Testing
+Route::get('/debug/properties', function () {
+    $properties = \App\Models\Property::all();
+    return response()->json([
+        'properties' => $properties->map(function ($property) {
+            return [
+                'id' => $property->id,
+                'property_name' => $property->property_name,
+                'amenities' => $property->amenities
+            ];
+        })
+    ]);
+});
+
 require __DIR__.'/auth.php';
 
 

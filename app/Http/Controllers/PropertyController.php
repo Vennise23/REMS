@@ -36,6 +36,13 @@ class PropertyController extends Controller
                 'additional_info' => 'nullable|string',
             ]);
 
+            // 标准化设施名称
+            if (isset($validatedData['amenities'])) {
+                $validatedData['amenities'] = array_map(function($amenity) {
+                    return trim($amenity);
+                }, $validatedData['amenities']);
+            }
+
             if ($request->hasFile('certificate_photos')) {
                 $certificatePhotos = [];
                 foreach ($request->file('certificate_photos') as $photo) {
@@ -72,63 +79,72 @@ class PropertyController extends Controller
     public function index(Request $request)
     {
         try {
-            // \Log::info('Received request params:', $request->all());
-
-            $perPage = $request->query('per_page', 6);
             $query = Property::query();
 
-            // 处理属性类型筛选
+            // 根据页面类型设置购买类型
+            $purchaseType = $request->input('purchase', 'For Sale');
+            $query->where('purchase', $purchaseType);
+
+            // 属性类型筛选
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
             }
 
-            // 处理价格范围筛选
-            if ($request->has('priceMin') && $request->priceMin !== '0') {
+            // 其他筛选条件...
+            if ($request->has('priceMin')) {
                 $query->where('price', '>=', $request->priceMin);
             }
-            if ($request->has('priceMax') && $request->priceMax !== '0') {
+            if ($request->has('priceMax')) {
                 $query->where('price', '<=', $request->priceMax);
             }
-
-            // 处理面积范围筛选
-            if ($request->has('sizeMin') && $request->sizeMin !== '0') {
+            if ($request->has('sizeMin')) {
                 $query->where('square_feet', '>=', $request->sizeMin);
             }
-            if ($request->has('sizeMax') && $request->sizeMax !== '0') {
+            if ($request->has('sizeMax')) {
                 $query->where('square_feet', '<=', $request->sizeMax);
             }
+            if ($request->has('citySearch') && !empty($request->citySearch)) {
+                $query->where('city', 'like', '%' . $request->citySearch . '%');
+            }
+            if ($request->has('amenities') && !empty($request->amenities)) {
+                $amenities = explode(',', $request->amenities);
+                foreach ($amenities as $amenity) {
+                    if (!empty(trim($amenity))) {
+                        $query->whereJsonContains('amenities', trim($amenity));
+                    }
+                }
+            }
+            if ($request->has('saleType') && $request->saleType !== 'All') {
+                $query->where('sale_type', $request->saleType);
+            }
 
-            $properties = $query->paginate($perPage);
+            $properties = $query->paginate($request->input('per_page', 6));
 
-            // \Log::info('Returning properties:', [
-            //     'total' => $properties->total(),
-            //     'per_page' => $properties->perPage(),
-            //     'current_page' => $properties->currentPage(),
-            //     'count' => $properties->count()
-            // ]);
+            return response()->json([
+                'data' => $properties->items(),
+                'total' => $properties->total(),
+                'per_page' => $properties->perPage(),
+                'current_page' => $properties->currentPage(),
+                'last_page' => $properties->lastPage()
+            ]);
 
-            return response()->json($properties);
         } catch (\Exception $e) {
-            // \Log::error('Error in index method: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     public function showBuyPage()
     {
-        try {
-            // 每页显示6个属性
-            $properties = Property::paginate(6);
+        return Inertia::render('Buy', [
+            'auth' => ['user' => auth()->user()]
+        ]);
+    }
 
-            return Inertia::render('Buy', [
-                'auth' => [
-                    'user' => auth()->user()
-                ],
-                'properties' => $properties
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+    public function showRentPage()
+    {
+        return Inertia::render('Rent', [
+            'auth' => ['user' => auth()->user()]
+        ]);
     }
 
     public function getPropertyPhotos($propertyId)
@@ -136,29 +152,22 @@ class PropertyController extends Controller
         try {
             $property = Property::findOrFail($propertyId);
             $photos = [];
-
+            
             if ($property->certificate_photos) {
-                $certificatePhotos = is_string($property->certificate_photos)
-                    ? json_decode($property->certificate_photos, true)
+                $certificatePhotos = is_string($property->certificate_photos) 
+                    ? json_decode($property->certificate_photos, true) 
                     : $property->certificate_photos;
 
                 if (is_array($certificatePhotos)) {
-                    foreach ($certificatePhotos as $photo) {
-                        // \Log::info('Photo path: ' . $photo);
-                        // \Log::info('Full storage path: ' . storage_path('app/public/' . $photo));
-                        // \Log::info('File exists: ' . (Storage::disk('public')->exists($photo) ? 'yes' : 'no'));
-
+                    foreach ($certificatePhotos as $photo) {      
                         if (Storage::disk('public')->exists($photo)) {
                             $photos[] = url('storage/' . $photo);
                         }
                     }
                 }
             }
-
-            // \Log::info('Returning photos:', $photos);
             return response()->json($photos);
         } catch (\Exception $e) {
-            // \Log::error('Error in getPropertyPhotos: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -167,10 +176,10 @@ class PropertyController extends Controller
     {
         try {
             $property = Property::findOrFail($id);
-
+            
             // 处理照片 URL，确保数据格式正确
             $propertyArray = array_merge($property->toArray(), [
-                'certificate_photos' => is_array($property->certificate_photos)
+                'certificate_photos' => is_array($property->certificate_photos) 
                     ? array_map(fn($photo) => url('storage/' . $photo), $property->certificate_photos)
                     : [],
                 'property_photos' => is_array($property->property_photos)
@@ -192,8 +201,52 @@ class PropertyController extends Controller
                 'auth' => ['user' => auth()->user()]
             ]);
         } catch (\Exception $e) {
-            // \Log::error('Error in show method: ' . $e->getMessage());
             return redirect()->route('buy')->with('error', 'Property not found');
+        }
+    }
+
+    public function searchNearby(Request $request)
+    {
+        try {
+            $latitude = $request->input('latitude');
+            $longitude = $request->input('longitude');
+            $radius = $request->input('radius', 10); // 默认10公里
+            $perPage = $request->input('per_page', 6);
+
+            // 使用 Haversine 公式计算距离（单位：公里）
+            $query = Property::select('*')
+                ->selectRaw('
+                    (6371 * acos(
+                        cos(radians(?)) * 
+                        cos(radians(CAST(latitude AS DOUBLE PRECISION))) * 
+                        cos(radians(CAST(longitude AS DOUBLE PRECISION)) - radians(?)) + 
+                        sin(radians(?)) * 
+                        sin(radians(CAST(latitude AS DOUBLE PRECISION)))
+                    )) AS distance', 
+                    [$latitude, $longitude, $latitude]
+                )
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->having('distance', '<=', $radius)
+                ->orderBy('distance');
+
+            // 保持现有的筛选条件
+            if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
+                $query->where('property_type', $request->propertyType);
+            }
+
+            if ($request->has('amenities') && !empty($request->amenities)) {
+                $amenities = explode(',', $request->amenities);
+                foreach ($amenities as $amenity) {
+                    $query->whereJsonContains('amenities', trim($amenity));
+                }
+            }
+
+            $properties = $query->paginate($perPage);
+
+            return response()->json($properties);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }
