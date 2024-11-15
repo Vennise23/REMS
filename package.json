@@ -36,7 +36,7 @@
     "react-webcam": "^7.2.0",
     "three": "^0.169.0",
     "tween": "^0.9.0",
-    "ziggy-js": "^2.3.1"
+    "ziggy-js": "^2.4.0"
   },
   "name": "dev",
   "description": "<p align=\"center\"><a href=\"https://laravel.com\" target=\"_blank\"><img src=\"https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg\" width=\"400\" alt=\"Laravel Logo\"></a></p>",

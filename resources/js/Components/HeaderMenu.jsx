@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, Head } from "@inertiajs/react";
 import logo from "/resources/img/REMS_logo_light.png";
 import axios from "axios";
+import { route } from "ziggy-js";
 
-export default function Main({ auth }) {
+export default function HeaderMenu({ auth }) {
     axios.defaults.headers.common["X-CSRF-TOKEN"] = document
         .querySelector('meta[name="csrf-token"]')
         .getAttribute("content");
-
-    const [isBuy, setIsBuy] = useState(true);
 
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -45,7 +44,7 @@ export default function Main({ auth }) {
                     {/* Tab Bar */}
                     <nav className="flex-grow flex justify-center space-x-8">
                         <Link
-                            href={route("main")}
+                            href={route('main')}
                             className="text-gray-600 hover:text-gray-900 font-medium"
                         >
                             Home
