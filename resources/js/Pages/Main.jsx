@@ -28,7 +28,7 @@ export default function Main({ auth }) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const baseURL = `${window.location.origin}/api/property`;
+                const baseURL = `${window.location.origin}/property`;
                 const response = await axios.get(baseURL);
                 console.log("response", response);
                 setPropertyList(response.data);
@@ -123,6 +123,10 @@ export default function Main({ auth }) {
                 {loading ? (
                     <div className="flex justify-center items-center min-h-screen">
                         <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
+                    </div>
+                ) : propertyList.length === 0 ? (
+                    <div className="text-center text-lg font-semibold text-gray-600 mt-8">
+                        No listings available at the moment.
                     </div>
                 ) : (
                     <div>

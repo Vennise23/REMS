@@ -9,6 +9,7 @@ const PropertyDetail = ({ property, auth }) => {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
     const allPhotos = [...(property?.property_photos || [])];
+    console.log(("allPhotos", allPhotos));
 
     const nextPhoto = () => {
         if (allPhotos.length > 1) {

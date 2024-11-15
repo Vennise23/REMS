@@ -26,6 +26,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         amenities: [],
         other_amenities: "",
         additional_info: "",
+        agent_type: "",
     });
 
     const [isAgentType, setIsAgentType] = useState("");
@@ -41,13 +42,15 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setIsAgentType(formData.property_type === "Agent" ? "Agent" : "");
-    }, [formData.property_type]);
+        setIsAgentType(formData.agent_type === "Agent" ? "Agent" : "");
+    }, [formData.agent_type]);
 
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
     
-        if (name === "property_type") {
+        if (name === "agent_type") {
+            setFormData({ ...formData, agent_type: value });
+        } else if (name === "property_type") {
             setFormData({ ...formData, property_type: value });
         } else if (name === "purchase") {
             setFormData({ ...formData, purchase: value });
@@ -218,8 +221,9 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         });
 
         try {
+            const baseURL = `${window.location.origin}/apply-property`;
             const response = await axios.post(
-                "http://127.0.0.1:8000/apply-property", // change your url here
+                baseURL,
                 data,
                 {
                     headers: {
@@ -241,13 +245,6 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             }
         }
     };
-
-
-
-
-
-
-
 
     const handleCloseSuccessModal = () => {
         setShowSuccessModal(false);
@@ -322,14 +319,14 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     </div>
 
                                     <select
-                                        name="property_type"
-                                        value={formData.property_type}
+                                        name="agent_type"
+                                        value={formData.agent_type}
                                         onChange={handleChange}
                                         className="p-2 border rounded-md w-full"
                                         required
                                     >
                                         <option value="" disabled>
-                                            Select Property Type
+                                            Select Agent Type
                                         </option>
                                         <option value="Non Agent">
                                             Non Agent

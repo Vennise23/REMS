@@ -54,8 +54,9 @@ class PropertyController extends Controller
             if ($request->hasFile('property_photos')) {
                 $propertyPhotos = [];
                 foreach ($request->file('property_photos') as $photo) {
-                    $path = $photo->store('property_photos', 'public');
-                    $propertyPhotos[] = asset('storage/' . $path);
+                    $propertyPhotos[] = $photo->store('property_photos', 'public');
+                    // $path = $photo->store('property_photos', 'public');
+                    // $propertyPhotos[] = asset('storage/' . $path);
                 }
                 $validatedData['property_photos'] = $propertyPhotos;
             }
@@ -166,6 +167,20 @@ class PropertyController extends Controller
                     }
                 }
             }
+            if ($property->property_photos) {
+                $propertyPhotos = is_string($property->property_photos) 
+                    ? json_decode($property->property_photos, true) 
+                    : $property->property_photos;
+
+                if (is_array($propertyPhotos)) {
+                    foreach ($propertyPhotos as $photo) {      
+                        if (Storage::disk('public')->exists($photo)) {
+                            $photos[] = url('storage/' . $photo);
+                        }
+                    }
+                }
+            }
+
             return response()->json($photos);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -183,7 +198,7 @@ class PropertyController extends Controller
                     ? array_map(fn($photo) => url('storage/' . $photo), $property->certificate_photos)
                     : [],
                 'property_photos' => is_array($property->property_photos)
-                    ? $property->property_photos
+                    ? array_map(fn($photo) => url('storage/' . $photo), $property->property_photos)
                     : [],
                 'amenities' => is_array($property->amenities) ? $property->amenities : [],
             ]);

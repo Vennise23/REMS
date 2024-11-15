@@ -27,17 +27,45 @@ const Rent = ({ auth }) => {
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
-    // 获取属性照片
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
+    
+            if (!response.ok) {
+                throw new Error(`Failed to fetch photos for property ${propertyId}`);
+            }
+    
             const photos = await response.json();
-            setPropertyPhotos(prev => ({
-                ...prev,
-                [propertyId]: photos
-            }));
+            console.log("Fetched photos:", photos);
+    
+            if (photos && Array.isArray(photos)) {
+                const photoUrls = photos
+                    .filter((photo) => typeof photo === 'string' && !photo.includes('certificate_photos'))
+                    .map((photo) => {
+                        if (typeof photo === 'string') {
+                            const imageUrl = photo.startsWith('http')
+                                ? photo
+                                : `${window.location.origin}/storage/property_photos/${photo}`;
+    
+                            return imageUrl;
+                        } else {
+                            console.warn("Invalid photo value:", photo);
+                            return null;
+                        }
+                    })
+                    .filter(url => url !== null);
+    
+                console.log("Filtered photoUrls:", photoUrls);
+    
+                setPropertyPhotos((prev) => ({
+                    ...prev,
+                    [propertyId]: photoUrls,
+                }));
+            } else {
+                console.log("No photos available for property:", propertyId);
+            }
         } catch (error) {
-            console.error('Error fetching property photos:', error);
+            console.error("Error fetching property photos:", error);
         }
     };
 
@@ -123,7 +151,7 @@ const Rent = ({ auth }) => {
     return (
         <>
             <Head>
-                <title>Rent Properties - StarProperty Clone</title>
+                <title>Rent Properties</title>
                 <meta name="description" content="Find your perfect rental property" />
             </Head>
 

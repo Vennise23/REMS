@@ -22,7 +22,7 @@ const RentListings = ({ properties }) => {
         <div className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
             <div className="flex justify-between items-center w-full">
                 <h2 className="text-2xl font-semibold text-left">
-                    Rent Listings
+                    Latest Listings
                 </h2>
                 <a
                     href="/all-property"

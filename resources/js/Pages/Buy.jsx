@@ -14,14 +14,14 @@ const Buy = ({ auth }) => {
         return savedFilters
             ? JSON.parse(savedFilters)
             : {
-                  propertyType: "All Property",
-                  saleType: "All",
-                  priceMin: "0",
-                  priceMax: "1000000000",
-                  sizeMin: "0",
-                  sizeMax: "100000",
-                  amenities: [],
-              };
+                propertyType: "All Property",
+                saleType: "All",
+                priceMin: "0",
+                priceMax: "1000000000",
+                sizeMin: "0",
+                sizeMax: "100000",
+                amenities: [],
+            };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [citySearchQuery, setCitySearchQuery] = useState("");
@@ -31,15 +31,43 @@ const Buy = ({ auth }) => {
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
-    // 在获取到属性列表后，获取每个属性的照片
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
+    
+            if (!response.ok) {
+                throw new Error(`Failed to fetch photos for property ${propertyId}`);
+            }
+    
             const photos = await response.json();
-            setPropertyPhotos((prev) => ({
-                ...prev,
-                [propertyId]: photos,
-            }));
+            console.log("Fetched photos:", photos);
+    
+            if (photos && Array.isArray(photos)) {
+                const photoUrls = photos
+                    .filter((photo) => typeof photo === 'string' && !photo.includes('certificate_photos'))
+                    .map((photo) => {
+                        if (typeof photo === 'string') {
+                            const imageUrl = photo.startsWith('http')
+                                ? photo
+                                : `${window.location.origin}/storage/property_photos/${photo}`;
+    
+                            return imageUrl;
+                        } else {
+                            console.warn("Invalid photo value:", photo);
+                            return null;
+                        }
+                    })
+                    .filter(url => url !== null);
+    
+                console.log("Filtered photoUrls:", photoUrls);
+    
+                setPropertyPhotos((prev) => ({
+                    ...prev,
+                    [propertyId]: photoUrls,
+                }));
+            } else {
+                console.log("No photos available for property:", propertyId);
+            }
         } catch (error) {
             console.error("Error fetching property photos:", error);
         }
@@ -134,7 +162,7 @@ const Buy = ({ auth }) => {
     return (
         <>
             <Head>
-                <title>Buy Properties - StarProperty Clone</title>
+                <title>Buy Properties</title>
                 <meta name="description" content="Find your dream property" />
             </Head>
 

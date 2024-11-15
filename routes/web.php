@@ -70,6 +70,7 @@ Route::post('/apply-property', [PropertyController::class, 'store']);
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
 Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
 Route::get('/buy', [PropertyController::class, 'showBuyPage'])->name('buy');
+Route::get('/property', [PropertyController::class, 'GetPropertyList']);
 
 Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
