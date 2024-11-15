@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue' }) => {
+const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', showSaleType = false, layout }) => {
     const [expandedSection, setExpandedSection] = useState(null);
     const [amenityFilters, setAmenityFilters] = useState({
         pool: false,
@@ -86,7 +86,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue' }) =>
     return (
         <div className="space-y-6">
             {/* 主要筛选区域 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-1 ${layout === 'rent' ? 'md:grid-cols-4' : 'md:grid-cols-5'} gap-6`}>
                 {/* Property Type */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Property Type</label>
@@ -102,6 +102,23 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue' }) =>
                         <option value="Commercial">Commercial</option>
                     </select>
                 </div>
+
+                {/* Sale Type - 只在 Buy 页面显示 */}
+                {showSaleType && (
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Sale Type</label>
+                        <select
+                            name="saleType"
+                            value={filters.saleType}
+                            onChange={handleInputChange}
+                            className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
+                        >
+                            <option value="All">All Types</option>
+                            <option value="Subsale">Subsale</option>
+                            <option value="New Launch">New Launch</option>
+                        </select>
+                    </div>
+                )}
 
                 {/* Price Range */}
                 <div className="space-y-2">

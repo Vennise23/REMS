@@ -12,7 +12,8 @@ const Buy = ({ auth }) => {
     const [filters, setFilters] = useState(() => {
         const savedFilters = localStorage.getItem('propertyFilters');
         return savedFilters ? JSON.parse(savedFilters) : {
-            propertyType: 'Conventional Condominium',
+            propertyType: 'All Property',
+            saleType: 'All',
             priceMin: '0',
             priceMax: '1000000000',
             sizeMin: '0',
@@ -64,7 +65,8 @@ const Buy = ({ auth }) => {
                 sizeMax: filters.sizeMax,
                 amenities: filters.amenities.join(','),
                 citySearch: citySearchQuery,
-                purchase: 'For Sale'
+                purchase: 'For Sale',
+                saleType: filters.saleType
             };
 
             // 只有当不是 'All Property' 时才添加 propertyType 参数
@@ -146,6 +148,7 @@ const Buy = ({ auth }) => {
                             setFilters={handleFilterChange}
                             onCitySearch={handleCitySearch}
                             theme="blue"
+                            showSaleType={true}
                         />
                     </div>
 

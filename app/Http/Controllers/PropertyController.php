@@ -108,6 +108,9 @@ class PropertyController extends Controller
                     }
                 }
             }
+            if ($request->has('saleType') && $request->saleType !== 'All') {
+                $query->where('sale_type', $request->saleType);
+            }
 
             $properties = $query->paginate($request->input('per_page', 6));
 

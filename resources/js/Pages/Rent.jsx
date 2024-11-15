@@ -138,7 +138,9 @@ const Rent = ({ auth }) => {
                             filters={filters} 
                             setFilters={handleFilterChange}
                             onCitySearch={handleCitySearch}
-                            theme="green" // 添加主题属性
+                            theme="green"
+                            showSaleType={false}
+                            layout="rent"
                         />
                     </div>
 
