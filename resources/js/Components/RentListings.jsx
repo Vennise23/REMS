@@ -40,10 +40,9 @@ const RentListings = ({ properties }) => {
                         className="property-item w-64 p-4 bg-white shadow-lg rounded-md"
                     >
                         <img
-                            src={
-                                property.property_photos &&
-                                property.property_photos[0]
-                            }
+                            src={property.property_photos && property.property_photos[0]
+                                ? `${window.location.origin}/storage/${property.property_photos[0]}`
+                                : ''}
                             alt={property.property_name}
                             className="w-full h-48 object-cover rounded-md"
                         />
