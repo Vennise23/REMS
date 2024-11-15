@@ -15,7 +15,7 @@ const LatestListings = ({ properties }) => {
                     Latest Listings
                 </h2>
                 <a
-                    href="/all-property"
+                    href="/buy?saleType=Subsale"
                     className="view-more text-blue-500 hover:text-blue-700"
                 >
                     View More &gt;

@@ -12,12 +12,12 @@ const Footer = () => {
                     </div>
 
                     <div className="space-x-6">
-                        <a href="/about" className="hover:text-gray-400">
+                        {/* <a href="/about" className="hover:text-gray-400">
                             About
                         </a>
                         <a href="/contact" className="hover:text-gray-400">
                             Contact
-                        </a>
+                        </a> */}
                         <a href="/privacy" className="hover:text-gray-400">
                             Privacy Policy
                         </a>

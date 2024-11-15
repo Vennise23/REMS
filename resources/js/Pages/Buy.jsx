@@ -27,7 +27,38 @@ const Buy = ({ auth }) => {
     const [citySearchQuery, setCitySearchQuery] = useState("");
 
     useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const saleTypeFromUrl = urlParams.get("saleType");
+        const propertyTypeFromUrl = urlParams.get("propertyType");
+    
+        if (!saleTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                saleType: "All",
+            }));
+        } else {
+            setFilters((prev) => ({
+                ...prev,
+                saleType: saleTypeFromUrl,
+            }));
+        }
+    
+        if (!propertyTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: "All Property",
+            }));
+        } else {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: propertyTypeFromUrl,
+            }));
+        }
+    }, []);
+
+    useEffect(() => {
         localStorage.setItem("propertyFilters", JSON.stringify(filters));
+
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
@@ -40,8 +71,6 @@ const Buy = ({ auth }) => {
             }
     
             const photos = await response.json();
-            console.log("Fetched photos:", photos);
-    
             if (photos && Array.isArray(photos)) {
                 const photoUrls = photos
                     .filter((photo) => typeof photo === 'string' && !photo.includes('certificate_photos'))
@@ -50,7 +79,6 @@ const Buy = ({ auth }) => {
                             const imageUrl = photo.startsWith('http')
                                 ? photo
                                 : `${window.location.origin}/storage/property_photos/${photo}`;
-    
                             return imageUrl;
                         } else {
                             console.warn("Invalid photo value:", photo);
@@ -59,33 +87,37 @@ const Buy = ({ auth }) => {
                     })
                     .filter(url => url !== null);
     
-                console.log("Filtered photoUrls:", photoUrls);
-    
                 setPropertyPhotos((prev) => ({
                     ...prev,
                     [propertyId]: photoUrls,
                 }));
-            } else {
-                console.log("No photos available for property:", propertyId);
             }
         } catch (error) {
             console.error("Error fetching property photos:", error);
         }
     };
 
-    // 添加筛选处理函数
     const handleFilterChange = (newFilters) => {
         setFilters((prev) => ({
             ...prev,
             ...newFilters,
         }));
         setCurrentPage(1);
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (newFilters.saleType) {
+            params.set("saleType", newFilters.saleType);
+        }
+        if (newFilters.propertyType) {
+            params.set("propertyType", newFilters.propertyType);
+        }
+
+        window.history.pushState(null, "", `/buy?${params.toString()}`);
     };
 
-    // 将获取属性的逻辑抽取为独立函数
     const fetchProperties = async () => {
         try {
-            // 创建基础查询参数
             const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
@@ -99,7 +131,6 @@ const Buy = ({ auth }) => {
                 saleType: filters.saleType,
             };
 
-            // 只有当不是 'All Property' 时才添加 propertyType 参数
             if (filters.propertyType !== "All Property") {
                 baseParams.propertyType = filters.propertyType;
             }
@@ -122,12 +153,10 @@ const Buy = ({ auth }) => {
         }
     };
 
-    // 分页按钮处理函数
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
 
-    // 生成分页按钮
     const renderPaginationButtons = () => {
         const buttons = [];
         for (let i = 1; i <= totalPages; i++) {
@@ -135,11 +164,7 @@ const Buy = ({ auth }) => {
                 <button
                     key={i}
                     onClick={() => handlePageChange(i)}
-                    className={`px-4 py-2 mx-1 rounded ${
-                        currentPage === i
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-200 hover:bg-gray-300"
-                    }`}
+                    className={`px-4 py-2 mx-1 rounded ${currentPage === i ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
                 >
                     {i}
                 </button>
@@ -148,15 +173,9 @@ const Buy = ({ auth }) => {
         return buttons;
     };
 
-    // 添加城市搜索处理函数
     const handleCitySearch = (value) => {
         setCitySearchQuery(value);
         setCurrentPage(1); // 重置页码
-    };
-
-    const defaultAuth = {
-        user: null,
-        ...auth,
     };
 
     return (
@@ -166,11 +185,11 @@ const Buy = ({ auth }) => {
                 <meta name="description" content="Find your dream property" />
             </Head>
 
-            <Header auth={defaultAuth} />
+            <Header auth={auth} />
 
             <div className="min-h-screen bg-gray-50 pt-32">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* 搜索和筛选区域 */}
+                    {/* Filter section */}
                     <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
                         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
                             Find Your Dream Property
@@ -184,7 +203,7 @@ const Buy = ({ auth }) => {
                         />
                     </div>
 
-                    {/* 属性列表 */}
+                    {/* Property list */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {properties.map((property) => (
                             <PropertyCard
@@ -196,13 +215,11 @@ const Buy = ({ auth }) => {
                         ))}
                     </div>
 
-                    {/* 分页控件 */}
+                    {/* Pagination */}
                     <div className="flex justify-center mt-12 mb-8 space-x-2">
                         {currentPage > 1 && (
                             <button
-                                onClick={() =>
-                                    handlePageChange(currentPage - 1)
-                                }
+                                onClick={() => handlePageChange(currentPage - 1)}
                                 className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
                             >
                                 Previous
@@ -213,9 +230,7 @@ const Buy = ({ auth }) => {
                         </div>
                         {currentPage < totalPages && (
                             <button
-                                onClick={() =>
-                                    handlePageChange(currentPage + 1)
-                                }
+                                onClick={() => handlePageChange(currentPage + 1)}
                                 className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
                             >
                                 Next

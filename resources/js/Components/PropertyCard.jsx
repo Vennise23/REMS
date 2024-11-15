@@ -15,7 +15,7 @@ const PropertyCard = ({ property = {}, photos = [] }) => {
 
     const displayPhoto = () => {
         const photoUrl = photos && photos.length > 0 ? photos[0] : null;
-        console.log("photoUrl", photoUrl)
+        // console.log("photoUrl", photoUrl)
         return photoUrl;
     };
 

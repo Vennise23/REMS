@@ -15,7 +15,7 @@ const NewLaunchListing = ({ properties }) => {
                     New Launch Listings
                 </h2>
                 <a
-                    href="/all-property"
+                    href="/buy?saleType=New+Launch"
                     className="view-more text-blue-500 hover:text-blue-700"
                 >
                     View More &gt;

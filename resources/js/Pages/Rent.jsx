@@ -24,6 +24,28 @@ const Rent = ({ auth }) => {
     const [citySearchQuery, setCitySearchQuery] = useState('');
 
     useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        // const saleTypeFromUrl = urlParams.get("saleType");
+        const propertyTypeFromUrl = urlParams.get("propertyType");
+
+        // if (saleTypeFromUrl) {
+        //     setFilters((prev) => ({
+        //         ...prev,
+        //         saleType: saleTypeFromUrl,
+        //     }));
+        // }
+
+        if (propertyTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: propertyTypeFromUrl,
+            }));
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem("propertyFilters", JSON.stringify(filters));
+
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
@@ -70,8 +92,22 @@ const Rent = ({ auth }) => {
     };
 
     const handleFilterChange = (newFilters) => {
-        setFilters(newFilters);
-        localStorage.setItem('propertyRentFilters', JSON.stringify(newFilters));
+        setFilters((prev) => ({
+            ...prev,
+            ...newFilters,
+        }));
+        setCurrentPage(1);
+
+        const params = new URLSearchParams(window.location.search);
+
+        // if (newFilters.saleType) {
+        //     params.set("saleType", newFilters.saleType);
+        // }
+        if (newFilters.propertyType) {
+            params.set("propertyType", newFilters.propertyType);
+        }
+
+        window.history.pushState(null, "", `/rent?${params.toString()}`);
     };
 
     const fetchProperties = async () => {
