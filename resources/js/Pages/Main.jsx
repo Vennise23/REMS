@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { Link, Head, router } from "@inertiajs/react";
+import { Head } from "@inertiajs/react";
 
 import backgroundImage from "/resources/img/estate_property_background.jpg";
 import PropertyFormModal from "@/Components/PropertyFormModal";
 import Header from "@/Components/HeaderMenu";
+import NewLaunchListing from "@/Components/NewLaunchListing";
+import LatestListings from "@/Components/LatestListings";
+import RentListings from "@/Components/RentListings";
+import Footer from "@/Components/Footer";
 
 export default function Main({ auth }) {
     const [isBuy, setIsBuy] = useState(true);
@@ -23,16 +27,43 @@ export default function Main({ auth }) {
             <Header auth={auth} />
 
             <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
-                <div className="relative w-full max-w-4xl h-80 bg-cover bg-center mb-8" style={{ backgroundImage: `url(${backgroundImage})` }}>
+                <div
+                    className="relative w-full max-w-4xl h-80 bg-cover bg-center mb-8"
+                    style={{ backgroundImage: `url(${backgroundImage})` }}
+                >
                     <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-full max-w-3xl bg-[#f7f1e8] p-8 rounded-xl shadow-lg">
                         <div className="flex justify-center mb-4">
-                            <button onClick={() => setIsBuy(true)} className={`px-6 py-2 font-bold rounded-l-full ${isBuy ? "bg-red-500 text-white" : "bg-gray-200 text-gray-600"}`}>Buy</button>
-                            <button onClick={() => setIsBuy(false)} className={`px-6 py-2 font-bold rounded-r-full ${!isBuy ? "bg-red-500 text-white" : "bg-gray-200 text-gray-600"}`}>Rent</button>
+                            <button
+                                onClick={() => setIsBuy(true)}
+                                className={`px-6 py-2 font-bold rounded-l-full ${
+                                    isBuy
+                                        ? "bg-red-500 text-white"
+                                        : "bg-gray-200 text-gray-600"
+                                }`}
+                            >
+                                Buy
+                            </button>
+                            <button
+                                onClick={() => setIsBuy(false)}
+                                className={`px-6 py-2 font-bold rounded-r-full ${
+                                    !isBuy
+                                        ? "bg-red-500 text-white"
+                                        : "bg-gray-200 text-gray-600"
+                                }`}
+                            >
+                                Rent
+                            </button>
                         </div>
 
                         <div className="flex items-center bg-white p-2 rounded-full shadow-md mb-4">
-                            <input type="text" placeholder="Search here..." className="flex-grow bg-transparent border-none focus:outline-none px-4 rounded-full"/>
-                            <button className="bg-red-500 text-white px-6 py-2 rounded-full">Search</button>
+                            <input
+                                type="text"
+                                placeholder="Search here..."
+                                className="flex-grow bg-transparent border-none focus:outline-none px-4 rounded-full"
+                            />
+                            <button className="bg-red-500 text-white px-6 py-2 rounded-full">
+                                Search
+                            </button>
                         </div>
 
                         <div className="flex justify-around">
@@ -56,18 +87,29 @@ export default function Main({ auth }) {
                             </select>
                         </div>
 
-                        {/* Button to open modal */}
                         <div className="flex justify-center mt-4">
-                            <button onClick={openModal} className="bg-red-500 text-white px-6 py-2 rounded-full">
+                            <button
+                                onClick={openModal}
+                                className="bg-red-500 text-white px-6 py-2 rounded-full"
+                            >
                                 Apply for Property
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Modal for Property Form */}
                 <PropertyFormModal isOpen={isModalOpen} onClose={closeModal} />
+
+                {isBuy ? (
+                    <>
+                        <NewLaunchListing />
+                        <LatestListings />
+                    </>
+                ) : (
+                    <RentListings />
+                )}
             </main>
+            <Footer />
         </>
     );
 }

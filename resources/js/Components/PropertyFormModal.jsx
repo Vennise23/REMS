@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ShowSuccessModal from "./ShowSuccessModal";
+import ShowConfirmationModal from "./ShowConfirmationModal";
 import "./../../css/app.css";
 
 const PropertyFormModal = ({ isOpen, onClose }) => {
@@ -36,39 +37,44 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        setIsAgentType(formData.property_type === "Agent" ? "Agent" : "");
+    }, [formData.property_type]);
 
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
-
-        if (name === "isAgentType") {
-            setIsAgentType(value);
+    
+        if (name === "property_type") {
+            setFormData({ ...formData, property_type: value });
         } else if (name === "purchase") {
-            // Update both the formData and purchaseTerm when purchase type is selected
             setFormData({ ...formData, purchase: value });
-            setPurchase_term(value); // This controls whether Sale Types should show
-        } else if (
-            type === "radio" &&
-            (name === "sale_type")
-        ) {
-            // Handle sale type radio buttons
+            setPurchase_term(value);
+        } else if (type === "radio" && name === "sale_type") {
             setFormData({ ...formData, sale_type: value });
         } else if (type === "file") {
-            // For certificate photos preview
-            if (name === "certificate_photos") {
-                const filePreviews = Array.from(files).map((file) =>
-                    URL.createObjectURL(file)
-                );
-                setCertificatePhotoPreview(filePreviews);
+            const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            const filePreviews = [];
+    
+            for (const file of files) {
+                if (!validImageTypes.includes(file.type)) {
+                    setError("Only image files (JPG, PNG) are allowed. PDF files are not accepted.");
+                    e.target.value = null;
+                    return;
+                }
+                filePreviews.push(URL.createObjectURL(file));
             }
-            // For property photos preview
-            if (name === "property_photos") {
-                const filePreviews = Array.from(files).map((file) =>
-                    URL.createObjectURL(file)
-                );
+    
+            if (name === "certificate_photos") {
+                setCertificatePhotoPreview(filePreviews);
+            } else if (name === "property_photos") {
                 setPropertyPhotoPreview(filePreviews);
             }
-            // Handle multiple file uploads for photos
+    
             setFormData({ ...formData, [name]: files });
+            setError("");
         } else if (
             type === "checkbox" &&
             (name === "property_styles" || name === "amenities")
@@ -174,10 +180,20 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         setSuggestionsPostalCode([]);
     };
 
-    const handleSubmit = async (e) => {
+    const onSubmitHandler = (e) => {
         e.preventDefault();
+        setShowConfirmationModal(true);
+    };
+
+    const handleCloseConfirmationModal = () => {
+        setShowConfirmationModal(false);
+    };
+
+    const handleConfirmSubmit = async (e) => {
+        // e.preventDefault();
 
         const data = new FormData();
+        console.log("Form submitted:", formData);
 
         // Process each field in formData
         Object.keys(formData).forEach((key) => {
@@ -210,6 +226,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     },
                 }
             );
+            setShowConfirmationModal(false);
             setShowSuccessModal(true);
         } catch (error) {
             if (error.response && error.response.data.errors) {
@@ -229,6 +246,39 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         onClose();
     };
 
+    const handleClose = () => {
+        setFormData({
+            property_name: "",
+            property_type: "",
+            property_address_line_1: "",
+            property_address_line_2: "",
+            city: "",
+            postal_code: "",
+            purchase: "",
+            sale_type: "",
+            number_of_units: "",
+            square_feet: "",
+            price: "",
+            certificate_photos: [],
+            property_photos: [],
+            each_unit_has_furnace: false,
+            each_unit_has_electrical_meter: false,
+            has_onsite_caretaker: false,
+            parking: "",
+            amenities: [],
+            other_amenities: "",
+            additional_info: "",
+        });
+        setCertificatePhotoPreview([]);
+        setPropertyPhotoPreview([]);
+        setError("");
+        setSuggestions([]);
+        setSuggestionsPostalCode([]);
+        setShowConfirmationModal(false);
+        setShowSuccessModal(false);
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -238,7 +288,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     Apply for Property
                 </h2>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={onSubmitHandler}>
                     <div>
                         <h3
                             className="text-xl font-semibold mb-2 cursor-pointer flex justify-between items-center"
@@ -264,7 +314,8 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     </div>
 
                                     <select
-                                        name="isAgentType"
+                                        name="property_type"
+                                        value={formData.property_type}
                                         onChange={handleChange}
                                         className="p-2 border rounded-md w-full"
                                         required
@@ -272,10 +323,10 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         <option value="" disabled>
                                             Select Property Type
                                         </option>
-                                        <option value="non-agent">
+                                        <option value="Non Agent">
                                             Non Agent
                                         </option>
-                                        <option value="agent">Agent</option>
+                                        <option value="Agent">Agent</option>
                                     </select>
 
                                     <div className="grid grid-cols-1 gap-4 col-span-2 relative">
@@ -487,19 +538,45 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             type="number"
                                             name="number_of_units"
                                             placeholder="Number of Units*"
-                                            onChange={handleChange}
+                                            onChange={(e) => {
+                                                if (e.target.value < 1) {
+                                                    e.target.value = 1;
+                                                }
+                                                handleChange(e);
+                                            }}
                                             required
-                                            min="0"
+                                            min="1"
+                                            step="1"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             className="p-2 border rounded-md w-full"
+                                            onKeyDown={(e) => {
+                                                if (e.key === '.' || e.key === ',' || e.key === 'e') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                         />
 
                                         <input
                                             type="number"
                                             name="square_feet"
                                             placeholder="Square Feet*"
-                                            onChange={handleChange}
-                                            min="0"
+                                            onChange={(e) => {
+                                                if (e.target.value < 1) {
+                                                    e.target.value = 1;
+                                                }
+                                                handleChange(e);
+                                            }}
+                                            min="1"
+                                            step="1"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             className="p-2 border rounded-md w-full"
+                                            onKeyDown={(e) => {
+                                                if (e.key === '.' || e.key === ',' || e.key === 'e') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                         />
                                     </div>
                                     <div className="grid grid-cols-1 gap-4">
@@ -507,15 +584,41 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             type="number"
                                             name="price"
                                             placeholder="Price (RM)*"
-                                            onChange={handleChange}
+                                            onChange={(e) => {
+                                                if (e.target.value < 1) {
+                                                    e.target.value = 1;
+                                                }
+                                                handleChange(e);
+                                            }}
                                             required
-                                            min="0"
+                                            min="1"
+                                            step="0.01"
                                             className="p-2 border rounded-md w-full"
+                                            onKeyDown={(e) => {
+                                                if (e.key === '.' && e.target.value.includes('.')) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onInput={(e) => {
+                                                const value = e.target.value;
+
+                                                if (value.startsWith('0') && value.length > 1 && value[1] !== '.') {
+                                                    e.target.value = value.slice(1);
+                                                }
+
+                                                if (value.includes('.') && value.split('.')[1].length > 2) {
+                                                    e.target.value = value.substring(0, value.indexOf('.') + 3);
+                                                }
+
+                                                // if (value.includes('.') && value.split('.')[1].length === 1) {
+                                                //     e.target.value = value + '0';
+                                                // }
+                                            }}
                                         />
                                     </div>
                                 </div>
 
-                                {isAgentType === "agent" && (
+                                {isAgentType === "Agent" && (
                                     <div className="mt-4">
                                         <label className="block font-semibold">
                                             Upload Certificate Photos:
@@ -524,7 +627,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             type="file"
                                             name="certificate_photos"
                                             onChange={handleChange}
-                                            accept="image/*"
+                                            accept="image/jpeg,image/png,application/pdf"
                                             multiple
                                             className="p-2 border rounded-md w-full"
                                         />
@@ -558,6 +661,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         multiple
                                         className="p-2 border rounded-md w-full"
                                     />
+                                    {error && <p className="text-red-500 mt-2">{error}</p>}
                                     {/* Show property photo previews */}
                                     {propertyPhotoPreview.length > 0 && (
                                         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -759,7 +863,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     <div className="flex justify-end mt-6">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="bg-gray-500 text-white px-4 py-2 rounded-md mr-4"
                         >
                             Close
@@ -773,6 +877,12 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     </div>
                 </form>
             </div>
+            <ShowConfirmationModal
+                isOpen={showConfirmationModal}
+                message="Are you sure you want to submit the form?"
+                onClose={handleCloseConfirmationModal}
+                onConfirm={handleConfirmSubmit}
+            />
             <ShowSuccessModal
                 isOpen={showSuccessModal}
                 message="Your property application has been submitted successfully."

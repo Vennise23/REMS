@@ -54,7 +54,7 @@ const PropertyDetail = ({ property, auth }) => {
 
             <Header auth={auth} />
 
-            <div className="pt-24 pb-12 bg-gray-50 min-h-screen">
+            <div className="pt-32 pb-12 bg-gray-50 min-h-screen">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="bg-white shadow-xl rounded-xl overflow-hidden transition-shadow duration-300 hover:shadow-2xl relative">
                         {/* 照片展示区 */}

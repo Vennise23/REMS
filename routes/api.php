@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PropertyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -24,3 +25,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 //edit user
 Route::put('/users/{id}', [UserController::class, 'update']);
+
+//PropertyList
+Route::get('/property', [PropertyController::class, 'GetPropertyList']);

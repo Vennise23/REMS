@@ -63,11 +63,17 @@ class PropertyController extends Controller
         }
     }
 
+    public function GetPropertyList()
+    {
+        $properties = Property::all();
+        return response()->json($properties);
+    }
+
     public function index(Request $request)
     {
         try {
             // \Log::info('Received request params:', $request->all());
-            
+
             $perPage = $request->query('per_page', 6);
             $query = Property::query();
 
@@ -93,14 +99,14 @@ class PropertyController extends Controller
             }
 
             $properties = $query->paginate($perPage);
-            
+
             // \Log::info('Returning properties:', [
             //     'total' => $properties->total(),
             //     'per_page' => $properties->perPage(),
             //     'current_page' => $properties->currentPage(),
             //     'count' => $properties->count()
             // ]);
-            
+
             return response()->json($properties);
         } catch (\Exception $e) {
             // \Log::error('Error in index method: ' . $e->getMessage());
@@ -113,7 +119,7 @@ class PropertyController extends Controller
         try {
             // 每页显示6个属性
             $properties = Property::paginate(6);
-            
+
             return Inertia::render('Buy', [
                 'auth' => [
                     'user' => auth()->user()
@@ -130,10 +136,10 @@ class PropertyController extends Controller
         try {
             $property = Property::findOrFail($propertyId);
             $photos = [];
-            
+
             if ($property->certificate_photos) {
-                $certificatePhotos = is_string($property->certificate_photos) 
-                    ? json_decode($property->certificate_photos, true) 
+                $certificatePhotos = is_string($property->certificate_photos)
+                    ? json_decode($property->certificate_photos, true)
                     : $property->certificate_photos;
 
                 if (is_array($certificatePhotos)) {
@@ -141,14 +147,14 @@ class PropertyController extends Controller
                         // \Log::info('Photo path: ' . $photo);
                         // \Log::info('Full storage path: ' . storage_path('app/public/' . $photo));
                         // \Log::info('File exists: ' . (Storage::disk('public')->exists($photo) ? 'yes' : 'no'));
-                        
+
                         if (Storage::disk('public')->exists($photo)) {
                             $photos[] = url('storage/' . $photo);
                         }
                     }
                 }
             }
-            
+
             // \Log::info('Returning photos:', $photos);
             return response()->json($photos);
         } catch (\Exception $e) {
@@ -161,10 +167,10 @@ class PropertyController extends Controller
     {
         try {
             $property = Property::findOrFail($id);
-            
+
             // 处理照片 URL，确保数据格式正确
             $propertyArray = array_merge($property->toArray(), [
-                'certificate_photos' => is_array($property->certificate_photos) 
+                'certificate_photos' => is_array($property->certificate_photos)
                     ? array_map(fn($photo) => url('storage/' . $photo), $property->certificate_photos)
                     : [],
                 'property_photos' => is_array($property->property_photos)
