@@ -1,19 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "@inertiajs/react";
 
-const NewLaunchListing = () => {
-    const [PropertyList, setPropertyList] = useState([]);
-
-    useEffect(() => {
-        fetch("/api/property")
-            .then((response) => response.json())
-            .then((data) => setPropertyList(data))
-            .catch((error) =>
-                console.error("Error fetching property data:", error)
-            );
-    }, []);
-
-    const filteredProperties = PropertyList
+const NewLaunchListing = ({ properties }) => {
+    const filteredProperties = properties
         .filter((property) => property.purchase === "For Sale")
         .filter((property) => property.sale_type === "New Launch")
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -41,10 +30,7 @@ const NewLaunchListing = () => {
                         className="property-item w-64 p-4 bg-white shadow-lg rounded-md"
                     >
                         <img
-                            src={
-                                property.property_photos &&
-                                property.property_photos[0]
-                            }
+                            src={property.property_photos && property.property_photos[0]}
                             alt={property.property_name}
                             className="w-full h-48 object-cover rounded-md"
                         />
@@ -52,12 +38,8 @@ const NewLaunchListing = () => {
                             <span className="new-property-label text-xs text-white bg-red-500 px-2 py-1 rounded-md">
                                 New property
                             </span>
-                            <h3 className="font-bold mt-2">
-                                {property.property_name}
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                                {property.city}
-                            </p>
+                            <h3 className="font-bold mt-2">{property.property_name}</h3>
+                            <p className="text-sm text-gray-600">{property.city}</p>
                         </div>
                     </Link>
                 ))}

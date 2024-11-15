@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "@inertiajs/react";
 
-const LatestListings = () => {
-    const [PropertyList, setPropertyList] = useState([]);
-
-    useEffect(() => {
-        fetch("/api/property")
-            .then((response) => response.json())
-            .then((data) => setPropertyList(data))
-            .catch((error) =>
-                console.error("Error fetching property data:", error)
-            );
-    }, []);
-
-    const filteredProperties = PropertyList
-    .filter((property) => property.purchase === "For Sale")
+const LatestListings = ({ properties }) => {
+    const filteredProperties = properties
+        .filter((property) => property.purchase === "For Sale")
         .filter((property) => property.sale_type === "Subsale")
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 4);

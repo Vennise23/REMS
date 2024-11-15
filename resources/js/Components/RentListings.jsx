@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "@inertiajs/react";
 
-const RentListings = () => {
-    const [PropertyList, setPropertyList] = useState([]);
+const RentListings = ({ properties }) => {
+    // const [PropertyList, setPropertyList] = useState([]);
 
-    useEffect(() => {
-        fetch("/api/property")
-            .then((response) => response.json())
-            .then((data) => setPropertyList(data))
-            .catch((error) =>
-                console.error("Error fetching property data:", error)
-            );
-    }, []);
+    // useEffect(() => {
+    //     fetch("/api/property")
+    //         .then((response) => response.json())
+    //         .then((data) => setPropertyList(data))
+    //         .catch((error) =>
+    //             console.error("Error fetching property data:", error)
+    //         );
+    // }, []);
 
-    const filteredProperties = PropertyList
+    const filteredProperties = properties
         .filter((property) => property.purchase === "For Rent")
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 4);
 
     return (
-        <div className="pt-32 mt-12 bg-gray-100 flex flex-col items-center">
+        <div className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
             <div className="flex justify-between items-center w-full">
                 <h2 className="text-2xl font-semibold text-left">
                     Rent Listings

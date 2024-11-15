@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head } from "@inertiajs/react";
+import axios from "axios";
 
 import backgroundImage from "/resources/img/estate_property_background.jpg";
 import PropertyFormModal from "@/Components/PropertyFormModal";
@@ -12,6 +13,8 @@ import Footer from "@/Components/Footer";
 export default function Main({ auth }) {
     const [isBuy, setIsBuy] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [propertyList, setPropertyList] = useState([]);
 
     const openModal = () => {
         setIsModalOpen(true);
@@ -20,6 +23,23 @@ export default function Main({ auth }) {
     const closeModal = () => {
         setIsModalOpen(false);
     };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const baseURL = `${window.location.origin}/api/property`;
+                const response = await axios.get(baseURL);
+                console.log("response", response);
+                setPropertyList(response.data);
+            } catch (error) {
+                console.error("Error fetching property data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [isBuy]);
 
     return (
         <>
@@ -100,13 +120,25 @@ export default function Main({ auth }) {
 
                 <PropertyFormModal isOpen={isModalOpen} onClose={closeModal} />
 
-                {isBuy ? (
-                    <>
-                        <NewLaunchListing />
-                        <LatestListings />
-                    </>
+                {loading ? (
+                    <div className="flex justify-center items-center min-h-screen">
+                        <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
+                    </div>
                 ) : (
-                    <RentListings />
+                    <div>
+                        {isBuy ? (
+                            <>
+                                <div className="mb-8">
+                                    <NewLaunchListing properties={propertyList} />
+                                </div>
+                                <div>
+                                    <LatestListings properties={propertyList} />
+                                </div>
+                            </>
+                        ) : (
+                            <RentListings properties={propertyList} />
+                        )}
+                    </div>
                 )}
             </main>
             <Footer />
