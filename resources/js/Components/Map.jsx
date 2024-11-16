@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const Map = ({ address, initialSearchQuery, theme = 'blue' }) => {
+const Map = ({ address, theme = 'blue' }) => {
     const [searchQuery, setSearchQuery] = useState(address || '');
 
     const themeClasses = {

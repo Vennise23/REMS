@@ -27,7 +27,7 @@ const Rent = ({ auth }) => {
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
-    // 获取属性照片
+
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
@@ -48,7 +48,7 @@ const Rent = ({ auth }) => {
 
     const fetchProperties = async () => {
         try {
-            // 创建基础查询参数
+
             const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
@@ -61,14 +61,12 @@ const Rent = ({ auth }) => {
                 purchase: 'For Rent'
             };
 
-            // 只有当不是 'All Property' 时才添加 propertyType 参数
             if (filters.propertyType !== 'All Property') {
                 baseParams.propertyType = filters.propertyType;
             }
 
             const queryParams = new URLSearchParams(baseParams);
 
-            console.log('Fetching with params:', Object.fromEntries(queryParams)); // 调试用
 
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
@@ -99,7 +97,7 @@ const Rent = ({ auth }) => {
                     onClick={() => handlePageChange(i)}
                     className={`px-4 py-2 mx-1 rounded ${
                         currentPage === i
-                            ? 'bg-green-600 text-white' // 改为绿色主题
+                            ? 'bg-green-600 text-white' 
                             : 'bg-gray-200 hover:bg-gray-300'
                     }`}
                 >
@@ -131,7 +129,7 @@ const Rent = ({ auth }) => {
 
             <div className="min-h-screen bg-gray-50 pt-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* 搜索和筛选区域 */}
+   
                     <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
                         <h2 className="text-2xl font-semibold text-gray-800 mb-6">Find Your Perfect Rental</h2>
                         <FilterSection 
@@ -144,19 +142,17 @@ const Rent = ({ auth }) => {
                         />
                     </div>
 
-                    {/* 属性列表 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {properties.map((property) => (
                             <PropertyCard 
                                 key={property.id} 
                                 property={property} 
                                 photos={propertyPhotos[property.id] || []}
-                                theme="green" // 添加主题属性
+                                theme="green" 
                             />
                         ))}
                     </div>
 
-                    {/* 分页控件 */}
                     <div className="flex justify-center mt-12 mb-8 space-x-2">
                         {currentPage > 1 && (
                             <button

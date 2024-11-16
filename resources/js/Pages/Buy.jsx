@@ -29,7 +29,6 @@ const Buy = ({ auth }) => {
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
-    // 在获取到属性列表后，获取每个属性的照片
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
@@ -43,7 +42,7 @@ const Buy = ({ auth }) => {
         }
     };
 
-    // 添加筛选处理函数
+
     const handleFilterChange = (newFilters) => {
         setFilters(prev => ({
             ...prev,
@@ -52,10 +51,8 @@ const Buy = ({ auth }) => {
         setCurrentPage(1);
     };
 
-    // 将获取属性的逻辑抽取为独立函数
     const fetchProperties = async () => {
         try {
-            // 创建基础查询参数
             const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
@@ -69,7 +66,7 @@ const Buy = ({ auth }) => {
                 saleType: filters.saleType
             };
 
-            // 只有当不是 'All Property' 时才添加 propertyType 参数
+
             if (filters.propertyType !== 'All Property') {
                 baseParams.propertyType = filters.propertyType;
             }
@@ -92,12 +89,12 @@ const Buy = ({ auth }) => {
         }
     };
 
-    // 分页按钮处理函数
+    
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
 
-    // 生成分页按钮
+
     const renderPaginationButtons = () => {
         const buttons = [];
         for (let i = 1; i <= totalPages; i++) {
@@ -118,10 +115,9 @@ const Buy = ({ auth }) => {
         return buttons;
     };
 
-    // 添加城市搜索处理函数
     const handleCitySearch = (value) => {
         setCitySearchQuery(value);
-        setCurrentPage(1); // 重置页码
+        setCurrentPage(1); 
     };
 
     const defaultAuth = {
@@ -140,7 +136,6 @@ const Buy = ({ auth }) => {
 
             <div className="min-h-screen bg-gray-50 pt-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* 搜索和筛选区域 */}
                     <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
                         <h2 className="text-2xl font-semibold text-gray-800 mb-6">Find Your Dream Property</h2>
                         <FilterSection 
@@ -152,7 +147,6 @@ const Buy = ({ auth }) => {
                         />
                     </div>
 
-                    {/* 属性列表 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {properties.map((property) => (
                             <PropertyCard 
@@ -164,7 +158,6 @@ const Buy = ({ auth }) => {
                         ))}
                     </div>
 
-                    {/* 分页控件 */}
                     <div className="flex justify-center mt-12 mb-8 space-x-2">
                         {currentPage > 1 && (
                             <button
