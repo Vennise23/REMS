@@ -28,8 +28,11 @@ const Buy = ({ auth }) => {
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
+    
         const saleTypeFromUrl = urlParams.get("saleType");
         const propertyTypeFromUrl = urlParams.get("propertyType");
+        const priceMinFromUrl = urlParams.get("priceMin"); // 获取 priceMin
+        const priceMaxFromUrl = urlParams.get("priceMax"); // 获取 priceMax
     
         if (!saleTypeFromUrl) {
             setFilters((prev) => ({
@@ -52,6 +55,21 @@ const Buy = ({ auth }) => {
             setFilters((prev) => ({
                 ...prev,
                 propertyType: propertyTypeFromUrl,
+            }));
+        }
+    
+
+        if (priceMinFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                priceMin: priceMinFromUrl,
+            }));
+        }
+    
+        if (priceMaxFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                priceMax: priceMaxFromUrl,
             }));
         }
     }, []);

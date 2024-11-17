@@ -35,7 +35,12 @@ const Rent = ({ auth }) => {
         //     }));
         // }
 
-        if (propertyTypeFromUrl) {
+        if (!propertyTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: "All Property",
+            }));
+        } else {
             setFilters((prev) => ({
                 ...prev,
                 propertyType: propertyTypeFromUrl,
