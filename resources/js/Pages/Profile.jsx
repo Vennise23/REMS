@@ -3,10 +3,18 @@ import { useForm, Head } from "@inertiajs/react";
 import Header from "@/Components/HeaderMenu";
 import UserSidebar from "@/Components/UserSidebar";
 import axios from "axios";
+import { debounce } from 'lodash';
 
 export default function Profile({ auth, user }) {
     const originalEmail = user.email; // Define the original email here
-    const { data, setData, post, processing } = useForm({
+    const { 
+        data, 
+        setData, 
+        processing, 
+        errors, 
+        setError,
+        clearErrors 
+    } = useForm({
         firstname: user.firstname || "",
         lastname: user.lastname || "",
         email: user.email || "",
@@ -21,53 +29,94 @@ export default function Profile({ auth, user }) {
         profile_picture: null,
     });
 
-    const [formErrors, setFormErrors] = useState({});
-    const [isIC, setIsIC] = useState(false);
-
-    const validateFields = (field, value) => {
-        let errors = { ...formErrors };
-
-        if (field === "firstname" || field === "lastname") {
-            if (data.firstname === data.lastname) {
-                errors["nameMatch"] = "First name and last name cannot be the same.";
-            } else {
-                delete errors["nameMatch"];
-            }
-        }
-
-        if (field === "age") {
-            const age = parseInt(value);
-            if (age < 1 || age > 100) {
-                errors["age"] = "Age must be between 1 and 100.";
-            } else {
-                delete errors["age"];
-            }
-        }
-
-        if (field === "phone" && /\D/.test(value)) {
-            errors["phone"] = "Phone number can only contain digits.";
-        } else {
-            delete errors["phone"];
-        }
-
-        setFormErrors(errors);
-    };
-
-    const handleChange = (field, value) => {
-        setData(field, value);
-        validateFields(field, value);
-
-        // Check email uniqueness only if the email is different from the original
-        if (field === "email" && value !== originalEmail) {
-            checkEmailUniqueness(value);
-        } else if (field === "email" && value === originalEmail) {
-            // If email is reverted to original, clear any email errors
-            setFormErrors((prevErrors) => {
-                const { email, ...rest } = prevErrors;
-                return rest;
-            });
-        }
-    };
+     // Define formErrors state
+     const [formErrors, setFormErrors] = useState({});
+     const [isIC, setIsIC] = useState(false);
+ 
+     const validateFields = (field, value) => {
+         let errors = { ...formErrors };
+ 
+         if (field === "firstname" || field === "lastname") {
+             if (data.firstname === data.lastname) {
+                 errors["nameMatch"] = "First name and last name cannot be the same.";
+             } else {
+                 delete errors["nameMatch"];
+             }
+         }
+ 
+         if (field === "age") {
+             const age = parseInt(value);
+             if (age < 1 || age > 100) {
+                 errors["age"] = "Age must be between 1 and 100.";
+             } else {
+                 delete errors["age"];
+             }
+         }
+ 
+         if (field === "phone" && /\D/.test(value)) {
+             errors["phone"] = "Phone number can only contain digits.";
+         } else {
+             delete errors["phone"];
+         }
+ 
+         setFormErrors(errors);
+     };
+ 
+     const validateIC = (value) => {
+         const icRegex = /^\d{6}\d{6}$/; // Example: YYMMDDXXXXXX
+         if (icRegex.test(value)) {
+             const year = parseInt(value.substring(0, 2), 10);
+             const month = parseInt(value.substring(2, 4), 10);
+             const day = parseInt(value.substring(4, 6), 10);
+ 
+             if (month < 1 || month > 12 || day < 1 || day > 31) {
+                 return false; // Invalid date in IC
+             }
+ 
+             const currentYear = new Date().getFullYear();
+             const fullYear = year > parseInt(String(currentYear).substring(2)) ? 1900 + year : 2000 + year;
+ 
+             return { fullYear, month, day };
+         }
+         return false;
+     };
+ 
+     const handleChange = (field, inputValue) => {
+         setData(field, inputValue);
+ 
+         if (field === "email" && inputValue !== originalEmail) {
+             checkEmailUniqueness(inputValue);
+         } else if (field === "email" && inputValue === originalEmail) {
+             setFormErrors((prevErrors) => {
+                 const { email, ...rest } = prevErrors;
+                 return rest;
+             });
+         }
+ 
+         if (field === "ic_number") {
+             const icValidation = validateIC(inputValue);
+             if (icValidation) {
+                 const { fullYear, month, day } = icValidation;
+                 const birthDate = new Date(fullYear, month - 1, day);
+ 
+                 setData("born_date", birthDate.toISOString().split("T")[0]);
+                 setData("age", new Date().getFullYear() - fullYear);
+                 setIsIC(true);
+             } else {
+                 setIsIC(false);
+                 setData("born_date", "");
+                 setData("age", "");
+             }
+         }
+     };
+ 
+     const handleManualInput = (field, inputValue) => {
+         setData(field, inputValue);
+         if (field === "born_date") {
+             const birthYear = new Date(inputValue).getFullYear();
+             setData("age", new Date().getFullYear() - birthYear);
+         }
+     };
 
     const checkEmailUniqueness = async (email) => {
         try {
@@ -88,33 +137,46 @@ export default function Profile({ auth, user }) {
         }
     };
 
-    const handleICorPassport = (e) => {
-        const value = e.target.value;
-    
-        // Update the IC number field directly without any conditions to allow user input
-        setData("ic_number", value);
-    
-        // Check if the input resembles an IC format (12 numeric characters)
-        if (value.length === 12 && /^\d+$/.test(value)) {
-            setIsIC(true);
-    
-            // Auto-populate age and birth date based on IC format
-            const year = parseInt(value.slice(0, 2), 10);
-            const month = parseInt(value.slice(2, 4), 10);
-            const day = parseInt(value.slice(4, 6), 10);
-    
-            const birthYear = year > 20 ? 1900 + year : 2000 + year;
-            const birthDate = new Date(birthYear, month - 1, day);
-    
-            setData("born_date", birthDate.toISOString().split("T")[0]);
-            setData("age", new Date().getFullYear() - birthYear);
-        } else {
-            setIsIC(false);
-            setData("age", "");
-            setData("born_date", "");
+    const calculateAge = (bornDate) => {
+        const today = new Date();
+        const birthDate = new Date(bornDate);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        return age;
+    };
+
+    const handleICChange = (e) => {
+        const icNumber = e.target.value;
+        setData("ic_number", icNumber);
+
+        if (icNumber.length === 12) {
+            const year = icNumber.substring(0, 2);
+            const month = icNumber.substring(2, 4);
+            const day = icNumber.substring(4, 6);
+            const fullYear = parseInt(year) > 23 ? `19${year}` : `20${year}`;
+            const bornDate = `${fullYear}-${month}-${day}`;
+            
+            setData(data => ({
+                ...data,
+                born_date: bornDate,
+                age: calculateAge(bornDate)
+            }));
         }
     };
-    
+
+    const handleDateChange = (e) => {
+        const newDate = e.target.value;
+        setData(data => ({
+            ...data,
+            born_date: newDate,
+            age: calculateAge(newDate)
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -137,6 +199,83 @@ export default function Profile({ auth, user }) {
         : auth.user.profile_picture
         ? `/storage/${auth.user.profile_picture}`
         : "https://ui-avatars.com/api/?name=User&background=random";
+
+    const validateName = (firstName, lastName) => {
+        if (firstName.toLowerCase() === lastName.toLowerCase()) {
+            return "First name and last name cannot be the same";
+        }
+        return null;
+    };
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return "Please enter a valid email address";
+        }
+        if (!email.toLowerCase().endsWith('.com')) {
+            return "Email must end with .com";
+        }
+        return null;
+    };
+
+    const validatePhone = (phone) => {
+        // Adjust regex based on your country's phone format
+        const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
+        if (!phoneRegex.test(phone)) {
+            return "Please enter a valid phone number format";
+        }
+        return null;
+    };
+
+    const handleNameChange = (field, value) => {
+        setData(field, value);
+        
+        // Clear existing name error
+        if (errors.nameMatch) {
+            clearErrors('nameMatch');
+        }
+        
+        // Validate names when either first name or last name changes
+        const firstName = field === 'firstname' ? value : data.firstname;
+        const lastName = field === 'lastname' ? value : data.lastname;
+        
+        if (firstName && lastName) {
+            const nameError = validateName(firstName, lastName);
+            if (nameError) {
+                setError('nameMatch', nameError);
+            }
+        }
+    };
+
+    const handleEmailChange = (e) => {
+        const value = e.target.value;
+        setData('email', value);
+        
+        // Clear existing email error
+        if (errors.email) {
+            clearErrors('email');
+        }
+        
+        const emailError = validateEmail(value);
+        if (emailError) {
+            setError('email', emailError);
+        }
+    };
+
+    const handlePhoneChange = (e) => {
+        const value = e.target.value.replace(/\D/g, '');
+        setData('phone', value);
+        
+        // Clear existing phone error
+        if (errors.phone) {
+            clearErrors('phone');
+        }
+        
+        const phoneError = validatePhone(value);
+        if (phoneError) {
+            setError('phone', phoneError);
+        }
+    };
 
     return (
         <>
@@ -176,10 +315,10 @@ export default function Profile({ auth, user }) {
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.firstname}
-                                            onChange={(e) => handleChange("firstname", e.target.value)}
+                                            onChange={(e) => handleNameChange("firstname", e.target.value)}
                                         />
-                                        {formErrors.nameMatch && (
-                                            <div className="text-red-500 text-sm">{formErrors.nameMatch}</div>
+                                        {errors.nameMatch && (
+                                            <div className="text-red-500 text-sm">{errors.nameMatch}</div>
                                         )}
                                     </div>
 
@@ -189,10 +328,10 @@ export default function Profile({ auth, user }) {
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.lastname}
-                                            onChange={(e) => handleChange("lastname", e.target.value)}
+                                            onChange={(e) => handleNameChange("lastname", e.target.value)}
                                         />
-                                        {formErrors.nameMatch && (
-                                            <div className="text-red-500 text-sm">{formErrors.nameMatch}</div>
+                                        {errors.nameMatch && (
+                                            <div className="text-red-500 text-sm">{errors.nameMatch}</div>
                                         )}
                                     </div>
 
@@ -202,10 +341,10 @@ export default function Profile({ auth, user }) {
                                             type="email"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.email}
-                                            onChange={(e) => handleChange("email", e.target.value)}
+                                            onChange={handleEmailChange}
                                         />
-                                        {formErrors.email && (
-                                            <div className="text-red-500 text-sm">{formErrors.email}</div>
+                                        {errors.email && (
+                                            <div className="text-red-500 text-sm">{errors.email}</div>
                                         )}
                                     </div>
 
@@ -214,25 +353,20 @@ export default function Profile({ auth, user }) {
                                         <input
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.ic_number}
-                                            onChange={handleICorPassport}
-                                         />
-                                    </div>  
-
+                                            value={data.ic_number || ''}
+                                            onChange={handleICChange}
+                                        />
+                                    </div>
 
                                     <div className="mb-4">
                                         <label className="block text-gray-700">Age</label>
                                         <input
                                             type="number"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.age}
-                                            onChange={(e) => handleChange("age", e.target.value)}
-                                            min="1"
-                                            max="100"
+                                            value={data.age || ''}
+                                            onChange={(e) => setData("age", e.target.value)}
+                                            disabled={isIC}
                                         />
-                                        {formErrors.age && (
-                                            <div className="text-red-500 text-sm">{formErrors.age}</div>
-                                        )}
                                     </div>
 
                                     <div className="mb-4">
@@ -240,9 +374,9 @@ export default function Profile({ auth, user }) {
                                         <input
                                             type="date"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.born_date}
+                                            value={data.born_date || ''}
+                                            onChange={handleDateChange}
                                             disabled={isIC}
-                                            onChange={(e) => setData("born_date", e.target.value)}
                                         />
                                     </div>
 
@@ -253,10 +387,10 @@ export default function Profile({ auth, user }) {
                                             inputMode="numeric"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.phone}
-                                            onChange={(e) => handleChange("phone", e.target.value.replace(/\D/g, ''))}
+                                            onChange={handlePhoneChange}
                                         />
-                                        {formErrors.phone && (
-                                            <div className="text-red-500 text-sm">{formErrors.phone}</div>
+                                        {errors.phone && (
+                                            <div className="text-red-500 text-sm">{errors.phone}</div>
                                         )}
                                     </div>
 

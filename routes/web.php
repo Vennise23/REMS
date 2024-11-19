@@ -91,6 +91,13 @@ Route::get('/properties', [PropertyController::class, 'index']);
 
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 
+Route::middleware(['auth'])->group(function () {
+    // Add this route for fetching users
+    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    
+    // Your other web routes...
+});
+
 
 
 

@@ -7,17 +7,47 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log; // Import the Log facade
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
-    // Fetch all users with the updated fields
     public function index()
     {
         try {
-            $users = User::select('id', 'firstname', 'lastname', 'email', 'ic_number', 'age', 'born_date', 'phone', 'address_line_1', 'address_line_2', 'city', 'postal_code', 'role', 'profile_picture', 'created_at', 'updated_at')->get();
+            $users = User::select([
+                'id',
+                'firstname',
+                'lastname',
+                'email',
+                'phone',
+                'role',
+                'profile_picture',
+                'ic_number',
+                'age',
+                'born_date',
+                'address_line_1',
+                'address_line_2',
+                'city',
+                'postal_code'
+            ])->get();
+
+            // Transform the data to include profile picture URL
+            $users = $users->map(function ($user) {
+                return [
+                    ...$user->toArray(),
+                    'profile_picture_url' => $user->profile_picture 
+                        ? asset('storage/' . $user->profile_picture) 
+                        : null
+                ];
+            });
+
             return response()->json($users);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Unable to fetch users. Please check the server logs for more details.'], 500);
+            return response()->json([
+                'error' => 'Error fetching users',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -25,105 +55,148 @@ class UserController extends Controller
     public function store(Request $request)
     {
         try {
-            $request->validate([
-                'firstname' => 'required|string|max:255',
-                'lastname' => 'required|string|max:255',
-                'email' => 'required|email|unique:users,email',
-                'ic_number' => 'nullable|string|max:255',
-                'age' => 'nullable|integer|min:1|max:100',
-                'born_date' => 'nullable|date',
-                'phone' => 'nullable|string|max:255',
-                'address_line_1' => 'nullable|string|max:255',
-                'address_line_2' => 'nullable|string|max:255',
-                'city' => 'nullable|string|max:255',
-                'postal_code' => 'nullable|string|max:10',
-                'role' => 'nullable|string|max:255',
-                'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-                'password' => 'required|string|min:8|confirmed',
+            $validator = Validator::make($request->all(), [
+                'firstname' => 'required|string|min:2',
+                'lastname' => 'required|string|min:2',
+                'email' => [
+                    'required',
+                    'email',
+                    Rule::unique('users'),
+                    'ends_with:.com'
+                ],
+                'password' => 'required|min:8|confirmed',
+                'ic_number' => [
+                    'required',
+                    'string',
+                    Rule::unique('users'),
+                    'regex:/^\d{12}$/'
+                ],
+                'phone' => [
+                    'nullable',
+                    'string',
+                    'regex:/^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/'
+                ],
+                'role' => 'required|in:user,admin',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ], [
+                'email.unique' => 'This email is already registered.',
+                'email.ends_with' => 'Email must end with .com',
+                'ic_number.unique' => 'This IC number is already registered.',
+                'phone.regex' => 'Please enter a valid Malaysian phone number.',
             ]);
 
-            $user = User::create([
-                'firstname' => $request->firstname,
-                'lastname' => $request->lastname,
-                'email' => $request->email,
-                'ic_number' => $request->ic_number,
-                'age' => $request->age,
-                'born_date' => $request->born_date,
-                'phone' => $request->phone,
-                'address_line_1' => $request->address_line_1,
-                'address_line_2' => $request->address_line_2,
-                'city' => $request->city,
-                'postal_code' => $request->postal_code,
-                'role' => $request->role ?? 'user',
-                'password' => Hash::make($request->password),
-            ]);
-
-            if ($request->hasFile('profile_picture')) {
-                $filePath = $request->file('profile_picture')->store('profile_pictures', 'public');
-                $user->profile_picture = $filePath;
-                $user->save();
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
 
-            return response()->json($user, 201);
+            $data = $request->except('profile_picture');
+            $data['password'] = Hash::make($request->password);
+
+            if ($request->hasFile('profile_picture')) {
+                $path = $request->file('profile_picture')->store('profile-pictures', 'public');
+                $data['profile_picture'] = $path;
+            }
+
+            $user = User::create($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User created successfully',
+                'user' => $user
+            ], 201);
+
         } catch (\Exception $e) {
-            Log::error('Error storing user:', ['message' => $e->getMessage()]); // Log the error
-            return response()->json(['error' => 'An error occurred while creating the user.'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the user',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
     // Update an existing user
     public function update(Request $request, $id)
     {
-        Log::info('Update Request Data:', $request->all()); // Log the incoming request data
+        try {
+            $user = User::findOrFail($id);
 
-        $request->validate([
-            'profile_picture' => 'nullable|image|mimes:jpg,png,jpeg,gif,svg|max:2048',
-            'firstname' => 'required|string|max:255',
-            'lastname' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $id,
-            'ic_number' => 'nullable|string|max:20',
-            'age' => 'nullable|integer|min:1|max:100',
-            'born_date' => 'nullable|date',
-            'phone' => 'nullable|string|max:15',
-            'address_line_1' => 'nullable|string|max:255',
-            'address_line_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
-            'role' => 'required|string|in:user,admin',
-            'password' => 'nullable|string|min:8',
-        ]);
+            $rules = [
+                'firstname' => 'sometimes|required|string|min:2',
+                'lastname' => 'sometimes|required|string|min:2',
+                'email' => [
+                    'sometimes',
+                    'required',
+                    'email',
+                    Rule::unique('users')->ignore($id),
+                ],
+                'ic_number' => [
+                    'sometimes',
+                    'required',
+                    'string',
+                    Rule::unique('users')->ignore($id),
+                    'regex:/^\d{12}$/',
+                ],
+                'phone' => 'sometimes|required|string|regex:/^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/',
+                'password' => 'nullable|min:8',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'role' => 'sometimes|required|in:user,admin',
+                'age' => 'sometimes|nullable|integer|min:1|max:150',
+                'born_date' => 'sometimes|nullable|date',
+                'address_line_1' => 'sometimes|nullable|string',
+                'address_line_2' => 'sometimes|nullable|string',
+                'city' => 'sometimes|nullable|string',
+                'postal_code' => 'sometimes|nullable|string',
+            ];
 
-        $user = User::findOrFail($id);
+            $validator = Validator::make($request->all(), $rules);
 
-        if ($request->hasFile('profile_picture')) {
-            if ($user->profile_picture) {
-                Storage::disk('public')->delete($user->profile_picture);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
             }
-            $path = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $user->profile_picture = $path;
+
+            $data = $request->except(['password', 'profile_picture']);
+
+            // Handle profile picture
+            if ($request->hasFile('profile_picture')) {
+                // Delete old profile picture if exists
+                if ($user->profile_picture) {
+                    Storage::disk('public')->delete($user->profile_picture);
+                }
+
+                // Store new profile picture
+                $path = $request->file('profile_picture')->store('profile-pictures', 'public');
+                $data['profile_picture'] = $path;
+            }
+
+            // Handle password
+            if ($request->filled('password')) {
+                $data['password'] = Hash::make($request->password);
+            }
+
+            $user->update($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User updated successfully',
+                'user' => [
+                    ...$user->toArray(),
+                    'profile_picture_url' => $user->profile_picture ? Storage::url($user->profile_picture) : null
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the user',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Update other fields
-        $user->firstname = $request->firstname;
-        $user->lastname = $request->lastname;
-        $user->email = $request->email;
-        $user->ic_number = $request->ic_number;
-        $user->age = $request->age;
-        $user->born_date = $request->born_date;
-        $user->phone = $request->phone;
-        $user->address_line_1 = $request->address_line_1;
-        $user->address_line_2 = $request->address_line_2;
-        $user->city = $request->city;
-        $user->postal_code = $request->postal_code;
-        $user->role = $request->role;
-
-        if ($request->password) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->save();
-
-        return response()->json(['message' => 'User updated successfully'], 200);
     }
 
     // Delete a user
