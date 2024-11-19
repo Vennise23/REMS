@@ -90,31 +90,49 @@ export default function Profile({ auth, user }) {
 
     const handleICorPassport = (e) => {
         const value = e.target.value;
-    
+        console.log("Function called with value:", value);
+
         // Update the IC number field directly without any conditions to allow user input
         setData("ic_number", value);
+
+        // Remove hyphens for validation
+        const cleanedValue = value.replace(/-/g, '');
+
+        // Check if the input resembles an IC or passport number
+        const isICFormat = /^\d{12}$/.test(cleanedValue); // 12 digits, no hyphens
+        const isPassportFormat = /^[A-Z]\d{7,8}$/.test(value); // Alphanumeric passport
+
+        if (isICFormat || isPassportFormat) {
+            console.log(isICFormat ? "Detected IC format" : "Detected Passport format");
+            setIsIC(isICFormat);
+
+            // Check if the input resembles an IC format (12 numeric characters)
+            if (isICFormat) {
+                // Parse IC format to extract birth year, month, and day
+                const year = parseInt(value.slice(0, 2), 10);
+                const month = parseInt(value.slice(2, 4), 10);
+                const day = parseInt(value.slice(4, 6), 10);
+
+                const currYear = new Date().getFullYear();
+                const currYear_cutoff = currYear % 100; // get the last two digit of current year.
+                const birthYear = year > currYear_cutoff ? 1900 + year : 2000 + year;
+                const birthDate = new Date(birthYear, month - 1, day);
+                const formattedDate = birthDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+                console.log("Birth Date Calculated:", formattedDate);
     
-        // Check if the input resembles an IC format (12 numeric characters)
-        if (value.length === 12 && /^\d+$/.test(value)) {
-            setIsIC(true);
-    
-            // Auto-populate age and birth date based on IC format
-            const year = parseInt(value.slice(0, 2), 10);
-            const month = parseInt(value.slice(2, 4), 10);
-            const day = parseInt(value.slice(4, 6), 10);
-    
-            const birthYear = year > 20 ? 1900 + year : 2000 + year;
-            const birthDate = new Date(birthYear, month - 1, day);
-    
-            setData("born_date", birthDate.toISOString().split("T")[0]);
-            setData("age", new Date().getFullYear() - birthYear);
+                // Update state
+                setData((prevData) => ({
+                    ...prevData,
+                    born_date: formattedDate,
+                    age: currYear - birthYear,
+                }));
+            }
         } else {
-            setIsIC(false);
-            setData("age", "");
-            setData("born_date", "");
+            console.log("Invalid format. Not an IC or Passport number.");
         }
     };
-    
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -129,14 +147,14 @@ export default function Profile({ auth, user }) {
                 window.location.reload();
             },
         });
-        
+
     };
 
     const userImage = data.profile_picture
         ? URL.createObjectURL(data.profile_picture)
         : auth.user.profile_picture
-        ? `/storage/${auth.user.profile_picture}`
-        : "https://ui-avatars.com/api/?name=User&background=random";
+            ? `/storage/${auth.user.profile_picture}`
+            : "https://ui-avatars.com/api/?name=User&background=random";
 
     return (
         <>
@@ -216,8 +234,8 @@ export default function Profile({ auth, user }) {
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.ic_number}
                                             onChange={handleICorPassport}
-                                         />
-                                    </div>  
+                                        />
+                                    </div>
 
 
                                     <div className="mb-4">
