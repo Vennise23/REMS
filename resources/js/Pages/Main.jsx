@@ -131,10 +131,14 @@ export default function Main({ auth }) {
         setLoading(true);
         try {
             let saleType = selectedCategories;
-            if (saleType.includes("New Launch") && saleType.includes("Subsale") && saleType.includes("All")) {
+            if (
+                saleType.includes("New Launch") &&
+                saleType.includes("Subsale") &&
+                saleType.includes("All")
+            ) {
                 saleType = ["All"];
             }
-            
+
             let propertyType = selectedPropertyTypes;
             if (
                 propertyType.includes("Conventional Condominium") &&
@@ -144,7 +148,7 @@ export default function Main({ auth }) {
             ) {
                 propertyType = ["All Property"];
             }
-    
+
             const params = {
                 priceMin,
                 priceMax,
@@ -153,14 +157,15 @@ export default function Main({ auth }) {
             if (saleType.length > 0) {
                 params.saleType = saleType.join(",");
             }
-    
+
             if (propertyType.length > 0) {
                 params.propertyType = propertyType.join(",");
             }
-    
+
             const queryParams = new URLSearchParams(params);
-            const searchUrl = `/buy?${queryParams.toString()}`;
-    
+            const basePath = isBuy ? "/buy" : "/rent";
+            const searchUrl = `${basePath}?${queryParams.toString()}`;
+
             window.location.href = searchUrl;
         } catch (error) {
             console.error("Error with search:", error);
@@ -235,109 +240,115 @@ export default function Main({ auth }) {
                         </div>
 
                         <div className="flex justify-around">
-                            <div className="relative">
-                                <button
-                                    onClick={() => toggleDropdown("category")}
-                                    className="bg-transparent border-none focus:outline-none text-gray-700 rounded-full px-4 py-2 flex items-center space-x-2"
-                                >
-                                    <span>Categories</span>
-                                    <span>
-                                        {activeDropdown === "category" ? (
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="w-4 h-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M19 9l-7 7-7-7"
-                                                />
-                                            </svg>
-                                        ) : (
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="w-4 h-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M5 15l7-7 7 7"
-                                                />
-                                            </svg>
-                                        )}
-                                    </span>
-                                </button>
-                                {activeDropdown === "category" && (
-                                    <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-56 p-4 max-h-60 overflow-y-auto z-10">
-                                        <div className="space-y-3">
-                                            <div className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    value="All"
-                                                    onChange={
-                                                        handleCategoryChange
-                                                    }
-                                                    checked={selectedCategories.includes(
-                                                        "All"
-                                                    )}
-                                                    className="form-checkbox text-red-500"
-                                                />
-                                                <label className="ml-2 text-gray-800 text-sm font-medium">
-                                                    All
-                                                </label>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    value="New Launch"
-                                                    onChange={
-                                                        handleCategoryChange
-                                                    }
-                                                    checked={selectedCategories.includes(
-                                                        "New Launch"
-                                                    )}
-                                                    className="form-checkbox text-red-500"
-                                                />
-                                                <label className="ml-2 text-gray-800 text-sm font-medium">
-                                                    New Launch
-                                                </label>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    value="Subsale"
-                                                    onChange={
-                                                        handleCategoryChange
-                                                    }
-                                                    checked={selectedCategories.includes(
-                                                        "Subsale"
-                                                    )}
-                                                    className="form-checkbox text-red-500"
-                                                />
-                                                <label className="ml-2 text-gray-800 text-sm font-medium">
-                                                    Subsale
-                                                </label>
-                                            </div>
-                                            <div className="px-4 py-2 text-center">
-                                                <button
-                                                    onClick={handleApplyFilters}
-                                                    className="bg-red-500 text-white px-4 py-2 rounded-full w-full"
+                            {isBuy && (
+                                <div className="relative">
+                                    <button
+                                        onClick={() =>
+                                            toggleDropdown("category")
+                                        }
+                                        className="bg-transparent border-none focus:outline-none text-gray-700 rounded-full px-4 py-2 flex items-center space-x-2"
+                                    >
+                                        <span>Categories</span>
+                                        <span>
+                                            {activeDropdown === "category" ? (
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
                                                 >
-                                                    Apply Filters
-                                                </button>
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="2"
+                                                        d="M5 15l7-7 7 7"
+                                                    />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="2"
+                                                        d="M19 9l-7 7-7-7"
+                                                    />
+                                                </svg>
+                                            )}
+                                        </span>
+                                    </button>
+                                    {activeDropdown === "category" && (
+                                        <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-56 p-4 max-h-60 overflow-y-auto z-10">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        value="All"
+                                                        onChange={
+                                                            handleCategoryChange
+                                                        }
+                                                        checked={selectedCategories.includes(
+                                                            "All"
+                                                        )}
+                                                        className="form-checkbox text-red-500"
+                                                    />
+                                                    <label className="ml-2 text-gray-800 text-sm font-medium">
+                                                        All
+                                                    </label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        value="New Launch"
+                                                        onChange={
+                                                            handleCategoryChange
+                                                        }
+                                                        checked={selectedCategories.includes(
+                                                            "New Launch"
+                                                        )}
+                                                        className="form-checkbox text-red-500"
+                                                    />
+                                                    <label className="ml-2 text-gray-800 text-sm font-medium">
+                                                        New Launch
+                                                    </label>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        value="Subsale"
+                                                        onChange={
+                                                            handleCategoryChange
+                                                        }
+                                                        checked={selectedCategories.includes(
+                                                            "Subsale"
+                                                        )}
+                                                        className="form-checkbox text-red-500"
+                                                    />
+                                                    <label className="ml-2 text-gray-800 text-sm font-medium">
+                                                        Subsale
+                                                    </label>
+                                                </div>
+                                                <div className="px-4 py-2 text-center">
+                                                    <button
+                                                        onClick={
+                                                            handleApplyFilters
+                                                        }
+                                                        className="bg-red-500 text-white px-4 py-2 rounded-full w-full"
+                                                    >
+                                                        Apply Filters
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="relative">
                                 <button
@@ -357,10 +368,10 @@ export default function Main({ auth }) {
                                                 stroke="currentColor"
                                             >
                                                 <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M19 9l-7 7-7-7"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M5 15l7-7 7 7"
                                                 />
                                             </svg>
                                         ) : (
@@ -372,10 +383,10 @@ export default function Main({ auth }) {
                                                 stroke="currentColor"
                                             >
                                                 <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M5 15l7-7 7 7"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M19 9l-7 7-7-7"
                                                 />
                                             </svg>
                                         )}
@@ -477,10 +488,10 @@ export default function Main({ auth }) {
                                                 stroke="currentColor"
                                             >
                                                 <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M19 9l-7 7-7-7"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M5 15l7-7 7 7"
                                                 />
                                             </svg>
                                         ) : (
@@ -492,10 +503,10 @@ export default function Main({ auth }) {
                                                 stroke="currentColor"
                                             >
                                                 <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M5 15l7-7 7 7"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M19 9l-7 7-7-7"
                                                 />
                                             </svg>
                                         )}
@@ -540,14 +551,14 @@ export default function Main({ auth }) {
                             </div>
                         </div>
 
-                        {/* <div className="flex justify-center mt-4">
+                        <div className="flex justify-center mt-4">
                             <button
                                 onClick={openModal}
                                 className="bg-red-500 text-white px-6 py-2 rounded-full"
                             >
                                 Apply for Property
                             </button>
-                        </div> */}
+                        </div>
                     </div>
                 </div>
 

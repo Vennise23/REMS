@@ -33,13 +33,15 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const [purchaseTerm, setPurchase_term] = useState("");
     const [certificatePhotoPreview, setCertificatePhotoPreview] = useState([]);
     const [propertyPhotoPreview, setPropertyPhotoPreview] = useState([]);
+    const [certificateError, setCertificateError] = useState("");
+    const [propertyError, setPropertyError] = useState("");
     const [isPropertyDetailsOpen, setIsPropertyDetailsOpen] = useState(true);
     const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         setIsAgentType(formData.agent_type === "Agent" ? "Agent" : "");
@@ -47,7 +49,10 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
-    
+
+        const validImageTypes = ["image/jpeg", "image/png", "image/jpg"];
+        const MAX_CERTIFICATE_PHOTOS = 2;
+
         if (name === "agent_type") {
             setFormData({ ...formData, agent_type: value });
         } else if (name === "property_type") {
@@ -57,27 +62,41 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             setPurchase_term(value);
         } else if (type === "radio" && name === "sale_type") {
             setFormData({ ...formData, sale_type: value });
-        } else if (type === "file") {
-            const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-            const filePreviews = [];
-    
+        } else if (name === "certificate_photos") {
+            if (files.length > MAX_CERTIFICATE_PHOTOS) {
+                setCertificateError(`Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`);
+                e.target.value = null;
+                return;
+            }
+            const certificatePreviews = [];
             for (const file of files) {
                 if (!validImageTypes.includes(file.type)) {
-                    setError("Only image files (JPG, PNG) are allowed. PDF files are not accepted.");
+                    setCertificateError(
+                        "Only JPG and PNG files are allowed for certificate photo."
+                    );
                     e.target.value = null;
                     return;
                 }
-                filePreviews.push(URL.createObjectURL(file));
+                certificatePreviews.push(URL.createObjectURL(file));
             }
-    
-            if (name === "certificate_photos") {
-                setCertificatePhotoPreview(filePreviews);
-            } else if (name === "property_photos") {
-                setPropertyPhotoPreview(filePreviews);
-            }
-    
+            setCertificatePhotoPreview(certificatePreviews);
             setFormData({ ...formData, [name]: files });
-            setError("");
+            setCertificateError(""); // Clear the error if files are valid
+        } else if (name === "property_photos") {
+            const propertyPreviews = [];
+            for (const file of files) {
+                if (!validImageTypes.includes(file.type)) {
+                    setPropertyError(
+                        "Only JPG and PNG files are allowed for property photos."
+                    );
+                    e.target.value = null;
+                    return;
+                }
+                propertyPreviews.push(URL.createObjectURL(file));
+            }
+            setPropertyPhotoPreview(propertyPreviews);
+            setFormData({ ...formData, [name]: files });
+            setPropertyError(""); // Clear the error if files are valid
         } else if (
             type === "checkbox" &&
             (name === "property_styles" || name === "amenities")
@@ -195,9 +214,9 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const handleConfirmSubmit = async (e) => {
         // e.preventDefault();
 
+        setLoading(true);
         const data = new FormData();
         console.log("Form submitted:", formData);
-
         console.log("data : ", data);
         // Process each field in formData
         Object.keys(formData).forEach((key) => {
@@ -222,15 +241,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
         try {
             const baseURL = `${window.location.origin}/apply-property`;
-            const response = await axios.post(
-                baseURL,
-                data,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
+            const response = await axios.post(baseURL, data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
             setShowConfirmationModal(false);
             setShowSuccessModal(true);
         } catch (error) {
@@ -243,6 +258,8 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                 console.log("Submission Error:", error);
                 alert("Error submitting the form");
             }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -276,7 +293,8 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         });
         setCertificatePhotoPreview([]);
         setPropertyPhotoPreview([]);
-        setError("");
+        setCertificateError("");
+        setPropertyError("");
         setSuggestions([]);
         setSuggestionsPostalCode([]);
         setShowConfirmationModal(false);
@@ -288,6 +306,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            {loading && (
+                <div className="fixed inset-0 flex justify-center items-center bg-white bg-opacity-75 z-50">
+                    <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
+                </div>
+            )}
             <div className="bg-white p-8 rounded-lg w-full max-w-2xl shadow-lg overflow-auto max-h-[90vh]">
                 <h2 className="text-2xl font-bold text-center mb-6">
                     Apply for Property
@@ -556,7 +579,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             pattern="[0-9]*"
                                             className="p-2 border rounded-md w-full"
                                             onKeyDown={(e) => {
-                                                if (e.key === '.' || e.key === ',' || e.key === 'e') {
+                                                if (
+                                                    e.key === "." ||
+                                                    e.key === "," ||
+                                                    e.key === "e"
+                                                ) {
                                                     e.preventDefault();
                                                 }
                                             }}
@@ -578,7 +605,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             pattern="[0-9]*"
                                             className="p-2 border rounded-md w-full"
                                             onKeyDown={(e) => {
-                                                if (e.key === '.' || e.key === ',' || e.key === 'e') {
+                                                if (
+                                                    e.key === "." ||
+                                                    e.key === "," ||
+                                                    e.key === "e"
+                                                ) {
                                                     e.preventDefault();
                                                 }
                                             }}
@@ -600,19 +631,36 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             step="0.01"
                                             className="p-2 border rounded-md w-full"
                                             onKeyDown={(e) => {
-                                                if (e.key === '.' && e.target.value.includes('.')) {
+                                                if (
+                                                    e.key === "." &&
+                                                    e.target.value.includes(".")
+                                                ) {
                                                     e.preventDefault();
                                                 }
                                             }}
                                             onInput={(e) => {
                                                 const value = e.target.value;
 
-                                                if (value.startsWith('0') && value.length > 1 && value[1] !== '.') {
-                                                    e.target.value = value.slice(1);
+                                                if (
+                                                    value.startsWith("0") &&
+                                                    value.length > 1 &&
+                                                    value[1] !== "."
+                                                ) {
+                                                    e.target.value =
+                                                        value.slice(1);
                                                 }
 
-                                                if (value.includes('.') && value.split('.')[1].length > 2) {
-                                                    e.target.value = value.substring(0, value.indexOf('.') + 3);
+                                                if (
+                                                    value.includes(".") &&
+                                                    value.split(".")[1].length >
+                                                        2
+                                                ) {
+                                                    e.target.value =
+                                                        value.substring(
+                                                            0,
+                                                            value.indexOf(".") +
+                                                                3
+                                                        );
                                                 }
 
                                                 // if (value.includes('.') && value.split('.')[1].length === 1) {
@@ -632,10 +680,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             type="file"
                                             name="certificate_photos"
                                             onChange={handleChange}
-                                            accept="image/jpeg,image/png,application/pdf"
+                                            accept="image/*"
                                             multiple
                                             className="p-2 border rounded-md w-full"
                                         />
+                                        {certificateError && <p className="text-red-500 mt-2">{certificateError}</p>}
                                         {/* Show certificate photo previews */}
                                         {certificatePhotoPreview.length > 0 && (
                                             <div className="mt-4 grid grid-cols-3 gap-2">
@@ -666,7 +715,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         multiple
                                         className="p-2 border rounded-md w-full"
                                     />
-                                    {error && <p className="text-red-500 mt-2">{error}</p>}
+                                    {propertyError && <p className="text-red-500 mt-2">{propertyError}</p>}
                                     {/* Show property photo previews */}
                                     {propertyPhotoPreview.length > 0 && (
                                         <div className="mt-4 grid grid-cols-3 gap-2">
