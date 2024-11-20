@@ -48,3 +48,4 @@ return new class extends Migration
         Schema::dropIfExists('properties');
     }
 };
+>>>>>>>>> Temporary merge branch 2

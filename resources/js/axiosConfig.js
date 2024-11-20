@@ -1,6 +1,17 @@
 import axios from 'axios';
 
-// Set the base URL for Axios requests
-axios.defaults.baseURL = 'http://127.0.0.1:8000';
+const instance = axios.create({
+    baseURL: '',
+    headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+    }
+});
 
-export default axios;
+// Add CSRF token to all requests
+const token = document.head.querySelector('meta[name="csrf-token"]');
+if (token) {
+    instance.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+}
+
+export default instance;

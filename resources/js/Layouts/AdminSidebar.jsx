@@ -81,5 +81,5 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                 &times;
             </button>
         </aside>
-    );
+    );
 }

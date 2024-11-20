@@ -5,7 +5,7 @@ const ShowSuccessModal = ({ isOpen, message, onClose }) => {
         console.log("ShowSuccessModal isOpen:", isOpen);
     }, [isOpen]);
 
-    if (!isOpen) return null;
+if (!isOpen) return null;
 
     const handleModalClose = () => {
         onClose();

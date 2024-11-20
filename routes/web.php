@@ -20,6 +20,10 @@ Route::get('/', function () {
     ]);
 })->name('main');
 
+Route::get('/dashboard', function () {
+    return Inertia::render('Dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
+
 // User Profile and Logout routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -31,23 +35,46 @@ Route::get('/dbconn', function () {
     return view('dbconn');
 });
 
+Route::get('/three',function(){
+    return Inertia::render('EntryPage');
+});
+
 // Admin Login
 Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])->name('admin.login');
 Route::post('/admin/login', [AuthenticatedSessionController::class, 'storeAdmin'])->name('admin.login.store');
 
+// Admin routes with user management
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
+
+    // User Management routes for admin
+    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users', [UserController::class, 'index']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
 
-// User Management routes for admin
-Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-Route::post('/users', [UserController::class, 'store'])->name('users.store');
-Route::get('/users', [UserController::class, 'index']);
-Route::delete('/users/{id}', [UserController::class, 'destroy']);
-
-// Property Route
+Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
+
+Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
+
+Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
+
+
+
+require __DIR__.'/auth.php';
+
+Route::get('/apply-property', [PropertyController::class, 'create']);
+Route::post('/apply-property', [PropertyController::class, 'store']);
+
+Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
+
+Route::get('/buy', function () {
+    return Inertia::render('Buy');
+})->name('buy');
+// 添加属性详情页面路由
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
 // 添加这个路由来获取属性列表
 Route::get('/api/properties', [PropertyController::class, 'index']);
@@ -74,6 +101,14 @@ Route::get('/property', [PropertyController::class, 'GetPropertyList']);
 
 Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
+
+Route::middleware(['auth'])->group(function () {
+    // Add this route for fetching users
+    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    
+    // Your other web routes...
+});
+
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
 
 // Testing
