@@ -30,23 +30,35 @@ class RegisteredUserController extends Controller
      * @throws \Illuminate\Validation\ValidationException
      */
     public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+{
+    $request->validate([
+        'firstname' => 'required|string|max:255',
+        'lastname' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|confirmed|min:8',
+    ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+    $user = User::create([
+        'firstname' => $request->firstname,
+        'lastname' => $request->lastname,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'ic_number' => '', // Default value
+        'age' => null, // Default value
+        'born_date' => null, // Default value
+        'phone' => '', // Default value
+        'profile_picture' => null, // Default value
+        'address_line_1' => '', // Default value
+        'address_line_2' => '', // Default value
+        'city' => '', // Default value
+        'postal_code' => '', // Default value
+        'role' => 'user', // Default role for a user
+    ]);
 
-        event(new Registered($user));
+    event(new Registered($user));
+    Auth::login($user);
 
-        Auth::login($user);
+    return redirect()->route('main'); // Redirect to main page
+}
 
-        return redirect(RouteServiceProvider::HOME);
-    }
 }

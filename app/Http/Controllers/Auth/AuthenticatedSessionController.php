@@ -26,7 +26,7 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Handle an incoming authentication request for regular users.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
@@ -34,20 +34,42 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        // Redirect to main page after login
+        return redirect()->intended(route('main'));
     }
 
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        // Redirect to the main route after logging out
+        return redirect()->route('login');
+    }
+
+    /**
+     * Handle an incoming authentication request for admin.
+     */
+    public function storeAdmin(LoginRequest $request): RedirectResponse
+    {
+        $credentials = $request->only('email', 'password');
+        $credentials['role'] = 'admin';
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            
+            // Redirect to the admin dashboard if login is successful
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // Return error if credentials do not match
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ]);
     }
 }

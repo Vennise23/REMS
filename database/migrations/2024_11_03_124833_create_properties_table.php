@@ -17,18 +17,16 @@ return new class extends Migration
 
             // Property Information
             $table->string('property_name');
-            $table->string('property_title');
-            $table->enum('property_type', ['Conventional Condominium', 'Bare Land Condominium', 'Commercial', 'Other / Not Sure']);
             $table->string('property_address_line_1');
             $table->string('property_address_line_2')->nullable();
-            $table->string('property_city');
-            $table->string('property_postal_code');
+            $table->string('city');
+            $table->string('postal_code');
+            $table->enum('purchase', ['For Sale', 'For Rent']);
+            $table->enum('sale_type', ['New Launch', 'Subsale'])->nullable();
+            $table->enum('property_type', ['Conventional Condominium', 'Bare Land Condominium', 'Commercial']);
             $table->integer('number_of_units');
-            $table->integer('total_commercial_units')->nullable();
-            $table->integer('total_commercial_space_sqft')->nullable();
-            $table->year('year_built')->nullable();
-            $table->string('developer')->nullable();
-            $table->string('certificate_number')->nullable();
+            $table->integer('square_feet');
+            $table->decimal('price', 10, 2);
             $table->json('certificate_photos')->nullable();
             $table->json('property_photos')->nullable();
             
@@ -42,7 +40,6 @@ return new class extends Migration
             $table->text('additional_info')->nullable();
 
             $table->timestamps();
-
         });
     }
 
