@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use Illuminate\Support\Facades\Http;
 
 // Main Route
 Route::get('/', function () {
@@ -55,30 +56,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
 
-Route::get('/apply-property', [PropertyController::class, 'create']);
-Route::post('/apply-property', [PropertyController::class, 'store']);
-
-Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
-
+// Profile routes
 Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
 
-
-
-require __DIR__.'/auth.php';
-
-Route::get('/apply-property', [PropertyController::class, 'create']);
-Route::post('/apply-property', [PropertyController::class, 'store']);
-
-Route::get('/apply-property', [PropertyController::class, 'create'])->name('apply-property');
 
 Route::get('/buy', function () {
     return Inertia::render('Buy');
 })->name('buy');
-// 添加属性详情页面路由
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
-// 添加这个路由来获取属性列表
 Route::get('/api/properties', [PropertyController::class, 'index']);
-// 或者如果你想把它放在api路由组中，可以在 routes/api.php 中添加：
 Route::get('/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 
@@ -103,10 +89,7 @@ Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 
 Route::middleware(['auth'])->group(function () {
-    // Add this route for fetching users
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-    
-    // Your other web routes...
 });
 
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
@@ -123,6 +106,77 @@ Route::get('/debug/properties', function () {
             ];
         })
     ]);
+});
+
+// GOOGLE API TESTING
+Route::get('/test-google-maps', function () {
+    $apiKey = env('GOOGLE_MAPS_API_KEY');
+    $response = Http::get("https://maps.googleapis.com/maps/api/geocode/json", [
+        'address' => 'JALAN PULAI JAYA 2/9',
+        'key' => $apiKey,
+    ]);
+
+    if ($response->successful()) {
+        return response()->json($response->json());
+    }
+
+    return response()->json(['error' => 'API call failed'], 500);
+});
+
+Route::get('/test-geocode', function () {
+    $placeId = request('place_id');
+    $apiKey = env('GOOGLE_MAPS_API_KEY');
+
+    $url = "https://maps.googleapis.com/maps/api/geocode/json";
+
+    $response = Http::get($url, [
+        'place_id' => $placeId,
+        'key' => $apiKey,
+    ]);
+
+    return response()->json($response->json());
+});
+
+Route::get('/place-details', function () {
+    $placeId = request('place_id');
+    $apiKey = env('GOOGLE_MAPS_API_KEY');
+
+    $url = "https://maps.googleapis.com/maps/api/place/details/json";
+    $response = Http::get($url, [
+        'place_id' => $placeId,
+        'key' => $apiKey,
+    ]);
+
+    return response()->json($response->json());
+});
+
+Route::get('/api/place-autocomplete', function () {
+    $query = request('query');
+    $type = request('type', 'geocode');
+    $apiKey = env('GOOGLE_MAPS_API_KEY');
+
+    $url = "https://maps.googleapis.com/maps/api/place/autocomplete/json";
+    $response = Http::get($url, [
+        'input' => $query,
+        'key' => $apiKey,
+        'types' => $type,
+        'language' => 'en',
+    ]);
+
+    return response()->json($response->json());
+});
+
+Route::get('/api/geocode', function () {
+    $placeId = request('place_id');
+    $apiKey = env('GOOGLE_MAPS_API_KEY');
+
+    $url = "https://maps.googleapis.com/maps/api/geocode/json";
+    $response = Http::get($url, [
+        'place_id' => $placeId,
+        'key' => $apiKey,
+    ]);
+
+    return response()->json($response->json());
 });
 
 require __DIR__.'/auth.php';

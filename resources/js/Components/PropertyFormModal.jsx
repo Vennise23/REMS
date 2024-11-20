@@ -64,7 +64,9 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             setFormData({ ...formData, sale_type: value });
         } else if (name === "certificate_photos") {
             if (files.length > MAX_CERTIFICATE_PHOTOS) {
-                setCertificateError(`Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`);
+                setCertificateError(
+                    `Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`
+                );
                 e.target.value = null;
                 return;
             }
@@ -81,7 +83,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             }
             setCertificatePhotoPreview(certificatePreviews);
             setFormData({ ...formData, [name]: files });
-            setCertificateError(""); // Clear the error if files are valid
+            setCertificateError("");
         } else if (name === "property_photos") {
             const propertyPreviews = [];
             for (const file of files) {
@@ -96,7 +98,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             }
             setPropertyPhotoPreview(propertyPreviews);
             setFormData({ ...formData, [name]: files });
-            setPropertyError(""); // Clear the error if files are valid
+            setPropertyError("");
         } else if (
             type === "checkbox" &&
             (name === "property_styles" || name === "amenities")
@@ -129,32 +131,27 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         }
     };
 
-    const handlePostalCodeChange = (e) => {
-        const { value } = e.target;
-        setFormData({ ...formData, postal_code: value });
-        if (value.length > 2) {
-            fetchSuggestions(value, "postalCode");
-        } else {
-            setSuggestionsPostalCode([]);
-        }
-    };
-
     const fetchSuggestions = async (query, type) => {
         try {
-            const url =
-                type === "address"
-                    ? `https://cn.bing.com/api/v6/Places/AutoSuggest?q=${query}&appid=D41D8CD98F00B204E9800998ECF8427E1FBE79C2&mv8cid=9bbb826b-bb4c-46f9-9890-d439b0399f73&mv8ig=FDA6A640F3804207B6703755C5045A66&localMapView=1.7949410094884541,102.78705596923783,1.6583606279413772,104.10472869872973&localcircularview=1.7265548706054688,103.44584655761719,100&count=5&structuredaddress=true&types=&histcnt=&favcnt=&ptypes=favorite&clientid=370934328861623A3A80213189F66348&abbrtext=1`
-                    : `https://cn.bing.com/api/v6/Places/AutoSuggest?q=${query}&appid=D41D8CD98F00B204E9800998ECF8427E1FBE79C2&mv8cid=9bbb826b-bb4c-46f9-9890-d439b0399f73&mv8ig=FDA6A640F3804207B6703755C5045A66&localMapView=1.7949410094884541,102.78705596923783,1.6583606279413772,104.10472869872973&localcircularview=1.7265548706054688,103.44584655761719,100&count=5&structuredaddress=true&types=&histcnt=&favcnt=&ptypes=favorite&clientid=370934328861623A3A80213189F66348&abbrtext=1`;
-
+            const url = `/api/place-autocomplete?query=${query}&type=${type}`;
             const response = await fetch(url);
             const data = await response.json();
-            console.log("data : ", data);
+            // console.log("data suggestion: ", data);
 
-            if (data.value && Array.isArray(data.value)) {
+            if (data.predictions && Array.isArray(data.predictions)) {
                 if (type === "address") {
-                    setSuggestions(data.value);
+                    const suggestions = data.predictions.map((prediction) => ({
+                        description: prediction.description,
+                        placeId: prediction.place_id,
+                        geometry: prediction.geometry,
+                    }));
+                    setSuggestions(suggestions);
                 } else {
-                    setSuggestionsPostalCode(data.value);
+                    setSuggestionsPostalCode(
+                        data.predictions.map(
+                            (prediction) => prediction.description
+                        )
+                    );
                 }
             } else {
                 if (type === "address") {
@@ -168,38 +165,108 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         }
     };
 
-    const handleSuggestionClick = (suggestion) => {
-        console.log("suggestion: ", suggestion);
+    const fetchPostalCode = async (placeId) => {
+        try {
+            const url = `/api/geocode?place_id=${placeId}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            // console.log("data postal code: ", data);
+    
+            if (data.status === "OK" && data.results.length > 0) {
+                const addressComponents = data.results[0].address_components;
 
-        setFormData({
-            ...formData,
-            property_address_line_1:
-                suggestion.streetAddress ||
-                suggestion.address?.streetAddress ||
-                "",
-            property_address_line_2:
-                suggestion.addressLocality ||
-                suggestion.address?.addressLocality ||
-                "",
-            city:
-                suggestion.addressRegion ||
-                suggestion.address?.addressRegion ||
-                "",
-        });
-
-        setSuggestions([]);
+                const streetNumber = addressComponents.find(component =>
+                    component.types.includes("street_number")
+                );
+                const streetAddress_1 = addressComponents.find(component =>
+                    component.types.includes("route")
+                );
+                const streetAddress_2 = addressComponents.find(component =>
+                    component.types.includes("sublocality")
+                );
+                const city = addressComponents.find(component =>
+                    component.types.includes("locality")
+                );
+                const country = addressComponents.find(component =>
+                    component.types.includes("country")
+                );
+                const postalCodeComponent = addressComponents.find(component =>
+                    component.types.includes("postal_code")
+                );
+    
+                const { lat, lng } = data.results[0].geometry.location;
+                const property_address_line_1 = streetNumber
+                ? `${streetNumber.long_name}, ${streetAddress_1 ? streetAddress_1.long_name : ""}`
+                : streetAddress_1 ? streetAddress_1.long_name : "";
+    
+                return {
+                    property_address_line_1,
+                    property_address_line_2: streetAddress_2 ? streetAddress_2.long_name : "",
+                    city: city ? city.long_name : "",
+                    country: country ? country.long_name : "",
+                    postalCode: postalCodeComponent ? postalCodeComponent.long_name : null,
+                    lat,
+                    lng
+                };
+            }
+    
+            return null;
+        } catch (error) {
+            console.error("Error fetching postal code:", error);
+            return null;
+        }
     };
 
-    const handleSuggestionPostalCodeClick = (suggestion) => {
-        console.log("suggestion: ", suggestion);
+    const fetchPostalCodeFromGeonames = async (lat, lng) => {
+        try {
+            const username = "rems.com";
+            const url = `http://api.geonames.org/findNearbyPostalCodesJSON?lat=${lat}&lng=${lng}&username=${username}`;
 
-        setFormData({
-            ...formData,
-            postal_code:
-                suggestion.postalCode || suggestion.address?.postalCode || "",
-        });
+            const response = await fetch(url);
+            const data = await response.json();
+            // console.log("checking geonames")
 
-        setSuggestionsPostalCode([]);
+            if (data.postalCodes && data.postalCodes.length > 0) {
+                const postalInfo = data.postalCodes[0];
+                return {
+                    postalCode: postalInfo.postalCode,
+                    placeName: postalInfo.placeName,
+                    adminName1: postalInfo.adminName1,
+                };
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Error fetching postal code from Geonames:", error);
+            return null;
+        }
+    };
+
+    const onAddressSelect = async (suggestion) => {
+        try {
+            const googleResult = await fetchPostalCode(suggestion.placeId);
+    
+            if (googleResult) {
+                const { lat, lng, postalCode, property_address_line_1, property_address_line_2, city, country } = googleResult;
+    
+                let postalInfo = postalCode
+                    ? { postalCode }
+                    : await fetchPostalCodeFromGeonames(lat, lng);
+    
+                setFormData({
+                    ...formData,
+                    property_address_line_1,
+                    property_address_line_2,
+                    city,
+                    country,
+                    postal_code: postalInfo?.postalCode || postalCode || "",
+                });
+            }
+        } catch (error) {
+            console.error("Error selecting address:", error);
+        }
+    
+        setSuggestions([]);
     };
 
     const onSubmitHandler = (e) => {
@@ -216,9 +283,8 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
         setLoading(true);
         const data = new FormData();
-        console.log("Form submitted:", formData);
-        console.log("data : ", data);
-        // Process each field in formData
+        // console.log("Form submitted:", formData);
+        // console.log("data : ", data);
         Object.keys(formData).forEach((key) => {
             if (key === "certificate_photos" || key === "property_photos") {
                 if (formData[key]) {
@@ -241,6 +307,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
         try {
             const baseURL = `${window.location.origin}/apply-property`;
+            console.log("baseURL", baseURL);
             const response = await axios.post(baseURL, data, {
                 headers: {
                     "Content-Type": "multipart/form-data",
@@ -250,7 +317,6 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             setShowSuccessModal(true);
         } catch (error) {
             if (error.response && error.response.data.errors) {
-                // Handle validation errors from the server
                 const validationErrors = error.response.data.errors;
                 console.error("Validation Errors:", validationErrors);
                 alert("Error: Please check the form for validation errors.");
@@ -359,6 +425,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
                                     <div className="grid grid-cols-1 gap-4 col-span-2 relative">
                                         <div className="relative">
+                                            {/* Property Address Line 1 Input */}
                                             <input
                                                 type="text"
                                                 name="property_address_line_1"
@@ -370,7 +437,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                                 required
                                                 className="p-2 border rounded-md w-full"
                                             />
-                                            {/* Display suggestions */}
+                                            {/* Display address suggestions */}
                                             {suggestions.length > 0 && (
                                                 <ul className="suggestions-list absolute bg-white border border-gray-300 w-full max-h-40 overflow-auto z-10">
                                                     {suggestions.map(
@@ -378,28 +445,23 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                                             <li
                                                                 key={index}
                                                                 onClick={() =>
-                                                                    handleSuggestionClick(
+                                                                    onAddressSelect(
                                                                         suggestion
                                                                     )
                                                                 }
                                                                 className="p-2 hover:bg-gray-200 cursor-pointer"
                                                             >
                                                                 <div className="font-bold">
-                                                                    {suggestion.streetAddress ||
-                                                                        suggestion
-                                                                            .address
-                                                                            ?.streetAddress ||
-                                                                        "Unknown Street"}
+                                                                    {suggestion.description ||
+                                                                        "Unknown Address"}
                                                                 </div>
-                                                                <div className="text-sm text-gray-500">
-                                                                    {suggestion.addressLocality ||
-                                                                        suggestion
-                                                                            .address
-                                                                            ?.addressLocality}
+                                                                {/* <div className="text-sm text-gray-500">
+                                                                    {suggestion.city ||
+                                                                        "Unknown City"}{" "}
                                                                     ,{" "}
-                                                                    {suggestion.addressRegion ||
-                                                                        suggestion.addressRegion}
-                                                                </div>
+                                                                    {suggestion.country ||
+                                                                        "Unknown Region"}
+                                                                </div> */}
                                                             </li>
                                                         )
                                                     )}
@@ -409,7 +471,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         <input
                                             type="text"
                                             name="property_address_line_2"
-                                            placeholder="Property Address Line 2*"
+                                            placeholder="Property Address Line 2"
                                             value={
                                                 formData.property_address_line_2
                                             }
@@ -434,48 +496,10 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="postal_code"
                                             placeholder="Postal Code*"
                                             value={formData.postal_code}
-                                            onChange={handlePostalCodeChange}
+                                            // onChange={handleChange}
                                             required
                                             className="p-2 border rounded-md w-full"
                                         />
-                                        {suggestionsPostalCode.length > 0 && (
-                                            <ul className="suggestions-list absolute bg-white border border-gray-300 w-full max-h-40 overflow-auto z-10">
-                                                {suggestionsPostalCode.map(
-                                                    (suggestion, index) => (
-                                                        <li
-                                                            key={index}
-                                                            onClick={() =>
-                                                                handleSuggestionPostalCodeClick(
-                                                                    suggestion
-                                                                )
-                                                            }
-                                                            className="p-2 hover:bg-gray-200 cursor-pointer"
-                                                        >
-                                                            <div className="font-bold">
-                                                                {suggestion.postalCode ||
-                                                                    suggestion
-                                                                        .address
-                                                                        ?.postalCode}{" "}
-                                                                {suggestion.addressLocality ||
-                                                                    suggestion
-                                                                        .address
-                                                                        ?.addressLocality}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500">
-                                                                {suggestion.addressRegion ||
-                                                                    suggestion
-                                                                        .address
-                                                                        ?.addressRegion}{" "}
-                                                                {suggestion.addressCountry ||
-                                                                    suggestion
-                                                                        .address
-                                                                        ?.addressCountry}
-                                                            </div>
-                                                        </li>
-                                                    )
-                                                )}
-                                            </ul>
-                                        )}
                                     </div>
                                 </div>
 
@@ -547,7 +571,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         className="p-2 border rounded-md"
                                         required
                                     >
-                                        <option value="" disabled>
+                                        <option value="" disabled selected>
                                             Select Property Type
                                         </option>
                                         <option value="Conventional Condominium">
@@ -684,7 +708,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             multiple
                                             className="p-2 border rounded-md w-full"
                                         />
-                                        {certificateError && <p className="text-red-500 mt-2">{certificateError}</p>}
+                                        {certificateError && (
+                                            <p className="text-red-500 mt-2">
+                                                {certificateError}
+                                            </p>
+                                        )}
                                         {/* Show certificate photo previews */}
                                         {certificatePhotoPreview.length > 0 && (
                                             <div className="mt-4 grid grid-cols-3 gap-2">
@@ -715,7 +743,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         multiple
                                         className="p-2 border rounded-md w-full"
                                     />
-                                    {propertyError && <p className="text-red-500 mt-2">{propertyError}</p>}
+                                    {propertyError && (
+                                        <p className="text-red-500 mt-2">
+                                            {propertyError}
+                                        </p>
+                                    )}
                                     {/* Show property photo previews */}
                                     {propertyPhotoPreview.length > 0 && (
                                         <div className="mt-4 grid grid-cols-3 gap-2">
