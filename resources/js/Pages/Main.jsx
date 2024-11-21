@@ -3,12 +3,12 @@ import { Head } from "@inertiajs/react";
 import axios from "axios";
 
 import backgroundImage from "/resources/img/estate_property_background.jpg";
-import PropertyFormModal from "@/Components/PropertyFormModal";
-import Header from "@/Components/HeaderMenu";
-import NewLaunchListing from "@/Components/NewLaunchListing";
-import LatestListings from "@/Components/LatestListings";
-import RentListings from "@/Components/RentListings";
-import Footer from "@/Components/Footer";
+import PropertyFormModal from "@/Components/Property/PropertyFormModal";
+import Header from "@/Layouts/HeaderMenu";
+import NewLaunchListing from "@/Components/Property/NewLaunchListing";
+import LatestListings from "@/Components/Property/LatestListings";
+import RentListings from "@/Components/Property/RentListings";
+import Footer from "@/Layouts/Footer";
 
 export default function Main({ auth }) {
     const [isBuy, setIsBuy] = useState(true);

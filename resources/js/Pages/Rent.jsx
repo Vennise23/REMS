@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
-import PropertyCard from '@/Components/PropertyCard';
+import PropertyCard from '@/Components/Property/PropertyCard';
 import FilterSection from '@/Components/FilterSection';
-import Header from '@/Components/HeaderMenu';
+import Header from '@/layouts/HeaderMenu';
 
 const Rent = ({ auth }) => {
     const [properties, setProperties] = useState([]);

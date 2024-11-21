@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useForm, Head } from "@inertiajs/react";
-import Header from "@/Components/HeaderMenu";
+import Header from "@/layouts/HeaderMenu";
 import UserSidebar from "@/Components/UserSidebar";
 import axios from "axios";
 import { debounce } from "lodash";

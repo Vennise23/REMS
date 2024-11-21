@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Head } from "@inertiajs/react";
-import Header from "@/Components/HeaderMenu";
+import Header from "@/Layouts/HeaderMenu";
 import Map from "@/Components/Map";
-import PropertyModal from "@/Components/PropertyModal";
+import PropertyModal from "@/Components/Property/PropertyModal";
 
 const PropertyDetail = ({ property, auth }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
     const allPhotos = [...(property?.property_photos || [])];
-    console.log(("allPhotos", allPhotos));
+    // console.log(("allPhotos", allPhotos));
 
     const nextPhoto = () => {
         if (allPhotos.length > 1) {

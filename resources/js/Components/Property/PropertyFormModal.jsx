@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ShowSuccessModal from "./ShowSuccessModal";
 import ShowConfirmationModal from "./ShowConfirmationModal";
-import "./../../css/app.css";
+import "./../../../css/app.css";
 
 const PropertyFormModal = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({
@@ -42,6 +42,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [propertyNameError, setPropertyNameError] = useState("");
 
     useEffect(() => {
         setIsAgentType(formData.agent_type === "Agent" ? "Agent" : "");
@@ -49,6 +50,18 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
+
+        // if (name === "property_name") {
+        //     const response = await fetch(`/check-property-name/${value}`);
+        //     const data = await response.json();
+        //     if (data.exists) {
+        //         setPropertyNameError(
+        //             `This property name already exists. Please choose a different one.`
+        //         );
+        //         alert("This property name already exists. Please choose a different one.");
+        //         return;
+        //     }
+        // }
 
         const validImageTypes = ["image/jpeg", "image/png", "image/jpg"];
         const MAX_CERTIFICATE_PHOTOS = 2;
@@ -171,45 +184,53 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             const response = await fetch(url);
             const data = await response.json();
             console.log("data postal code: ", data);
-    
+
             if (data.status === "OK" && data.results.length > 0) {
                 const addressComponents = data.results[0].address_components;
 
-                const streetNumber = addressComponents.find(component =>
+                const streetNumber = addressComponents.find((component) =>
                     component.types.includes("street_number")
                 );
-                const streetAddress_1 = addressComponents.find(component =>
+                const streetAddress_1 = addressComponents.find((component) =>
                     component.types.includes("route")
                 );
-                const streetAddress_2 = addressComponents.find(component =>
+                const streetAddress_2 = addressComponents.find((component) =>
                     component.types.includes("sublocality")
                 );
-                const city = addressComponents.find(component =>
+                const city = addressComponents.find((component) =>
                     component.types.includes("locality")
                 );
-                const country = addressComponents.find(component =>
+                const country = addressComponents.find((component) =>
                     component.types.includes("country")
                 );
-                const postalCodeComponent = addressComponents.find(component =>
-                    component.types.includes("postal_code")
+                const postalCodeComponent = addressComponents.find(
+                    (component) => component.types.includes("postal_code")
                 );
-    
+
                 const { lat, lng } = data.results[0].geometry.location;
                 const property_address_line_1 = streetNumber
-                ? `${streetNumber.long_name}, ${streetAddress_1 ? streetAddress_1.long_name : ""}`
-                : streetAddress_1 ? streetAddress_1.long_name : "";
-    
+                    ? `${streetNumber.long_name}, ${
+                          streetAddress_1 ? streetAddress_1.long_name : ""
+                      }`
+                    : streetAddress_1
+                    ? streetAddress_1.long_name
+                    : "";
+
                 return {
                     property_address_line_1,
-                    property_address_line_2: streetAddress_2 ? streetAddress_2.long_name : "",
+                    property_address_line_2: streetAddress_2
+                        ? streetAddress_2.long_name
+                        : "",
                     city: city ? city.long_name : "",
                     country: country ? country.long_name : "",
-                    postalCode: postalCodeComponent ? postalCodeComponent.long_name : null,
+                    postalCode: postalCodeComponent
+                        ? postalCodeComponent.long_name
+                        : null,
                     lat,
-                    lng
+                    lng,
                 };
             }
-    
+
             return null;
         } catch (error) {
             console.error("Error fetching postal code:", error);
@@ -245,14 +266,22 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const onAddressSelect = async (suggestion) => {
         try {
             const googleResult = await fetchPostalCode(suggestion.placeId);
-    
+
             if (googleResult) {
-                const { lat, lng, postalCode, property_address_line_1, property_address_line_2, city, country } = googleResult;
-    
+                const {
+                    lat,
+                    lng,
+                    postalCode,
+                    property_address_line_1,
+                    property_address_line_2,
+                    city,
+                    country,
+                } = googleResult;
+
                 let postalInfo = postalCode
                     ? { postalCode }
                     : await fetchPostalCodeFromGeonames(lat, lng);
-    
+
                 setFormData({
                     ...formData,
                     property_address_line_1,
@@ -265,7 +294,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         } catch (error) {
             console.error("Error selecting address:", error);
         }
-    
+
         setSuggestions([]);
     };
 
@@ -405,6 +434,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             required
                                             className="p-2 border rounded-md w-full"
                                         />
+                                        {/* {propertyNameError && (
+                                            <p className="text-red-500 mt-2">
+                                                {propertyNameError}
+                                            </p>
+                                        )} */}
                                     </div>
 
                                     <select
@@ -496,7 +530,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             name="postal_code"
                                             placeholder="Postal Code*"
                                             value={formData.postal_code}
-                                            // onChange={handleChange}
+                                            onChange={handleChange}
                                             required
                                             className="p-2 border rounded-md w-full"
                                         />

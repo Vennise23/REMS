@@ -1,15 +1,15 @@
 <?php
 
+use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Http;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AdminController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use Illuminate\Support\Facades\Http;
 
 // Main Route
 Route::get('/', function () {
@@ -36,7 +36,7 @@ Route::get('/dbconn', function () {
     return view('dbconn');
 });
 
-Route::get('/three',function(){
+Route::get('/three', function () {
     return Inertia::render('EntryPage');
 });
 
@@ -56,17 +56,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+});
+
 // Profile routes
 Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
-
-
-Route::get('/buy', function () {
-    return Inertia::render('Buy');
-})->name('buy');
-Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
-Route::get('/api/properties', [PropertyController::class, 'index']);
-Route::get('/properties', [PropertyController::class, 'index']);
-Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 
 // Buy Route
 Route::get('/buy', function () {
@@ -77,66 +72,55 @@ Route::get('/buy', function () {
         'properties' => \App\Models\Property::all()
     ]);
 })->name('buy');
+Route::get('/buy', function () {
+    return Inertia::render('Buy');
+})->name('buy');
+Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
+Route::get('/api/properties', [PropertyController::class, 'index']);
+Route::get('/properties', [PropertyController::class, 'index']);
+Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 
 // Property Route
-Route::post('/apply-property', [PropertyController::class, 'store']);
-Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
+Route::post('/apply-property', [PropertyController::class, 'store'])->middleware('auth');
+Route::get('/property/{id}', [PropertyController::class, 'showInformationById'])->name('property.show');
 Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
 Route::get('/buy', [PropertyController::class, 'showBuyPage'])->name('buy');
 Route::get('/property', [PropertyController::class, 'GetPropertyList']);
-
 Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-});
-
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
-
-// Testing
-Route::get('/debug/properties', function () {
-    $properties = \App\Models\Property::all();
-    return response()->json([
-        'properties' => $properties->map(function ($property) {
-            return [
-                'id' => $property->id,
-                'property_name' => $property->property_name,
-                'amenities' => $property->amenities
-            ];
-        })
-    ]);
-});
+// Route::get('/check-property-name/{name}', [PropertyController::class, 'checkPropertyName']);
 
 // GOOGLE API TESTING
-Route::get('/test-google-maps', function () {
-    $apiKey = env('GOOGLE_MAPS_API_KEY');
-    $response = Http::get("https://maps.googleapis.com/maps/api/geocode/json", [
-        'address' => 'JALAN PULAI JAYA 2/9',
-        'key' => $apiKey,
-    ]);
+// Route::get('/test-google-maps', function () {
+//     $apiKey = env('GOOGLE_MAPS_API_KEY');
+//     $response = Http::get("https://maps.googleapis.com/maps/api/geocode/json", [
+//         'address' => 'JALAN PULAI JAYA 2/9',
+//         'key' => $apiKey,
+//     ]);
 
-    if ($response->successful()) {
-        return response()->json($response->json());
-    }
+//     if ($response->successful()) {
+//         return response()->json($response->json());
+//     }
 
-    return response()->json(['error' => 'API call failed'], 500);
-});
+//     return response()->json(['error' => 'API call failed'], 500);
+// });
 
-Route::get('/test-geocode', function () {
-    $placeId = request('place_id');
-    $apiKey = env('GOOGLE_MAPS_API_KEY');
+// Route::get('/test-geocode', function () {
+//     $placeId = request('place_id');
+//     $apiKey = env('GOOGLE_MAPS_API_KEY');
 
-    $url = "https://maps.googleapis.com/maps/api/geocode/json";
+//     $url = "https://maps.googleapis.com/maps/api/geocode/json";
 
-    $response = Http::get($url, [
-        'place_id' => $placeId,
-        'key' => $apiKey,
-    ]);
+//     $response = Http::get($url, [
+//         'place_id' => $placeId,
+//         'key' => $apiKey,
+//     ]);
 
-    return response()->json($response->json());
-});
+//     return response()->json($response->json());
+// });
 
+// GOOGLE MAPS API
 Route::get('/place-details', function () {
     $placeId = request('place_id');
     $apiKey = env('GOOGLE_MAPS_API_KEY');
@@ -180,15 +164,5 @@ Route::get('/api/geocode', function () {
     return response()->json($response->json());
 });
 
-require __DIR__.'/auth.php';
 
-
-
-
-
-
-
-
-
-
-
+require __DIR__ . '/auth.php';
