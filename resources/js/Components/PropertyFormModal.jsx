@@ -170,7 +170,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             const url = `/api/geocode?place_id=${placeId}`;
             const response = await fetch(url);
             const data = await response.json();
-            // console.log("data postal code: ", data);
+            console.log("data postal code: ", data);
     
             if (data.status === "OK" && data.results.length > 0) {
                 const addressComponents = data.results[0].address_components;

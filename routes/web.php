@@ -161,6 +161,7 @@ Route::get('/api/place-autocomplete', function () {
         'key' => $apiKey,
         'types' => $type,
         'language' => 'en',
+        'components' => 'country:MY',
     ]);
 
     return response()->json($response->json());
