@@ -30,10 +30,6 @@ Route::get('/', function () {
     ]);
 })->name('main');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
 // User Profile and Logout routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
@@ -43,10 +39,6 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/dbconn', function () {
     return view('dbconn');
-});
-
-Route::get('/three',function(){
-    return Inertia::render('EntryPage');
 });
 
 // Admin Login

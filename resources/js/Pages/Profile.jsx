@@ -137,6 +137,19 @@ export default function Profile({ auth, user }) {
         }
     };
 
+    const calculateAge = (bornDate) => {
+        const today = new Date();
+        const birthDate = new Date(bornDate);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        return age;
+    };
+
     const handleICorPassport = (e) => {
         const value = e.target.value;
         console.log("Function called with value:", value);
@@ -181,7 +194,15 @@ export default function Profile({ auth, user }) {
             console.log("Invalid format. Not an IC or Passport number.");
         }
     };
-    
+
+    const handleDateChange = (e) => {
+        const newDate = e.target.value;
+        setData(data => ({
+            ...data,
+            born_date: newDate,
+            age: calculateAge(newDate)
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -196,14 +217,14 @@ export default function Profile({ auth, user }) {
                 window.location.reload();
             },
         });
-
+        
     };
 
     const userImage = data.profile_picture
         ? URL.createObjectURL(data.profile_picture)
         : auth.user.profile_picture
-            ? `/storage/${auth.user.profile_picture}`
-            : "https://ui-avatars.com/api/?name=User&background=random";
+        ? `/storage/${auth.user.profile_picture}`
+        : "https://ui-avatars.com/api/?name=User&background=random";
 
     const validateName = (firstName, lastName) => {
         if (firstName.toLowerCase() === lastName.toLowerCase()) {
@@ -358,11 +379,10 @@ export default function Profile({ auth, user }) {
                                         <input
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.ic_number}
+                                            value={data.ic_number || ''}
                                             onChange={handleICorPassport}
-                                         />
-                                    </div>  
-
+                                        />
+                                    </div>
 
                                     <div className="mb-4">
                                         <label className="block text-gray-700">Age</label>
