@@ -44,20 +44,18 @@ require __DIR__.'/auth.php';
 
 Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
-// 添加属性详情页面路由
+
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
 Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
 Route::get('/buy', [PropertyController::class, 'showBuyPage'])->name('buy');
 
-// 添加这个路由来获取属性列表
+
 Route::get('/api/properties', [PropertyController::class, 'index']);
 
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 
-// 添加新的路由，不影响原有路由
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
 
-// 临时路由，用于调试
 Route::get('/debug/properties', function () {
     $properties = \App\Models\Property::all();
     return response()->json([
