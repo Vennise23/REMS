@@ -10,6 +10,7 @@ class ChatMessage extends Model
         'chat_room_id',
         'sender_id',
         'message',
+        'read_at'
     ];
 
     protected $with = ['sender'];

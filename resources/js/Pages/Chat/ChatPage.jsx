@@ -6,6 +6,8 @@ export default function ChatPage({ auth, chatRoom }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
+    const [isSending, setIsSending] = useState(false);
+    const messageIdsRef = useRef(new Set());
 
     const loadMessages = async () => {
         try {
@@ -19,12 +21,20 @@ export default function ChatPage({ auth, chatRoom }) {
     useEffect(() => {
         if (chatRoom?.id) {
             loadMessages();
+            markMessagesAsRead();
 
             const channel = window.Echo.private(`chat.${chatRoom.id}`);
             
             channel.listen('.message.sent', (e) => {
                 if (e.message.sender_id !== auth.user.id) {
-                    setMessages(prevMessages => [...prevMessages, e.message]);
+                    setMessages(prevMessages => {
+                        if (!messageIdsRef.current.has(e.message.id)) {
+                            messageIdsRef.current.add(e.message.id);
+                            markMessageAsRead(e.message.id);
+                            return [...prevMessages, e.message];
+                        }
+                        return prevMessages;
+                    });
                 }
             });
 
@@ -35,49 +45,59 @@ export default function ChatPage({ auth, chatRoom }) {
         }
     }, [chatRoom?.id]);
 
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        if (!newMessage.trim()) return;
-
+    const markMessagesAsRead = async () => {
+        if (!messageIdsRef.current.size) return;
+        
         try {
-            const response = await axios.post('/api/chat-messages', {
-                chat_room_id: chatRoom.id,
-                message: newMessage.trim()
+            await axios.post(`/api/chat-rooms/${chatRoom.id}/mark-as-read`, {
+                message_ids: Array.from(messageIdsRef.current)
             });
             
-            setMessages(prevMessages => [...prevMessages, response.data]);
-            setNewMessage('');
-        } catch (error) {
-            console.error('Error sending message:', error);
-        }
-    };
-
-    // Scroll to bottom function
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    // Auto-scroll when messages update
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-
-    // Mark messages as read
-    const markAsRead = async () => {
-        try {
-            await axios.post(`/api/chat-rooms/${chatRoom.id}/mark-as-read`);
+            window.dispatchEvent(new CustomEvent('updateUnreadCounts'));
         } catch (error) {
             console.error('Error marking messages as read:', error);
         }
     };
 
-    // Update read status when messages load or new message received
-    useEffect(() => {
-        if (messages.length > 0) {
-            window.dispatchEvent(new CustomEvent('updateChatRead', {
-                detail: { roomId: chatRoom.id }
-            }));
+    const markMessageAsRead = async (messageId) => {
+        try {
+            await axios.post(`/api/chat-rooms/${chatRoom.id}/mark-as-read`);
+            window.dispatchEvent(new CustomEvent('updateUnreadCounts'));
+        } catch (error) {
+            console.error('Error marking message as read:', error);
         }
+    };
+
+    const sendMessage = async (e) => {
+        e.preventDefault();
+        if (isSending || !newMessage.trim()) return;
+        
+        try {
+            setIsSending(true);
+            
+            const response = await axios.post(route('chat.messages.store', { chatRoom: chatRoom.id }), {
+                chat_room_id: chatRoom.id,
+                message: newMessage.trim()
+            });
+
+            if (!messageIdsRef.current.has(response.data.id)) {
+                messageIdsRef.current.add(response.data.id);
+                setMessages(prevMessages => [...prevMessages, response.data]);
+            }
+
+            setNewMessage('');
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            
+        } catch (error) {
+            console.error('Error sending message:', error);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    // Auto-scroll when messages update
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     return (
@@ -154,10 +174,12 @@ export default function ChatPage({ auth, chatRoom }) {
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 className="flex-1 border-2 border-gray-200 rounded-full px-6 py-3 focus:outline-none focus:border-blue-500 transition-colors"
                                 placeholder="Type your message..."
+                                disabled={isSending}
                             />
                             <button
                                 type="submit"
                                 className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center transition-colors shadow-lg hover:shadow-xl"
+                                disabled={isSending || !newMessage.trim()}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

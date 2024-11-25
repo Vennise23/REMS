@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\MessageSent;
+use App\Events\NewChatMessage;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
 
@@ -10,16 +10,26 @@ class ChatMessageController extends Controller
 {
     public function store(Request $request)
     {
-        $message = ChatMessage::create([
-            'chat_room_id' => $request->chat_room_id,
-            'sender_id' => auth()->id(),
-            'message' => $request->message,
+        $request->validate([
+            'chat_room_id' => 'required|exists:chat_rooms,id',
+            'message' => 'required|string'
         ]);
 
-        $message->load('sender');
+        try {
+            $message = ChatMessage::create([
+                'chat_room_id' => $request->chat_room_id,
+                'sender_id' => auth()->id(),
+                'message' => $request->message,
+            ]);
 
-        broadcast(new NewChatMessage($message))->toOthers();
+            $message->load('sender');
 
-        return response()->json($message);
+            broadcast(new NewChatMessage($message))->toOthers();
+
+            return response()->json($message);
+        } catch (\Exception $e) {
+            \Log::error('Error creating chat message: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to send message'], 500);
+        }
     }
 } 

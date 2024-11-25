@@ -12,6 +12,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ChatMessageController;
 
 // Main Route
 Route::get('/', function () {
@@ -60,6 +61,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
 });
 
 // Profile routes
@@ -171,6 +173,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);
     Route::get('/api/chat-rooms/{chatRoom}/messages', [ChatController::class, 'getMessages']);
     Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
+    Route::post('/api/chat-messages', [ChatMessageController::class, 'store']);
+    // 获取所有聊天室的未读消息数
+    Route::get('/api/chat-rooms/unread-counts', [ChatController::class, 'getUnreadCounts']);
+    // 标记消息为已读
+    Route::post('/api/messages/mark-as-read', [ChatController::class, 'markMessagesAsRead']);
 });
 
 Broadcast::routes(['middleware' => ['auth:sanctum']]);

@@ -11,18 +11,13 @@ export default function Main({ auth }) {
 
     axios.defaults.headers.common['Accept'] = 'application/json';
 
-    const [isBuy, setIsBuy] = useState(true);
-
     const [dropdownOpen, setDropdownOpen] = useState(false);
-
     const [showMessages, setShowMessages] = useState(false);
-
     const [chatRooms, setChatRooms] = useState([]);
     const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
-    // Get chat room list
-    const fetchChatRooms = async () => {
-        if (!auth?.user) return;
+    // Fetch and update unread message counts
+    const updateUnreadCounts = async () => {
         try {
             const response = await axios.get('/api/chat-rooms');
             if (response.data) {
@@ -34,64 +29,33 @@ export default function Main({ auth }) {
         }
     };
 
-    // Initialize message system
+    // Real-time listening for new messages in all chat rooms
     useEffect(() => {
         if (!auth?.user) return;
 
-        // Set axios defaults
-        axios.defaults.withCredentials = true;
-        axios.defaults.headers.common["X-CSRF-TOKEN"] = document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute("content");
-        axios.defaults.headers.common['Accept'] = 'application/json';
+        // Initial load
+        updateUnreadCounts();
 
-        // Get initial data
-        fetchChatRooms();
+        const channel = window.Echo.private(`App.Models.User.${auth.user.id}`);
+        
+        // Listen for message count updates
+        channel.listen('.message.count.updated', (e) => {
+            console.log('Received message count update:', e);
+            updateUnreadCounts(); // Trigger recount of unread messages
+        });
 
-        // Set up WebSocket listener
-        const channel = window.Echo?.private(`App.Models.User.${auth.user.id}`);
-        if (channel) {
-            channel.listen('.message.count.updated', (e) => {
-                fetchChatRooms();
-            });
-        }
+        // Listen for new messages
+        channel.listen('.message.sent', (e) => {
+            console.log('Received new message:', e);
+            updateUnreadCounts(); // Update unread count when new message arrives
+        });
 
-        // Cleanup function
         return () => {
-            if (window.Echo && auth?.user) {
-                window.Echo.leave(`App.Models.User.${auth.user.id}`);
-            }
+            channel.stopListening('.message.count.updated');
+            channel.stopListening('.message.sent');
+            window.Echo.leave(`App.Models.User.${auth.user.id}`);
         };
     }, [auth?.user]);
-
-    // Handle chat room click
-    const handleChatRoomClick = async (roomId) => {
-        if (!auth?.user) return;
-        
-        try {
-            // Immediately update local state
-            setChatRooms(prevRooms => 
-                prevRooms.map(room => 
-                    room.id === roomId 
-                        ? { ...room, unread_count: 0 }
-                        : room
-                )
-            );
-            
-            // Update total unread count
-            setTotalUnreadCount(prev => Math.max(0, prev - (
-                chatRooms.find(room => room.id === roomId)?.unread_count || 0
-            )));
-
-            // Call backend API to mark as read
-            await axios.post(`/api/chat-rooms/${roomId}/mark-as-read`);
-            
-            // Navigate to chat page
-            window.location.href = `/chat/${roomId}`;
-        } catch (error) {
-            console.error('Error marking messages as read:', error);
-        }
-    };
 
     const toggleDropdown = () => {
         setDropdownOpen((prev) => !prev);
@@ -105,6 +69,29 @@ export default function Main({ auth }) {
             window.location.href = "/";
         } catch (error) {
             console.error("Logout failed:", error);
+        }
+    };
+
+    // Handle chat room click
+    const handleChatRoomClick = (roomId) => {
+        try {
+            // Close messages dropdown
+            setShowMessages(false);
+            
+            // Navigate using Inertia router
+            router.visit(route('chat.show', { chatRoom: roomId }));
+            
+            // Optional: Mark chat room messages as read
+            axios.post(`/api/chat-rooms/${roomId}/mark-as-read`)
+                .then(() => {
+                    // Update unread message counts
+                    updateUnreadCounts();
+                })
+                .catch(error => {
+                    console.error('Error marking messages as read:', error);
+                });
+        } catch (error) {
+            console.error('Error handling chat room click:', error);
         }
     };
 
@@ -167,7 +154,7 @@ export default function Main({ auth }) {
                                 >
                                     <FaEnvelope className="w-6 h-6" />
                                     {totalUnreadCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-2 py-1">
                                             {totalUnreadCount}
                                         </span>
                                     )}
@@ -179,9 +166,8 @@ export default function Main({ auth }) {
                                             <h3 className="text-lg font-semibold mb-4">Messages</h3>
                                             <div className="max-h-96 overflow-y-auto">
                                                 {chatRooms.map(room => {
-                                                    const chatWithUser = auth.user.id === room.buyer_id 
-                                                        ? room.seller 
-                                                        : room.buyer;
+                                                    // Determine the other user in the conversation
+                                                    const otherUser = auth.user.id === room.buyer?.id ? room.seller : room.buyer;
                                                     
                                                     return (
                                                         <div
@@ -191,7 +177,7 @@ export default function Main({ auth }) {
                                                         >
                                                             <div className="flex-1">
                                                                 <div className="font-medium">
-                                                                    Chat with {chatWithUser?.firstname}
+                                                                    Chat with {otherUser?.firstname}
                                                                 </div>
                                                                 <div className="text-sm text-gray-500">
                                                                     About: {room.property?.property_name}

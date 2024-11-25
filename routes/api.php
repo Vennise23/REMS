@@ -49,7 +49,8 @@ Route::middleware('api')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chat-rooms', [ChatController::class, 'getChatRooms']);
     Route::post('/chat-rooms', [ChatController::class, 'createRoom']);
-    Route::post('/chat-messages', [ChatController::class, 'store']);
+    Route::post('/chat-rooms/{chatRoom}/messages', [ChatController::class, 'store'])
+        ->name('chat.messages.store');
     Route::get('/chat-rooms/{chatRoom}/messages', [ChatController::class, 'getMessages']);
     Route::get('/unread-messages/count', [ChatController::class, 'getUnreadCount']);
     Route::post('/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);

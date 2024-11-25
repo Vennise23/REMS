@@ -15,7 +15,7 @@ use App\Events\MessageCountUpdated;
 
 class ChatController extends Controller
 {
-    public function getChatRooms()
+    public function getChatRooms(Request $request)
     {
         $user = auth()->user();
         
@@ -24,15 +24,19 @@ class ChatController extends Controller
             ->with(['buyer:id,firstname', 'seller:id,firstname', 'property:id,property_name'])
             ->get()
             ->map(function ($room) use ($user) {
-                // Calculate unread message count for each chat room
                 $unreadCount = ChatMessage::where('chat_room_id', $room->id)
                     ->where('sender_id', '!=', $user->id)
                     ->whereNull('read_at')
                     ->count();
                     
-                return array_merge($room->toArray(), [
-                    'unread_count' => $unreadCount
-                ]);
+                return [
+                    'id' => $room->id,
+                    'property' => $room->property,
+                    'buyer' => $room->buyer,
+                    'seller' => $room->seller,
+                    'unread_count' => $unreadCount,
+                    'other_user' => $user->id === $room->buyer_id ? $room->seller : $room->buyer
+                ];
             });
 
         return response()->json([
@@ -67,40 +71,48 @@ class ChatController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ChatRoom $chatRoom)
     {
-        $validated = $request->validate([
-            'chat_room_id' => 'required|exists:chat_rooms,id',
-            'message' => 'required|string'
-        ]);
+        try {
+            $validated = $request->validate([
+                'chat_room_id' => 'required|exists:chat_rooms,id',
+                'message' => 'required|string'
+            ]);
 
-        $message = ChatMessage::create([
-            'chat_room_id' => $validated['chat_room_id'],
-            'sender_id' => auth()->id(),
-            'message' => $validated['message'],
-            'read_at' => null
-        ]);
+            $message = ChatMessage::create([
+                'chat_room_id' => $validated['chat_room_id'],
+                'sender_id' => auth()->id(),
+                'message' => $validated['message']
+            ]);
 
-        // 加载关联关系
-        $message->load('sender');
+            // Get the message recipient
+            $recipient = $chatRoom->buyer_id === auth()->id() 
+                ? $chatRoom->seller 
+                : $chatRoom->buyer;
 
-        // 广播消息
-        broadcast(new NewChatMessage($message));
+            // Broadcast new message event
+            broadcast(new NewChatMessage($message))->toOthers();
+            // Broadcast unread message count update event
+            broadcast(new MessageCountUpdated($recipient, $chatRoom->id))->toOthers();
 
-        return response()->json($message);
+            return response()->json($message);
+        } catch (\Exception $e) {
+            \Log::error('Error in store method: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function show(ChatRoom $chatRoom)
     {
-        // 验证用户是否有权限访问该聊天室
+        // Verify if user has permission to access this chat room
         if ($chatRoom->buyer_id !== auth()->id() && $chatRoom->seller_id !== auth()->id()) {
             abort(403);
         }
 
-        // 加载聊天室相关数据
+        // Load chat room related data
         $chatRoom->load(['buyer:id,firstname', 'seller:id,firstname', 'property:id,property_name']);
         
-        // 加载聊天记录
+        // Load chat messages
         $messages = $chatRoom->messages()
             ->with('sender:id,firstname')
             ->orderBy('created_at', 'asc')
@@ -118,7 +130,7 @@ class ChatController extends Controller
             abort(403);
         }
 
-        // 添加调试信息
+        // Add debugging information
         \Log::info('Chat room accessed', [
             'chat_room_id' => $chatRoom->id,
             'user_id' => auth()->id(),
@@ -135,15 +147,15 @@ class ChatController extends Controller
         ]);
     }
 
-    // 添加获取消息历史的方法
+    // Add method to get message history
     public function getMessages(ChatRoom $chatRoom)
     {
-        // 验证用户是否有权限访问该聊天室
+        // Verify if user has permission to access this chat room
         if ($chatRoom->buyer_id !== auth()->id() && $chatRoom->seller_id !== auth()->id()) {
             abort(403);
         }
 
-        // 获取聊天记录，并按时间排序
+        // Get chat messages and sort by time
         $messages = $chatRoom->messages()
             ->with('sender')
             ->orderBy('created_at', 'asc')
@@ -152,30 +164,32 @@ class ChatController extends Controller
         return response()->json($messages);
     }
 
-    public function getUnreadCount()
+    public function getUnreadCounts()
     {
         $user = auth()->user();
+        $unreadCounts = [];
         
-        // 获取用户所有聊天室的未读消息数
-        $unreadCount = ChatMessage::whereHas('chatRoom', function ($query) use ($user) {
-            $query->where('buyer_id', $user->id)
-                  ->orWhere('seller_id', $user->id);
-        })
-        ->where('sender_id', '!=', $user->id)
-        ->whereNull('read_at')
-        ->count();
+        // Get unread message counts for all chat rooms of the user
+        $chatRooms = ChatRoom::where('buyer_id', $user->id)
+            ->orWhere('seller_id', $user->id)
+            ->get();
 
-        return response()->json(['unreadCount' => $unreadCount]);
+        foreach ($chatRooms as $room) {
+            $unreadCounts[$room->id] = ChatMessage::where('chat_room_id', $room->id)
+                ->where('sender_id', '!=', $user->id)
+                ->whereNull('read_at')
+                ->count();
+        }
+
+        return response()->json($unreadCounts);
     }
 
-    public function markAsRead(Request $request, $roomId)
+    public function markMessagesAsRead(Request $request)
     {
-        $user = Auth::user();
+        $messageIds = $request->input('message_ids', []);
         
-        // 只标记当前聊天室的未读消息为已读
-        ChatMessage::where('chat_room_id', $roomId)
-            ->where('sender_id', '!=', $user->id)
-            ->whereNull('read_at')
+        ChatMessage::whereIn('id', $messageIds)
+            ->where('sender_id', '!=', auth()->id())
             ->update(['read_at' => now()]);
 
         return response()->json(['success' => true]);
@@ -192,23 +206,17 @@ class ChatController extends Controller
             'read_at' => null
         ]);
 
-        // 获取接收者
-        $recipient = $user->id === $chatRoom->buyer_id 
-            ? $chatRoom->seller 
-            : $chatRoom->buyer;
-
-        // 如果接收者当前正在这个聊天室，则自动标记为已读
+        // If recipient is currently in this chat room, mark as read automatically
+        $recipient = $user->id === $chatRoom->buyer_id ? $chatRoom->seller : $chatRoom->buyer;
         if ($this->isUserInChatRoom($recipient->id, $chatRoom->id)) {
             $message->update(['read_at' => now()]);
         }
 
-        // 广播新消息
         broadcast(new NewChatMessage($message))->toOthers();
-
         return response()->json($message);
     }
 
-    // 新增方法：获取特定聊天室的未读消息数
+    // Add method to get unread message count for a specific chat room
     private function getUnreadCountForRoom($roomId, $userId)
     {
         return ChatMessage::where('chat_room_id', $roomId)
@@ -217,12 +225,34 @@ class ChatController extends Controller
             ->count();
     }
 
-    // 检查用户是否在特定聊天室
+    // Check if user is in a specific chat room
     private function isUserInChatRoom($userId, $roomId)
     {
         return Session::where('user_id', $userId)
             ->where('last_activity', '>', now()->subMinutes(2))
             ->where('payload', 'LIKE', '%"url":"' . url("/chat/{$roomId}") . '"%')
             ->exists();
+    }
+
+    public function markAsRead(ChatRoom $chatRoom)
+    {
+        try {
+            if ($chatRoom->buyer_id !== auth()->id() && $chatRoom->seller_id !== auth()->id()) {
+                throw new \Exception('Unauthorized access to chat room');
+            }
+
+            // Permanently mark messages as read
+            ChatMessage::where('chat_room_id', $chatRoom->id)
+                ->where('sender_id', '!=', auth()->id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            broadcast(new MessageCountUpdated(auth()->user()))->toOthers();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Error marking messages as read: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 } 
