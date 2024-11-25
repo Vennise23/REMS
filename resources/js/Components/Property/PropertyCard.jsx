@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import { FaHome, FaDollarSign, FaBuilding, FaRulerCombined } from 'react-icons/fa';
 
-const PropertyCard = ({ property = {} }) => {
+const PropertyCard = ({ property = {}, photos = [] }) => {
     const defaultProperty = {
         id: property?.id || 0,
         property_name: property?.property_name || 'Untitled Property',
@@ -14,9 +14,8 @@ const PropertyCard = ({ property = {} }) => {
     };
 
     const displayPhoto = () => {
-        const photoUrl = property?.property_photos && property.property_photos.length > 0 
-            ? property.property_photos[0] 
-            : null;
+        const photoUrl = photos && photos.length > 0 ? photos[0] : null;
+        // console.log("photoUrl", photoUrl)
         return photoUrl;
     };
 

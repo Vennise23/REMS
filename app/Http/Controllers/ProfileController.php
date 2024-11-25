@@ -9,6 +9,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+
+
+
 use Inertia\Response;
 
 class ProfileController extends Controller
@@ -16,28 +22,64 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): Response
+    public function edit()
     {
-        return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+        // Get the authenticated user's data
+        $user = Auth::user();
+
+        // Render the profile view with user data
+        return Inertia::render('Profile', [
+            'user' => $user
         ]);
     }
 
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $user = Auth::user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $request->validate([
+            'firstname' => 'string|max:255',
+            'lastname' => 'string|max:255',
+            'email' => 'email|unique:users,email,' . $user->id,
+            'ic_number' => 'nullable|string',
+            'age' => 'nullable|integer',
+            'born_date' => 'nullable|date',
+            'phone' => 'nullable|string',
+            'address_line_1' => 'nullable|string|max:255',
+            'address_line_2' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:10',
+            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'password' => 'nullable|min:8|confirmed'
+        ]);
+
+        if ($request->hasFile('profile_picture')) {
+            if ($user->profile_picture) {
+                Storage::disk('public')->delete($user->profile_picture);
+            }
+
+            $filePath = $request->file('profile_picture')->store('profile_pictures', 'public');
+            $user->profile_picture = $filePath;
         }
 
-        $request->user()->save();
+        $user->firstname = $request->firstname ?? $user->firstname;
+        $user->lastname = $request->lastname ?? $user->lastname;
+        $user->email = $request->email ?? $user->email;
+        $user->ic_number = $request->ic_number ?? $user->ic_number;
+        $user->age = $request->age ?? $user->age;
+        $user->born_date = $request->born_date ?? $user->born_date;
+        $user->phone = $request->phone ?? $user->phone;
+        $user->address_line_1 = $request->address_line_1 ?? $user->address_line_1;
+        $user->address_line_2 = $request->address_line_2 ?? $user->address_line_2;
+        $user->city = $request->city ?? $user->city;
+        $user->postal_code = $request->postal_code ?? $user->postal_code;
 
-        return Redirect::route('profile.edit');
+        $user->save();
+
+        return redirect()->route('profile')->with('status', 'Profile updated successfully!');
     }
 
 
@@ -61,5 +103,33 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    public function checkName(Request $request)
+    {
+        $firstname = $request->input('firstname');
+        $lastname = $request->input('lastname');
+
+        // Check if firstname and lastname already exist in the database
+        $exists = User::where('firstname', $firstname)
+            ->where('lastname', $lastname)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'errors' => [
+                    'nameExists' => 'The combination of first name and last name is already registered. Please use a different name.',
+                ]
+            ], 422);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function checkEmail(Request $request)
+    {
+        $emailExists = User::where('email', $request->input('email'))->exists();
+
+        return response()->json(['exists' => $emailExists]);
     }
 }

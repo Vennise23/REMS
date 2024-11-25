@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
-import PropertyCard from '@/Components/PropertyCard';
-import FilterSection from '@/Components/FilterSection';
-import Header from '@/Components/HeaderMenu';
+import React, { useState, useEffect } from "react";
+import { Head } from "@inertiajs/react";
+import PropertyCard from "@/Components/Property/PropertyCard";
+import FilterSection from "@/Components/FilterSection";
+import Header from "@/Layouts/HeaderMenu";
 
 const Buy = ({ auth }) => {
     const [properties, setProperties] = useState([]);
@@ -10,45 +10,128 @@ const Buy = ({ auth }) => {
     const [totalPages, setTotalPages] = useState(1);
     const propertiesPerPage = 6;
     const [filters, setFilters] = useState(() => {
-        const savedFilters = localStorage.getItem('propertyFilters');
-        return savedFilters ? JSON.parse(savedFilters) : {
-            propertyType: 'All Property',
-            saleType: 'All',
-            priceMin: '0',
-            priceMax: '1000000000',
-            sizeMin: '0',
-            sizeMax: '100000',
-            amenities: [],
-        };
+        const savedFilters = localStorage.getItem("propertyFilters");
+        return savedFilters
+            ? JSON.parse(savedFilters)
+            : {
+                propertyType: "All Property",
+                saleType: "All",
+                priceMin: "0",
+                priceMax: "1000000000",
+                sizeMin: "0",
+                sizeMax: "100000",
+                amenities: [],
+            };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
-    const [citySearchQuery, setCitySearchQuery] = useState('');
+    const [citySearchQuery, setCitySearchQuery] = useState("");
 
     useEffect(() => {
-        localStorage.setItem('propertyFilters', JSON.stringify(filters));
+        const urlParams = new URLSearchParams(window.location.search);
+    
+        const saleTypeFromUrl = urlParams.get("saleType");
+        const propertyTypeFromUrl = urlParams.get("propertyType");
+        const priceMinFromUrl = urlParams.get("priceMin"); // 获取 priceMin
+        const priceMaxFromUrl = urlParams.get("priceMax"); // 获取 priceMax
+    
+        if (!saleTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                saleType: "All",
+            }));
+        } else {
+            setFilters((prev) => ({
+                ...prev,
+                saleType: saleTypeFromUrl,
+            }));
+        }
+    
+        if (!propertyTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: "All Property",
+            }));
+        } else {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: propertyTypeFromUrl,
+            }));
+        }
+    
+
+        if (priceMinFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                priceMin: priceMinFromUrl,
+            }));
+        }
+    
+        if (priceMaxFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                priceMax: priceMaxFromUrl,
+            }));
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem("propertyFilters", JSON.stringify(filters));
+
         fetchProperties();
     }, [filters, citySearchQuery, currentPage]);
 
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
+    
+            if (!response.ok) {
+                throw new Error(`Failed to fetch photos for property ${propertyId}`);
+            }
+    
             const photos = await response.json();
-            setPropertyPhotos(prev => ({
-                ...prev,
-                [propertyId]: photos
-            }));
+            if (photos && Array.isArray(photos)) {
+                const photoUrls = photos
+                    .filter((photo) => typeof photo === 'string' && !photo.includes('certificate_photos'))
+                    .map((photo) => {
+                        if (typeof photo === 'string') {
+                            const imageUrl = photo.startsWith('http')
+                                ? photo
+                                : `${window.location.origin}/storage/property_photos/${photo}`;
+                            return imageUrl;
+                        } else {
+                            console.warn("Invalid photo value:", photo);
+                            return null;
+                        }
+                    })
+                    .filter(url => url !== null);
+    
+                setPropertyPhotos((prev) => ({
+                    ...prev,
+                    [propertyId]: photoUrls,
+                }));
+            }
         } catch (error) {
-            console.error('Error fetching property photos:', error);
+            console.error("Error fetching property photos:", error);
         }
     };
 
-
     const handleFilterChange = (newFilters) => {
-        setFilters(prev => ({
+        setFilters((prev) => ({
             ...prev,
-            ...newFilters
+            ...newFilters,
         }));
         setCurrentPage(1);
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (newFilters.saleType) {
+            params.set("saleType", newFilters.saleType);
+        }
+        if (newFilters.propertyType) {
+            params.set("propertyType", newFilters.propertyType);
+        }
+
+        window.history.pushState(null, "", `/buy?${params.toString()}`);
     };
 
     const fetchProperties = async () => {
@@ -60,14 +143,13 @@ const Buy = ({ auth }) => {
                 priceMax: filters.priceMax,
                 sizeMin: filters.sizeMin,
                 sizeMax: filters.sizeMax,
-                amenities: filters.amenities.join(','),
+                amenities: filters.amenities.join(","),
                 citySearch: citySearchQuery,
-                purchase: 'For Sale',
-                saleType: filters.saleType
+                purchase: "For Sale",
+                saleType: filters.saleType,
             };
 
-
-            if (filters.propertyType !== 'All Property') {
+            if (filters.propertyType !== "All Property") {
                 baseParams.propertyType = filters.propertyType;
             }
 
@@ -79,21 +161,19 @@ const Buy = ({ auth }) => {
             if (data.data) {
                 setProperties(data.data);
                 setTotalPages(Math.ceil(data.total / propertiesPerPage));
-                
-                data.data.forEach(property => {
+
+                data.data.forEach((property) => {
                     fetchPropertyPhotos(property.id);
                 });
             }
         } catch (error) {
-            console.error('Error fetching properties:', error);
+            console.error("Error fetching properties:", error);
         }
     };
 
-    
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
-
 
     const renderPaginationButtons = () => {
         const buttons = [];
@@ -102,11 +182,7 @@ const Buy = ({ auth }) => {
                 <button
                     key={i}
                     onClick={() => handlePageChange(i)}
-                    className={`px-4 py-2 mx-1 rounded ${
-                        currentPage === i
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 hover:bg-gray-300'
-                    }`}
+                    className={`px-4 py-2 mx-1 rounded ${currentPage === i ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
                 >
                     {i}
                 </button>
@@ -117,29 +193,27 @@ const Buy = ({ auth }) => {
 
     const handleCitySearch = (value) => {
         setCitySearchQuery(value);
-        setCurrentPage(1); 
-    };
-
-    const defaultAuth = {
-        user: null,
-        ...auth
+        setCurrentPage(1); // 重置页码
     };
 
     return (
         <>
             <Head>
-                <title>Buy Properties - StarProperty Clone</title>
+                <title>Buy Properties</title>
                 <meta name="description" content="Find your dream property" />
             </Head>
 
-            <Header auth={defaultAuth} />
+            <Header auth={auth} />
 
-            <div className="min-h-screen bg-gray-50 pt-24">
+            <div className="min-h-screen bg-gray-50 pt-32">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* Filter section */}
                     <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
-                        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Find Your Dream Property</h2>
-                        <FilterSection 
-                            filters={filters} 
+                        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                            Find Your Dream Property
+                        </h2>
+                        <FilterSection
+                            filters={filters}
                             setFilters={handleFilterChange}
                             onCitySearch={handleCitySearch}
                             theme="blue"
@@ -147,17 +221,19 @@ const Buy = ({ auth }) => {
                         />
                     </div>
 
+                    {/* Property list */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {properties.map((property) => (
-                            <PropertyCard 
-                                key={property.id} 
-                                property={property} 
+                            <PropertyCard
+                                key={property.id}
+                                property={property}
                                 photos={propertyPhotos[property.id] || []}
                                 theme="blue"
                             />
                         ))}
                     </div>
 
+                    {/* Pagination */}
                     <div className="flex justify-center mt-12 mb-8 space-x-2">
                         {currentPage > 1 && (
                             <button

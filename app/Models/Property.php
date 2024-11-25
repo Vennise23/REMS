@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use App\Models\User;
 class Property extends Model
 {
     use HasFactory;
@@ -16,13 +16,13 @@ class Property extends Model
         'property_type',
         'property_address_line_1',
         'property_address_line_2',
-        'city', 
-        'postal_code', 
-        'purchase', 
-        'sale_type', 
+        'city',
+        'postal_code',
+        'purchase',
+        'sale_type',
         'number_of_units',
         'square_feet',
-        'price', 
+        'price',
         'certificate_number',
         'certificate_photos',
         'property_photos',
@@ -33,6 +33,8 @@ class Property extends Model
         'amenities',
         'other_amenities',
         'additional_info',
+        'user_phone',
+        'user_email'
     ];
 
     protected $casts = [
@@ -75,5 +77,10 @@ class Property extends Model
         $address .= ', ' . $this->postal_code;
         $address .= ', Malaysia';
         return $address;
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

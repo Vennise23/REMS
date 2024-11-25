@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Property;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class PropertyController extends Controller
 {
@@ -36,9 +37,18 @@ class PropertyController extends Controller
                 'additional_info' => 'nullable|string',
             ]);
 
-            // 标准化设施名称
+            $user = auth()->user();
+
+            if (!$user) {
+                return response()->json(['error' => 'User is not authenticated'], 401);
+            }
+
+            $validatedData['username'] = $user->firstname . ' ' . $user->lastname;
+
+            $validatedData['user_id'] = $user->id;
+
             if (isset($validatedData['amenities'])) {
-                $validatedData['amenities'] = array_map(function($amenity) {
+                $validatedData['amenities'] = array_map(function ($amenity) {
                     return trim($amenity);
                 }, $validatedData['amenities']);
             }
@@ -54,8 +64,9 @@ class PropertyController extends Controller
             if ($request->hasFile('property_photos')) {
                 $propertyPhotos = [];
                 foreach ($request->file('property_photos') as $photo) {
-                    $path = $photo->store('property_photos', 'public');
-                    $propertyPhotos[] = asset('storage/' . $path);
+                    $propertyPhotos[] = $photo->store('property_photos', 'public');
+                    // $path = $photo->store('property_photos', 'public');
+                    // $propertyPhotos[] = asset('storage/' . $path);
                 }
                 $validatedData['property_photos'] = $propertyPhotos;
             }
@@ -70,21 +81,23 @@ class PropertyController extends Controller
         }
     }
 
+    public function GetPropertyList()
+    {
+        $properties = Property::all();
+        return response()->json($properties);
+    }
+
     public function index(Request $request)
     {
         try {
             $query = Property::query();
-
-            // 根据页面类型设置购买类型
             $purchaseType = $request->input('purchase', 'For Sale');
             $query->where('purchase', $purchaseType);
 
-            // 属性类型筛选
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
             }
 
-            // 其他筛选条件...
             if ($request->has('priceMin')) {
                 $query->where('price', '>=', $request->priceMin);
             }
@@ -121,9 +134,7 @@ class PropertyController extends Controller
                 'current_page' => $properties->currentPage(),
                 'last_page' => $properties->lastPage()
             ]);
-
         } catch (\Exception $e) {
-            \Log::error('Error in index method: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -147,50 +158,55 @@ class PropertyController extends Controller
         try {
             $property = Property::findOrFail($propertyId);
             $photos = [];
-            
+
             if ($property->certificate_photos) {
-                $certificatePhotos = is_string($property->certificate_photos) 
-                    ? json_decode($property->certificate_photos, true) 
+                $certificatePhotos = is_string($property->certificate_photos)
+                    ? json_decode($property->certificate_photos, true)
                     : $property->certificate_photos;
 
                 if (is_array($certificatePhotos)) {
                     foreach ($certificatePhotos as $photo) {
-                        \Log::info('Photo path: ' . $photo);
-                        \Log::info('Full storage path: ' . storage_path('app/public/' . $photo));
-                        \Log::info('File exists: ' . (Storage::disk('public')->exists($photo) ? 'yes' : 'no'));
-                        
                         if (Storage::disk('public')->exists($photo)) {
                             $photos[] = url('storage/' . $photo);
                         }
                     }
                 }
             }
-            
-            \Log::info('Returning photos:', $photos);
+            if ($property->property_photos) {
+                $propertyPhotos = is_string($property->property_photos)
+                    ? json_decode($property->property_photos, true)
+                    : $property->property_photos;
+
+                if (is_array($propertyPhotos)) {
+                    foreach ($propertyPhotos as $photo) {
+                        if (Storage::disk('public')->exists($photo)) {
+                            $photos[] = url('storage/' . $photo);
+                        }
+                    }
+                }
+            }
+
             return response()->json($photos);
         } catch (\Exception $e) {
-            \Log::error('Error in getPropertyPhotos: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function show($id)
+    public function showInformationById($id)
     {
         try {
-            $property = Property::findOrFail($id);
-            
-            // 处理照片 URL，确保数据格式正确
+            $property = Property::with('user')->findOrFail($id);
+
             $propertyArray = array_merge($property->toArray(), [
-                'certificate_photos' => is_array($property->certificate_photos) 
+                'certificate_photos' => is_array($property->certificate_photos)
                     ? array_map(fn($photo) => url('storage/' . $photo), $property->certificate_photos)
                     : [],
                 'property_photos' => is_array($property->property_photos)
-                    ? $property->property_photos
+                    ? array_map(fn($photo) => url('storage/' . $photo), $property->property_photos)
                     : [],
                 'amenities' => is_array($property->amenities) ? $property->amenities : [],
             ]);
 
-            // 确保所有必要的字段都有默认值
             $propertyArray = array_merge([
                 'username' => 'Anonymous',
                 'additional_info' => '',
@@ -198,14 +214,38 @@ class PropertyController extends Controller
                 'other_amenities' => '',
             ], $propertyArray);
 
+            $user = $property->user;
+
+            $response = [
+                'property' => $propertyArray,
+                'user_phone' => $user ? $this->formatPhoneNumber($user->phone) : null,
+                'user_email' => $user ? $user->email : null,
+            ];
+
+            if (request()->expectsJson()) {
+                return response()->json($response);
+            }
+
             return Inertia::render('PropertyDetail', [
                 'property' => $propertyArray,
-                'auth' => ['user' => auth()->user()]
+                'auth' => ['user' => auth()->user()],
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error in show method: ' . $e->getMessage());
             return redirect()->route('buy')->with('error', 'Property not found');
         }
+    }
+
+    private function formatPhoneNumber($phone)
+    {
+        if (empty($phone) || strlen($phone) < 10) {
+            return null;
+        }
+
+        $phone = ltrim($phone, '0');
+
+        $formatted = '+60 ' . substr($phone, 0, 2) . '-' . substr($phone, 2, 3) . ' ' . substr($phone, 5);
+
+        return $formatted;
     }
 
     public function searchNearby(Request $request)
@@ -213,25 +253,19 @@ class PropertyController extends Controller
         try {
             $latitude = $request->input('latitude');
             $longitude = $request->input('longitude');
-            $radius = $request->input('radius', 10); // 默认10公里
+            $radius = $request->input('radius', 10);
             $perPage = $request->input('per_page', 6);
 
-            \Log::info('Searching properties near:', [
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'radius' => $radius
-            ]);
-
-            // 使用 Haversine 公式计算距离（单位：公里）
             $query = Property::select('*')
-                ->selectRaw('
+                ->selectRaw(
+                    '
                     (6371 * acos(
                         cos(radians(?)) * 
                         cos(radians(CAST(latitude AS DOUBLE PRECISION))) * 
                         cos(radians(CAST(longitude AS DOUBLE PRECISION)) - radians(?)) + 
                         sin(radians(?)) * 
                         sin(radians(CAST(latitude AS DOUBLE PRECISION)))
-                    )) AS distance', 
+                    )) AS distance',
                     [$latitude, $longitude, $latitude]
                 )
                 ->whereNotNull('latitude')
@@ -239,7 +273,6 @@ class PropertyController extends Controller
                 ->having('distance', '<=', $radius)
                 ->orderBy('distance');
 
-            // 保持现有的筛选条件
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
             }
@@ -253,15 +286,27 @@ class PropertyController extends Controller
 
             $properties = $query->paginate($perPage);
 
-            \Log::info('Found nearby properties:', [
-                'count' => $properties->count(),
-                'total' => $properties->total()
-            ]);
-
             return response()->json($properties);
         } catch (\Exception $e) {
-            \Log::error('Error in searchNearby method: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function checkPropertyName($name)
+    {
+        $property = Property::where('property_name', $name)->first();
+        return response()->json(['exists' => $property ? true : false]);
+    }
+
+    public function show(Property $property)
+    {
+        $property->load('user');
+        
+        return Inertia::render('PropertyDetail', [
+            'property' => $property,
+            'auth' => [
+                'user' => Auth::user()
+            ]
+        ]);
     }
 }

@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 
 const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', showSaleType = false, layout }) => {
+    const [expandedSection, setExpandedSection] = useState(null);
+    const [amenityFilters, setAmenityFilters] = useState({
+        pool: false,
+        gym: false,
+        sauna: false,
+        meetingRoom: false,
+        gamesRoom: false,
+        tennisCourt: false,
+        guestSuite: false,
+        carWash: false,
+        commonBuilding: false
+    });
+
+    const [searchQuery, setSearchQuery] = useState('');
     const [citySearchQuery, setCitySearchQuery] = useState('');
 
     const amenitiesList = [
@@ -25,27 +39,33 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', show
     };
 
     const handleAmenityChange = (amenity) => {
-       
+        // 当复选框被点击时，更新选中的设施列表
         const newAmenities = filters.amenities.includes(amenity)
             ? filters.amenities.filter(a => a !== amenity)
             : [...filters.amenities, amenity];
         
         console.log('Selected amenities:', newAmenities);
         
-        
+        // 调用父组件的 setFilters 更新筛选条件
         setFilters({
             ...filters,
             amenities: newAmenities
         });
     };
 
+    const handleCitySearch = (e) => {
+        const { value } = e.target;
+        setSearchQuery(value);
+        // 这里可以添加城市搜索的处理逻辑
+    };
+
     const handleCitySearchChange = (e) => {
         const value = e.target.value;
         setCitySearchQuery(value);
-        onCitySearch(value);
+        onCitySearch(value); // 确保这个函数被调用
     };
 
-
+    // 定义主题样式
     const themeStyles = {
         blue: {
             focus: 'focus:border-blue-500 focus:ring-blue-500',
@@ -65,7 +85,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', show
 
     return (
         <div className="space-y-6">
-          
+            {/* 主要筛选区域 */}
             <div className={`grid grid-cols-1 ${layout === 'rent' ? 'md:grid-cols-4' : 'md:grid-cols-5'} gap-6`}>
                 {/* Property Type */}
                 <div className="space-y-2">
@@ -83,7 +103,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', show
                     </select>
                 </div>
 
-                
+                {/* Sale Type - 只在 Buy 页面显示 */}
                 {showSaleType && (
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">Sale Type</label>
