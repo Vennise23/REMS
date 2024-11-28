@@ -110,7 +110,11 @@ class PropertyController extends Controller
                 $query->where('square_feet', '<=', $request->sizeMax);
             }
             if ($request->has('citySearch') && !empty($request->citySearch)) {
-                $query->where('city', 'like', '%' . $request->citySearch . '%');
+                $citySearch = $request->citySearch;
+                $query->where(function ($subQuery) use ($citySearch) {
+                    $subQuery->whereRaw("CONCAT_WS(', ', property_address_line_1, COALESCE(property_address_line_2, ''), city) LIKE ?", ['%' . $citySearch . '%'])
+                        ->orWhere('property_name', 'like', '%' . $citySearch . '%');
+                });
             }
             if ($request->has('amenities') && !empty($request->amenities)) {
                 $amenities = explode(',', $request->amenities);
@@ -295,5 +299,23 @@ class PropertyController extends Controller
     {
         $property = Property::where('property_name', $name)->first();
         return response()->json(['exists' => $property ? true : false]);
+    }
+
+    public function searchAddresses(Request $request)
+    {
+        $query = $request->input('query', '');
+        if (empty($query)) {
+            return response()->json([]);
+        }
+
+        $addresses = Property::select('property_address_line_1', 'property_address_line_2', 'city', 'property_name', 'property_type')
+            ->where('property_address_line_1', 'like', '%' . $query . '%')
+            ->orWhere('property_address_line_2', 'like', '%' . $query . '%')
+            ->orWhere('city', 'like', '%' . $query . '%')
+            ->orWhere('property_name', 'like', '%' . $query . '%')
+            ->limit(10)
+            ->get();
+
+        return response()->json($addresses);
     }
 }

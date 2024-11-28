@@ -1,14 +1,12 @@
 import React, { useState } from "react";
-import { Link, Head } from "@inertiajs/react";
+import { Link } from "@inertiajs/react";
 import logo from "/resources/img/REMS_logo_light.png";
 import axios from "axios";
 
-export default function Main({ auth }) {
+export default function HeaderMenu({ auth }) {
     axios.defaults.headers.common["X-CSRF-TOKEN"] = document
         .querySelector('meta[name="csrf-token"]')
         .getAttribute("content");
-
-    const [isBuy, setIsBuy] = useState(true);
 
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -29,11 +27,8 @@ export default function Main({ auth }) {
 
     return (
         <>
-            <Head title="Main" />
-            {/* Header Section */}
             <header className="bg-gray-100 p-6 border-b border-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
                 <div className="container mx-auto flex justify-between items-center">
-                    {/* Logo */}
                     <div className="flex items-center space-x-4">
                         <img
                             src={logo}
@@ -41,8 +36,6 @@ export default function Main({ auth }) {
                             className="w-12 h-12"
                         />
                     </div>
-
-                    {/* Tab Bar */}
                     <nav className="flex-grow flex justify-center space-x-8">
                         <Link
                             href={route("main")}
@@ -76,11 +69,9 @@ export default function Main({ auth }) {
                         </Link>
                     </nav>
 
-                    {/* User/Admin Bar */}
                     <div className="flex items-center space-x-4">
                         {auth.user ? (
                             auth.user.role === "admin" ? (
-                                // Admin view
                                 <div className="relative">
                                     <button
                                         onClick={toggleDropdown}
@@ -108,7 +99,6 @@ export default function Main({ auth }) {
                                     )}
                                 </div>
                             ) : (
-                                // Regular user view
                                 <div className="relative">
                                     <button
                                         onClick={toggleDropdown}
@@ -147,7 +137,6 @@ export default function Main({ auth }) {
                                 </div>
                             )
                         ) : (
-                            // Not logged in
                             <>
                                 <Link
                                     href={route("login")}

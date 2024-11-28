@@ -89,7 +89,8 @@ Route::get('/property', [PropertyController::class, 'GetPropertyList']);
 Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
-// Route::get('/check-property-name/{name}', [PropertyController::class, 'checkPropertyName']);
+Route::get('/check-property-name/{name}', [PropertyController::class, 'checkPropertyName']);
+Route::get('/api/search-addresses', [PropertyController::class, 'searchAddresses']);
 
 // GOOGLE API TESTING
 // Route::get('/test-google-maps', function () {

@@ -14,26 +14,28 @@ const Buy = ({ auth }) => {
         return savedFilters
             ? JSON.parse(savedFilters)
             : {
-                propertyType: "All Property",
-                saleType: "All",
-                priceMin: "0",
-                priceMax: "1000000000",
-                sizeMin: "0",
-                sizeMax: "100000",
-                amenities: [],
-            };
+                  propertyType: "All Property",
+                  saleType: "All",
+                  priceMin: "0",
+                  priceMax: "1000000000",
+                  sizeMin: "0",
+                  sizeMax: "100000",
+                  amenities: [],
+              };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [citySearchQuery, setCitySearchQuery] = useState("");
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-    
+
         const saleTypeFromUrl = urlParams.get("saleType");
         const propertyTypeFromUrl = urlParams.get("propertyType");
-        const priceMinFromUrl = urlParams.get("priceMin"); // 获取 priceMin
-        const priceMaxFromUrl = urlParams.get("priceMax"); // 获取 priceMax
-    
+        const priceMinFromUrl = urlParams.get("priceMin");
+        const priceMaxFromUrl = urlParams.get("priceMax");
+        const citySearchFromUrl = urlParams.get("searchQuery");
+
         if (!saleTypeFromUrl) {
             setFilters((prev) => ({
                 ...prev,
@@ -45,7 +47,7 @@ const Buy = ({ auth }) => {
                 saleType: saleTypeFromUrl,
             }));
         }
-    
+
         if (!propertyTypeFromUrl) {
             setFilters((prev) => ({
                 ...prev,
@@ -57,7 +59,6 @@ const Buy = ({ auth }) => {
                 propertyType: propertyTypeFromUrl,
             }));
         }
-    
 
         if (priceMinFromUrl) {
             setFilters((prev) => ({
@@ -65,12 +66,16 @@ const Buy = ({ auth }) => {
                 priceMin: priceMinFromUrl,
             }));
         }
-    
+
         if (priceMaxFromUrl) {
             setFilters((prev) => ({
                 ...prev,
                 priceMax: priceMaxFromUrl,
             }));
+        }
+
+        if (citySearchFromUrl) {
+            setCitySearchQuery(citySearchFromUrl);
         }
     }, []);
 
@@ -83,18 +88,24 @@ const Buy = ({ auth }) => {
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
-    
+
             if (!response.ok) {
-                throw new Error(`Failed to fetch photos for property ${propertyId}`);
+                throw new Error(
+                    `Failed to fetch photos for property ${propertyId}`
+                );
             }
-    
+
             const photos = await response.json();
             if (photos && Array.isArray(photos)) {
                 const photoUrls = photos
-                    .filter((photo) => typeof photo === 'string' && !photo.includes('certificate_photos'))
+                    .filter(
+                        (photo) =>
+                            typeof photo === "string" &&
+                            !photo.includes("certificate_photos")
+                    )
                     .map((photo) => {
-                        if (typeof photo === 'string') {
-                            const imageUrl = photo.startsWith('http')
+                        if (typeof photo === "string") {
+                            const imageUrl = photo.startsWith("http")
                                 ? photo
                                 : `${window.location.origin}/storage/property_photos/${photo}`;
                             return imageUrl;
@@ -103,8 +114,8 @@ const Buy = ({ auth }) => {
                             return null;
                         }
                     })
-                    .filter(url => url !== null);
-    
+                    .filter((url) => url !== null);
+
                 setPropertyPhotos((prev) => ({
                     ...prev,
                     [propertyId]: photoUrls,
@@ -136,6 +147,7 @@ const Buy = ({ auth }) => {
 
     const fetchProperties = async () => {
         try {
+            setLoading(true);
             const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
@@ -168,6 +180,8 @@ const Buy = ({ auth }) => {
             }
         } catch (error) {
             console.error("Error fetching properties:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -182,7 +196,11 @@ const Buy = ({ auth }) => {
                 <button
                     key={i}
                     onClick={() => handlePageChange(i)}
-                    className={`px-4 py-2 mx-1 rounded ${currentPage === i ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+                    className={`px-4 py-2 mx-1 rounded ${
+                        currentPage === i
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 hover:bg-gray-300"
+                    }`}
                 >
                     {i}
                 </button>
@@ -192,8 +210,9 @@ const Buy = ({ auth }) => {
     };
 
     const handleCitySearch = (value) => {
+        console.log("buy js: ", value);
         setCitySearchQuery(value);
-        setCurrentPage(1); // 重置页码
+        setCurrentPage(1);
     };
 
     return (
@@ -222,39 +241,67 @@ const Buy = ({ auth }) => {
                     </div>
 
                     {/* Property list */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {properties.map((property) => (
-                            <PropertyCard
-                                key={property.id}
-                                property={property}
-                                photos={propertyPhotos[property.id] || []}
-                                theme="blue"
-                            />
-                        ))}
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="flex justify-center mt-12 mb-8 space-x-2">
-                        {currentPage > 1 && (
-                            <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
-                            >
-                                Previous
-                            </button>
-                        )}
-                        <div className="flex space-x-2">
-                            {renderPaginationButtons()}
+                    {loading ? (
+                        <div className="text-center mt-8">
+                            <h2 className="text-xl font-semibold text-blue-600">
+                                Loading Properties...
+                            </h2>
                         </div>
-                        {currentPage < totalPages && (
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
-                            >
-                                Next
-                            </button>
-                        )}
-                    </div>
+                    ) : properties.length === 0 ? (
+                        <div className="text-center mt-8">
+                            <h2 className="text-xl font-semibold text-red-600">
+                                Property Listings With{" "}
+                                {citySearchQuery || "Your Filters"}
+                            </h2>
+                            <p className="text-gray-600 mt-2">
+                                Result not found. Sorry, but nothing matched
+                                your search. Please try again with different
+                                keywords or filters.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {properties.map((property) => (
+                                    <PropertyCard
+                                        key={property.id}
+                                        property={property}
+                                        photos={
+                                            propertyPhotos[property.id] || []
+                                        }
+                                        theme="blue"
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Pagination */}
+                            <div className="flex justify-center mt-12 mb-8 space-x-2">
+                                {currentPage > 1 && (
+                                    <button
+                                        onClick={() =>
+                                            handlePageChange(currentPage - 1)
+                                        }
+                                        className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
+                                    >
+                                        Previous
+                                    </button>
+                                )}
+                                <div className="flex space-x-2">
+                                    {renderPaginationButtons()}
+                                </div>
+                                {currentPage < totalPages && (
+                                    <button
+                                        onClick={() =>
+                                            handlePageChange(currentPage + 1)
+                                        }
+                                        className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
+                                    >
+                                        Next
+                                    </button>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </>

@@ -9,6 +9,7 @@ import NewLaunchListing from "@/Components/Property/NewLaunchListing";
 import LatestListings from "@/Components/Property/LatestListings";
 import RentListings from "@/Components/Property/RentListings";
 import Footer from "@/Layouts/Footer";
+import Icon from "/resources/img/flats.png";
 
 export default function Main({ auth }) {
     const [isBuy, setIsBuy] = useState(true);
@@ -19,8 +20,9 @@ export default function Main({ auth }) {
     const [priceMax, setMaxPrice] = useState(1000000000);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedPropertyTypes, setSelectedPropertyTypes] = useState([]);
-
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [suggestions, setSuggestions] = useState([]);
 
     const openModal = () => {
         setIsModalOpen(true);
@@ -152,6 +154,7 @@ export default function Main({ auth }) {
             const params = {
                 priceMin,
                 priceMax,
+                searchQuery,
             };
 
             if (saleType.length > 0) {
@@ -174,6 +177,31 @@ export default function Main({ auth }) {
         }
     };
 
+    const fetchSuggestions = async (query) => {
+        if (!query) {
+            setSuggestions([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `/api/search-addresses?query=${query}`
+            );
+            const data = await response.json();
+            console.log("main suggestion: ", data);
+            setSuggestions(data);
+        } catch (error) {
+            console.error("Error fetching suggestions:", error);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+        fetchSuggestions(value);
+        // setSuggestions(true);
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -190,6 +218,19 @@ export default function Main({ auth }) {
         };
         fetchData();
     }, [isBuy]);
+
+    const handleBlur = () => {
+        setTimeout(() => {
+            setSuggestions(false);
+        }, 200);
+    };
+
+    const handleSuggestionClick = (suggestion) => {
+        setSearchQuery(
+            `${suggestion.property_address_line_1}, ${suggestion.property_address_line_2}, ${suggestion.city}`
+        );
+        setSuggestions(false);
+    };
 
     return (
         <>
@@ -226,11 +267,63 @@ export default function Main({ auth }) {
                         </div>
 
                         <div className="flex items-center bg-white p-2 rounded-full shadow-md mb-4">
-                            <input
-                                type="text"
-                                placeholder="Search here..."
-                                className="flex-grow bg-transparent border-none focus:outline-none px-4 rounded-full"
-                            />
+                            <div className="relative flex-grow">
+                                <input
+                                    type="text"
+                                    placeholder="Search here..."
+                                    className="w-full bg-transparent border-none focus:outline-none px-4 rounded-full"
+                                    value={searchQuery}
+                                    onChange={handleInputChange}
+                                    onFocus={() => setSuggestions(true)}
+                                    onBlur={handleBlur}
+                                />
+                                {suggestions.length > 0 && (
+                                    <ul className="absolute bg-white border border-gray-300 w-full max-h-40 overflow-auto z-10 rounded-lg shadow-lg">
+                                        {suggestions.map(
+                                            (suggestion, index) => (
+                                                <li
+                                                    key={index}
+                                                    className="p-4 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                                                    onMouseDown={() =>
+                                                        handleSuggestionClick(
+                                                            suggestion
+                                                        )
+                                                    }
+                                                >
+                                                    <div>
+                                                        <p className="text-gray-700 font-semibold">
+                                                            {
+                                                                suggestion.property_address_line_1
+                                                            }
+                                                            ,{" "}
+                                                            {
+                                                                suggestion.property_address_line_2
+                                                            }
+                                                            , {suggestion.city}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500 flex items-center">
+                                                            <img
+                                                                src={Icon}
+                                                                alt="Property Icon"
+                                                                className="w-4 h-4 mr-2"
+                                                            />
+                                                            {
+                                                                suggestion.property_name
+                                                            }{" "}
+                                                            <span className="inline-block bg-green-200 text-green-700 text-xs font-semibold px-3 py-1 rounded-full ml-2">
+                                                                {
+                                                                    suggestion.property_type
+                                                                }
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </li>
+                                            )
+                                        )}
+                                    </ul>
+                                )}
+                            </div>
+
                             <button
                                 onClick={handleSearch}
                                 className="bg-red-500 text-white px-6 py-2 rounded-full"

@@ -61,6 +61,7 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', show
 
     const handleCitySearchChange = (e) => {
         const value = e.target.value;
+        console.log("filtersection: ", value)
         setCitySearchQuery(value);
         onCitySearch(value); // 确保这个函数被调用
     };

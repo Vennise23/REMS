@@ -51,17 +51,17 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
 
-        // if (name === "property_name") {
-        //     const response = await fetch(`/check-property-name/${value}`);
-        //     const data = await response.json();
-        //     if (data.exists) {
-        //         setPropertyNameError(
-        //             `This property name already exists. Please choose a different one.`
-        //         );
-        //         alert("This property name already exists. Please choose a different one.");
-        //         return;
-        //     }
-        // }
+        if (name === "property_name") {
+            const response = await fetch(`/check-property-name/${value}`);
+            const data = await response.json();
+            if (data.exists) {
+                setPropertyNameError(
+                    `This property name already exists. Please choose a different one.`
+                );
+                return;
+            }
+            setPropertyNameError("");
+        }
 
         const validImageTypes = ["image/jpeg", "image/png", "image/jpg"];
         const MAX_CERTIFICATE_PHOTOS = 2;
@@ -394,6 +394,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         setSuggestionsPostalCode([]);
         setShowConfirmationModal(false);
         setShowSuccessModal(false);
+        setPropertyNameError("");
         onClose();
     };
 
@@ -434,11 +435,6 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                             required
                                             className="p-2 border rounded-md w-full"
                                         />
-                                        {/* {propertyNameError && (
-                                            <p className="text-red-500 mt-2">
-                                                {propertyNameError}
-                                            </p>
-                                        )} */}
                                     </div>
 
                                     <select
@@ -456,6 +452,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         </option>
                                         <option value="Agent">Agent</option>
                                     </select>
+                                    {propertyNameError && (
+                                            <p className="text-red-500 whitespace-nowrap">
+                                                {propertyNameError}
+                                            </p>
+                                        )}
 
                                     <div className="grid grid-cols-1 gap-4 col-span-2 relative">
                                         <div className="relative">
