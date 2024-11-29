@@ -189,7 +189,16 @@ export default function Main({ auth }) {
             );
             const data = await response.json();
             console.log("main suggestion: ", data);
-            setSuggestions(data);
+
+            const filteredSuggestions = data.filter((item) => {
+                if (isBuy) {
+                    return item.purchase === "For Sale";
+                } else {
+                    return item.purchase === "For Rent";
+                }
+            });
+            console.log('filteredSuggestions', filteredSuggestions);
+            setSuggestions(filteredSuggestions);
         } catch (error) {
             console.error("Error fetching suggestions:", error);
         }

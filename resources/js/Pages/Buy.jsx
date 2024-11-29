@@ -14,14 +14,14 @@ const Buy = ({ auth }) => {
         return savedFilters
             ? JSON.parse(savedFilters)
             : {
-                  propertyType: "All Property",
-                  saleType: "All",
-                  priceMin: "0",
-                  priceMax: "1000000000",
-                  sizeMin: "0",
-                  sizeMax: "100000",
-                  amenities: [],
-              };
+                propertyType: "All Property",
+                saleType: "All",
+                priceMin: "0",
+                priceMax: "1000000000",
+                sizeMin: "0",
+                sizeMax: "100000",
+                amenities: [],
+            };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [citySearchQuery, setCitySearchQuery] = useState("");
@@ -210,7 +210,6 @@ const Buy = ({ auth }) => {
     };
 
     const handleCitySearch = (value) => {
-        console.log("buy js: ", value);
         setCitySearchQuery(value);
         setCurrentPage(1);
     };

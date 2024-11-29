@@ -308,7 +308,7 @@ class PropertyController extends Controller
             return response()->json([]);
         }
 
-        $addresses = Property::select('property_address_line_1', 'property_address_line_2', 'city', 'property_name', 'property_type')
+        $addresses = Property::select('property_address_line_1', 'property_address_line_2', 'city', 'property_name', 'property_type', 'purchase')
             ->where('property_address_line_1', 'like', '%' . $query . '%')
             ->orWhere('property_address_line_2', 'like', '%' . $query . '%')
             ->orWhere('city', 'like', '%' . $query . '%')
