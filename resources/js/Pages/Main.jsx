@@ -197,7 +197,7 @@ export default function Main({ auth }) {
                     return item.purchase === "For Rent";
                 }
             });
-            console.log('filteredSuggestions', filteredSuggestions);
+            console.log("filteredSuggestions", filteredSuggestions);
             setSuggestions(filteredSuggestions);
         } catch (error) {
             console.error("Error fetching suggestions:", error);
@@ -235,8 +235,11 @@ export default function Main({ auth }) {
     };
 
     const handleSuggestionClick = (suggestion) => {
+        const addressLine2 = suggestion.property_address_line_2
+            ? `, ${suggestion.property_address_line_2}`
+            : "";
         setSearchQuery(
-            `${suggestion.property_address_line_1}, ${suggestion.property_address_line_2}, ${suggestion.city}`
+            `${suggestion.property_address_line_1}${addressLine2}, ${suggestion.city}`
         );
         setSuggestions(false);
     };
@@ -304,10 +307,8 @@ export default function Main({ auth }) {
                                                             {
                                                                 suggestion.property_address_line_1
                                                             }
-                                                            ,{" "}
-                                                            {
-                                                                suggestion.property_address_line_2
-                                                            }
+                                                            {suggestion.property_address_line_2 &&
+                                                                `, ${suggestion.property_address_line_2}`}
                                                             , {suggestion.city}
                                                         </p>
                                                         <p className="text-sm text-gray-500 flex items-center">
