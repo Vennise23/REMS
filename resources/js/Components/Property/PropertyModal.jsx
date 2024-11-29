@@ -5,14 +5,23 @@ import {
     FaPhone,
     FaEnvelope,
     FaUser,
+    FaComment,
 } from "react-icons/fa";
+import { router } from '@inertiajs/react';
+import axios from 'axios';
 
 const PropertyModal = ({
     isOpen,
     onClose,
     property,
+    currentUser,
+    setMapPosition,
 }) => {
     if (!isOpen) return null;
+
+    if (!property) {
+        return null;
+    }
 
     const [contactInfo, setContactInfo] = useState({
         phone: "Not available",
@@ -37,13 +46,25 @@ const PropertyModal = ({
         }
     }, [property]);
 
-    const handleWhatsApp = () => {
-        const message = `Hi, I'm interested in your property: ${property.property_name}`;
-        const whatsappUrl = `https://wa.me/${contactInfo.phone.replace(
-            /[^0-9]/g,
-            ""
-        )}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, "_blank");
+    const handleContactOwner = async () => {
+        if (!property || !property.user) {
+            console.error('Property or property user is undefined');
+            return;
+        }
+
+        try {
+            const response = await axios.post('/api/chat-rooms', {
+                property_id: property.id,
+                seller_id: property.user_id
+            });
+
+            if (response.data && response.data.chatRoom) {
+                onClose();
+                router.visit(`/chat/${response.data.chatRoom.id}`);
+            }
+        } catch (error) {
+            console.error('Error creating/getting chat room:', error);
+        }
     };
 
     const handleDownloadPhoto = (photoUrl) => {
@@ -130,10 +151,10 @@ const PropertyModal = ({
                     {/* Action Buttons */}
                     <div className="flex space-x-4 mt-6">
                         <button
-                            onClick={handleWhatsApp}
-                            className="flex-1 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center justify-center"
+                            onClick={handleContactOwner}
+                            className="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center justify-center"
                         >
-                            <FaWhatsapp className="mr-2" />
+                            <FaComment className="mr-2" />
                             Contact Owner
                         </button>
                         <button

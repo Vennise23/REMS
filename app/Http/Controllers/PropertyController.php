@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Property;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class PropertyController extends Controller
 {

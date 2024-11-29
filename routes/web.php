@@ -4,12 +4,15 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Broadcast;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ChatMessageController;
 
 // Main Route
 Route::get('/', function () {
@@ -54,6 +57,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
 });
 
 // Profile routes
@@ -161,5 +165,18 @@ Route::get('/api/geocode', function () {
     return response()->json($response->json());
 });
 
+
+// Chat Router
+Route::middleware(['auth'])->group(function () {
+    Route::get('/api/chat-rooms', [ChatController::class, 'getChatRooms']);
+    Route::post('/api/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);
+    Route::get('/api/chat-rooms/{chatRoom}/messages', [ChatController::class, 'getMessages']);
+    Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
+    Route::post('/api/chat-messages', [ChatMessageController::class, 'store']);
+    Route::get('/api/chat-rooms/unread-counts', [ChatController::class, 'getUnreadCounts']);
+    Route::post('/api/messages/mark-as-read', [ChatController::class, 'markMessagesAsRead']);
+});
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 require __DIR__ . '/auth.php';

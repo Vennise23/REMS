@@ -5,6 +5,7 @@ import Map from "@/Components/Map";
 import PropertyModal from "@/Components/Property/PropertyModal";
 
 const PropertyDetail = ({ property, auth }) => {
+    const [mapPosition, setMapPosition] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
@@ -454,16 +455,15 @@ const PropertyDetail = ({ property, auth }) => {
                             </button>
                         </div>
 
-                        <PropertyModal
-                            isOpen={isModalOpen}
-                            onClose={() => setIsModalOpen(false)}
-                            property={property}
-                            onConfirm={() => {
-                                console.log("Interest confirmed");
-                                setIsModalOpen(false);
-                            }}
-                            theme={themeColor}
-                        />
+                        {isModalOpen && (
+                            <PropertyModal
+                                isOpen={isModalOpen}
+                                onClose={() => setIsModalOpen(false)}
+                                property={property}
+                                currentUser={auth.user}
+                                setMapPosition={setMapPosition}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
