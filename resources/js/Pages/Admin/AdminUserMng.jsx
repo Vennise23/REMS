@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "../../axiosConfig";
 import { FaEdit, FaTrashAlt } from "react-icons/fa";
-import AdminLayout from "@/Layouts/AdminLayout";
-import AdminSidebar from "@/Layouts/AdminSidebar";
+import AdminLayout from "@/Layouts/Admin/AdminLayout";
+import AdminSidebar from "@/Layouts/Admin/AdminSidebar";
 import EditUserModal from './EditUserModal';
 import debounce from 'lodash/debounce';
 
