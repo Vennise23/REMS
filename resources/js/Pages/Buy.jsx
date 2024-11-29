@@ -248,7 +248,7 @@ const Buy = ({ auth }) => {
                         </div>
                     ) : properties.length === 0 ? (
                         <div className="text-center mt-8">
-                            <h2 className="text-xl font-semibold text-red-600">
+                            <h2 className="text-xl font-semibold text-blue-600">
                                 Property Listings With{" "}
                                 {citySearchQuery || "Your Filters"}
                             </h2>

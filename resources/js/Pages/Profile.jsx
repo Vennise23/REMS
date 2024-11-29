@@ -180,9 +180,9 @@ export default function Profile({ auth, user }) {
                 const currYear = new Date().getFullYear();
                 const currYear_cutoff = currYear % 100; // get the last two digit of current year.
                 const birthYear = year > currYear_cutoff ? 1900 + year : 2000 + year;
-                const birthDate = new Date(birthYear, month - 1, day);
+                const birthDate = new Date(Date.UTC(birthYear, month - 1, day));
                 const formattedDate = birthDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-
+                console.log("birthDate: ", birthDate);
                 console.log("Birth Date Calculated:", formattedDate);
 
                 // Update state

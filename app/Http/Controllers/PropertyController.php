@@ -113,7 +113,18 @@ class PropertyController extends Controller
             if ($request->has('citySearch') && !empty($request->citySearch)) {
                 $citySearch = $request->citySearch;
                 $query->where(function ($subQuery) use ($citySearch) {
-                    $subQuery->whereRaw("CONCAT_WS(', ', property_address_line_1, COALESCE(property_address_line_2, ''), city) LIKE ?", ['%' . $citySearch . '%'])
+                    $subQuery->where('property_address_line_1', 'like', '%' . $citySearch . '%')
+                        ->orWhere('city', 'like', '%' . $citySearch . '%')
+                        ->orWhereRaw("
+                            CONCAT_WS(', ', 
+                                property_address_line_1, 
+                                IFNULL(property_address_line_2, ''), 
+                                city
+                            ) LIKE ?
+                            ", ['%' . $citySearch . '%'])
+                        ->orWhereRaw("
+                            CONCAT(property_address_line_1, ', ', city) LIKE ?
+                            ", ['%' . $citySearch . '%'])
                         ->orWhere('property_name', 'like', '%' . $citySearch . '%');
                 });
             }
