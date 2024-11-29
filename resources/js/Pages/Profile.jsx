@@ -137,6 +137,19 @@ export default function Profile({ auth, user }) {
         }
     };
 
+    const calculateAge = (bornDate) => {
+        const today = new Date();
+        const birthDate = new Date(bornDate);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        
+        return age;
+    };
+
     const handleICorPassport = (e) => {
         const value = e.target.value;
         console.log("Function called with value:", value);
@@ -166,9 +179,8 @@ export default function Profile({ auth, user }) {
 
                 const currYear = new Date().getFullYear();
                 const currYear_cutoff = currYear % 100; // get the last two digit of current year.
-                const birthYear =
-                    year > currYear_cutoff ? 1900 + year : 2000 + year;
-                const birthDate = new Date(birthYear, month - 1, day + 1);
+                const birthYear = year > currYear_cutoff ? 1900 + year : 2000 + year;
+                const birthDate = new Date(birthYear, month - 1, day);
                 const formattedDate = birthDate.toISOString().split("T")[0]; // YYYY-MM-DD format
 
                 console.log("Birth Date Calculated:", formattedDate);
@@ -185,6 +197,15 @@ export default function Profile({ auth, user }) {
         }
     };
 
+    const handleDateChange = (e) => {
+        const newDate = e.target.value;
+        setData(data => ({
+            ...data,
+            born_date: newDate,
+            age: calculateAge(newDate)
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -198,6 +219,7 @@ export default function Profile({ auth, user }) {
                 window.location.reload();
             },
         });
+        
     };
 
     const userImage = data.profile_picture
@@ -393,7 +415,7 @@ export default function Profile({ auth, user }) {
                                         <input
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.ic_number}
+                                            value={data.ic_number || ''}
                                             onChange={handleICorPassport}
                                         />
                                     </div>
@@ -420,7 +442,8 @@ export default function Profile({ auth, user }) {
                                         <input
                                             type="date"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.born_date || ""}
+                                            value={data.born_date || ''}
+                                            onChange={handleDateChange}
                                             disabled={isIC}
                                         />
                                     </div>
