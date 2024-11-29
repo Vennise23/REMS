@@ -55,7 +55,9 @@ const PropertyModal = ({
         try {
             const response = await axios.post('/api/chat-rooms', {
                 property_id: property.id,
-                seller_id: property.user_id
+                seller_id: property.user_id,
+            }, {
+                withCredentials: true,
             });
 
             if (response.data && response.data.chatRoom) {
