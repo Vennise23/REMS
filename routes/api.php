@@ -55,3 +55,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/unread-messages/count', [ChatController::class, 'getUnreadCount']);
     Route::post('/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);
 });
+
+Route::post('/check-name-availability', function (Request $request) {
+    $exists = User::where('firstname', $request->firstname)
+                 ->where('lastname', $request->lastname)
+                 ->exists();
+    
+    return response()->json(['available' => !$exists]);
+});
+
+Route::post('/check-ic-availability', function (Request $request) {
+    $exists = User::where('ic_number', $request->ic_number)->exists();
+    return response()->json(['available' => !$exists]);
+});
+
+Route::post('/check-name', 'UserController@checkNameUniqueness');
+Route::post('/check-email', 'UserController@checkEmailUniqueness');
+Route::post('/check-ic', 'UserController@checkICUniqueness');
+Route::post('/check-passport', 'UserController@checkPassportUniqueness');

@@ -841,9 +841,10 @@ export default function Profile({ auth, user }) {
                                         </label>
                                         <input
                                             type="text"
+                                            className="mt-1 block w-full border rounded p-2"
                                             name="address_line_2"
                                             placeholder="Address Line 2"
-                                            className="mt-1 block w-full border rounded p-2"
+                                            
                                             value={
                                                 data.address_line_2
                                             }

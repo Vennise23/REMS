@@ -13,6 +13,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatMessageController;
+use App\Http\Controllers\Auth\RegisterController;
 
 // Main Route
 Route::get('/', function () {
@@ -182,3 +183,14 @@ Route::middleware(['auth'])->group(function () {
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 require __DIR__ . '/auth.php';
+
+Route::post('/api/check-name', [UserController::class, 'checkNameUniqueness'])
+    ->name('users.check-name');
+
+Route::post('/api/check-email', [UserController::class, 'checkEmailUniqueness'])
+    ->name('users.check-email');
+
+Route::post('/api/check-ic', [UserController::class, 'checkIcUniqueness'])
+    ->name('users.check-ic');
+
+Route::post('/api/check-email', [RegisterController::class, 'checkEmailUniqueness']);
