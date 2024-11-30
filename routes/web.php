@@ -62,6 +62,8 @@ Route::middleware(['auth'])->group(function () {
 
 // Profile routes
 Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
+Route::post('/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
+Route::post('/check-ic', [ProfileController::class, 'checkIC'])->name('profile.checkIC');
 
 // Buy Route
 Route::get('/buy', function () {

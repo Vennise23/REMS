@@ -56,18 +56,25 @@ export default function Register() {
             }
         }
 
-        if (field === "email") 
-            {const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (field === "email") {
+            // First check for @ and .com
+            if (!value.includes('@') || !value.toLowerCase().endsWith('.com')) {
+                setError("email", "Email must contain '@' and end with '.com'");
+                return;
+            }
+
+            // Then check full email pattern
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/i;
             if (!emailPattern.test(value)) {
                 setError("email", "Please enter a valid email address (e.g., user@example.com)");
             } else {
                 clearErrors("email");
-            }
-            const isExistingEmail = existingUsers.some((user) => user.email === value);
-            if (isExistingEmail) {
-                setError("email", "This email has already been registered, please use a different email");
-            } else {
-                clearErrors("email");
+                
+                // Check if email already exists
+                const isExistingEmail = existingUsers.some((user) => user.email === value);
+                if (isExistingEmail) {
+                    setError("email", "This email has already been registered, please use a different email");
+                }
             }
         }
 

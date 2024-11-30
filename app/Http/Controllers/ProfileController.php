@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Models\User;
 
 
@@ -38,48 +39,50 @@ class ProfileController extends Controller
      */
     public function update(Request $request)
     {
-        $user = Auth::user();
+        try {
+            $validated = $request->validate([
+                'firstname' => 'required|string|max:255',
+                'lastname' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . auth()->id(),
+                'ic_number' => 'required|string|max:255|unique:users,ic_number,' . auth()->id(),
+                'phone' => 'nullable|string|max:255',
+                'gender' => 'nullable|string|in:male,female,other',
+                'born_date' => 'nullable|date',
+                'age' => 'nullable|integer',
+                'address_line_1' => 'nullable|string|max:255',
+                'address_line_2' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'postal_code' => 'nullable|string|max:255',
+                'profile_picture' => 'nullable|image|max:2048', // 2MB max
+            ]);
 
-        $request->validate([
-            'firstname' => 'string|max:255',
-            'lastname' => 'string|max:255',
-            'email' => 'email|unique:users,email,' . $user->id,
-            'ic_number' => 'nullable|string',
-            'age' => 'nullable|integer',
-            'born_date' => 'nullable|date',
-            'phone' => 'nullable|string',
-            'address_line_1' => 'nullable|string|max:255',
-            'address_line_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'password' => 'nullable|min:8|confirmed'
-        ]);
+            $user = User::find(auth()->id());
 
-        if ($request->hasFile('profile_picture')) {
-            if ($user->profile_picture) {
-                Storage::disk('public')->delete($user->profile_picture);
+            if (!$user) {
+                throw new \Exception('User not found');
             }
 
-            $filePath = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $user->profile_picture = $filePath;
+            // Handle profile picture upload
+            if ($request->hasFile('profile_picture')) {
+                $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+                $validated['profile_picture'] = $path;
+            }
+
+            // Update user attributes individually
+            foreach ($validated as $key => $value) {
+                $user->$key = $value;
+            }
+            
+            $user->save();
+
+            return redirect()->back()->with('success', 'Profile updated successfully');
+
+        } catch (\Exception $e) {
+            Log::error('Profile update error: ' . $e->getMessage());
+            return redirect()->back()
+                ->withErrors(['error' => 'An error occurred while saving your profile'])
+                ->withInput();
         }
-
-        $user->firstname = $request->firstname ?? $user->firstname;
-        $user->lastname = $request->lastname ?? $user->lastname;
-        $user->email = $request->email ?? $user->email;
-        $user->ic_number = $request->ic_number ?? $user->ic_number;
-        $user->age = $request->age ?? $user->age;
-        $user->born_date = $request->born_date ?? $user->born_date;
-        $user->phone = $request->phone ?? $user->phone;
-        $user->address_line_1 = $request->address_line_1 ?? $user->address_line_1;
-        $user->address_line_2 = $request->address_line_2 ?? $user->address_line_2;
-        $user->city = $request->city ?? $user->city;
-        $user->postal_code = $request->postal_code ?? $user->postal_code;
-
-        $user->save();
-
-        return redirect()->route('profile')->with('status', 'Profile updated successfully!');
     }
 
 
@@ -128,8 +131,17 @@ class ProfileController extends Controller
 
     public function checkEmail(Request $request)
     {
-        $emailExists = User::where('email', $request->input('email'))->exists();
+        $exists = User::where('email', $request->email)
+                      ->where('id', '!=', auth()->id()) // Exclude current user
+                      ->exists();
+        return response()->json(['exists' => $exists]);
+    }
 
-        return response()->json(['exists' => $emailExists]);
+    public function checkIC(Request $request)
+    {
+        $exists = User::where('ic_number', $request->ic_number)
+                      ->where('id', '!=', auth()->id()) // Exclude current user
+                      ->exists();
+        return response()->json(['exists' => $exists]);
     }
 }
