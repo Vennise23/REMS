@@ -557,6 +557,27 @@ export default function Profile({ auth, user }) {
         }
     }, [data.profile_picture]);
 
+    // Add this function to validate file type and size
+    const validateProfilePicture = (file) => {
+        // Allowed file types
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+        
+        // Max file size (2MB)
+        const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only image files (JPG, PNG, GIF) are allowed');
+            return false;
+        }
+
+        if (file.size > maxSize) {
+            alert('File size must be less than 2MB');
+            return false;
+        }
+
+        return true;
+    };
+
     return (
         <>
             <Head title="Profile Edit" />
@@ -586,7 +607,12 @@ export default function Profile({ auth, user }) {
                                     onChange={(e) => {
                                         const file = e.target.files[0];
                                         if (file) {
-                                            setData("profile_picture", file);
+                                            if (validateProfilePicture(file)) {
+                                                setData("profile_picture", file);
+                                            } else {
+                                                // Reset the input
+                                                e.target.value = '';
+                                            }
                                         }
                                     }}
                                 />

@@ -53,7 +53,12 @@ class ProfileController extends Controller
                 'address_line_2' => 'nullable|string|max:255',
                 'city' => 'nullable|string|max:255',
                 'postal_code' => 'nullable|string|max:255',
-                'profile_picture' => 'nullable|image|max:2048', // 2MB max
+                'profile_picture' => [
+                    'nullable',
+                    'image',
+                    'mimes:jpeg,png,gif,jpg',
+                    'max:2048', // 2MB max
+                ],
             ]);
 
             $user = User::find(auth()->id());
