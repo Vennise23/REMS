@@ -140,6 +140,7 @@ const Rent = ({ auth }) => {
 
     const fetchProperties = async () => {
         try {
+            setLoading(true);
             const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
@@ -161,16 +162,24 @@ const Rent = ({ auth }) => {
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
 
-            if (data.data) {
-                setProperties(data.data);
-                setTotalPages(Math.ceil(data.total / propertiesPerPage));
+            const filteredData = data.data.filter(
+                (property) =>
+                    property.approval_status !== "Rejected" &&
+                    property.approval_status !== "Pending"
+            );
 
-                data.data.forEach((property) => {
+            if (filteredData) {
+                setProperties(filteredData);
+                setTotalPages(Math.ceil(v.total / propertiesPerPage));
+
+                filteredData.forEach((property) => {
                     fetchPropertyPhotos(property.id);
                 });
             }
         } catch (error) {
             console.error("Error fetching properties:", error);
+        } finally {
+            setLoading(false);
         }
     };
 

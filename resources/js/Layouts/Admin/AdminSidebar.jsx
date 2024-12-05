@@ -47,7 +47,7 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                     Manage Users
                 </Link>
                 <Link
-                    href="/admin/settings"
+                    href={route("admin.properties")}
                     className="hover:bg-blue-700 p-2 rounded"
                 >
                     Manage Property

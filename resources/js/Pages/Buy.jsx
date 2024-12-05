@@ -170,11 +170,17 @@ const Buy = ({ auth }) => {
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
 
-            if (data.data) {
-                setProperties(data.data);
-                setTotalPages(Math.ceil(data.total / propertiesPerPage));
+            const filteredData = data.data.filter(
+                (property) =>
+                    property.approval_status !== "Rejected" &&
+                    property.approval_status !== "Pending"
+            );
+            
+            if (filteredData) {
+                setProperties(filteredData);
+                setTotalPages(Math.ceil(filteredData.total / propertiesPerPage));
 
-                data.data.forEach((property) => {
+                filteredData.forEach((property) => {
                     fetchPropertyPhotos(property.id);
                 });
             }

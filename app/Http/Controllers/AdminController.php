@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Property;
 use Inertia\Inertia;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -134,5 +135,31 @@ class AdminController extends Controller
         $user->delete();
 
         return response()->json(['status' => 'User deleted successfully']);
+    }
+
+    public function manageProperties()
+    {
+        return Inertia::render('Admin/AdminPropertyMng');
+    }
+
+    public function propertyTable()
+    {
+        $properties = Property::all();
+        return response()->json($properties);
+    }
+
+    public function approveProperty($id)
+    {
+        $property = Property::findOrFail($id);
+        $property->approval_status = 'Approved';
+        $property->save();
+        return response()->json(['status' => 'Property approved successfully']);
+    }
+    public function rejectProperty($id)
+    {
+        $property = Property::findOrFail($id);
+        $property->approval_status = 'Rejected';
+        $property->save();
+        return response()->json(['status' => 'Property rejected successfully']);
     }
 }

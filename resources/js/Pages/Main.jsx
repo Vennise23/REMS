@@ -218,7 +218,12 @@ export default function Main({ auth }) {
                 const baseURL = `${window.location.origin}/property`;
                 const response = await axios.get(baseURL);
                 console.log("response", response);
-                setPropertyList(response.data);
+                const filteredData = response.data.filter(
+                    (property) =>
+                        property.approval_status !== "Rejected" &&
+                        property.approval_status !== "Pending"
+                );
+                setPropertyList(filteredData);
             } catch (error) {
                 console.error("Error fetching property data:", error);
             } finally {

@@ -35,8 +35,8 @@ export default function AdminUserMng({ auth, user }) {
     const [selectedUser, setSelectedUser] = useState(null);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
+const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
+    
 
     const fetchUsers = async () => {
         try {

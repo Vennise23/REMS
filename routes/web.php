@@ -47,6 +47,10 @@ Route::post('/admin/login', [AuthenticatedSessionController::class, 'storeAdmin'
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
+    Route::get('/admin/properties', [AdminController::class, 'manageProperties'])->name('admin.properties');
+    Route::get('/properties/data', [AdminController::class, 'propertyTable'])->name('admin.properties.data');
+    Route::post('/api/properties/{id}/approve', [AdminController::class, 'approveProperty'])->name('api.properties.approve'); 
+    Route::post('/api/properties/{id}/reject', [AdminController::class, 'rejectProperty'])->name('api.properties.reject');
 
     // User Management routes for admin
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');

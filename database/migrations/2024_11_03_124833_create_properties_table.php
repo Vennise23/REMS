@@ -40,6 +40,9 @@ return new class extends Migration
             $table->string('other_amenities')->nullable();
             $table->text('additional_info')->nullable();
 
+            // Status
+            $table->enum('approval_status', ['Pending', 'Approved', 'Rejected'])->default('Pending');
+
             $table->timestamps();
         });
     }
