@@ -46,16 +46,31 @@ export default function ChatPage({ auth, chatRoom }) {
     }, [chatRoom?.id]);
 
     const markMessagesAsRead = async () => {
-        if (!messageIdsRef.current.size) return;
-        
         try {
-            await axios.post(`/api/chat-rooms/${chatRoom.id}/mark-as-read`, {
-                message_ids: Array.from(messageIdsRef.current)
-            });
+            // Mark messages as read in the current chat room
+            await axios.post(`/api/chat-rooms/${chatRoom.id}/mark-as-read`);
             
+            // Trigger the unread counts update in HeaderMenu
+            updateUnreadCounts();
+            
+            // Also dispatch the custom event for compatibility
             window.dispatchEvent(new CustomEvent('updateUnreadCounts'));
         } catch (error) {
             console.error('Error marking messages as read:', error);
+        }
+    };
+
+    const updateUnreadCounts = async () => {
+        try {
+            const response = await axios.get('/api/chat-rooms');
+            if (response.data) {
+                // This will trigger a re-render of HeaderMenu with updated counts
+                window.dispatchEvent(new CustomEvent('unreadCountsUpdated', {
+                    detail: response.data
+                }));
+            }
+        } catch (error) {
+            console.error('Error updating unread counts:', error);
         }
     };
 
@@ -147,16 +162,23 @@ export default function ChatPage({ auth, chatRoom }) {
                                         } p-4 relative`}
                                     >
                                         {message.message}
-                                        {/* Timestamp */}
+                                        {/* Update the timestamp display */}
                                         <span className={`text-xs mt-1 block opacity-70 ${
                                             message.sender_id === auth.user.id
                                                 ? 'text-blue-100'
                                                 : 'text-gray-500'
                                         }`}>
-                                            {new Date().toLocaleTimeString([], { 
+                                            {new Date(message.created_at).toLocaleString([], { 
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
                                                 hour: '2-digit', 
-                                                minute: '2-digit' 
+                                                minute: '2-digit',
+                                                hour12: true,
+                                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                                             })}
+                                            {' '}
+                                            ({Intl.DateTimeFormat().resolvedOptions().timeZone})
                                         </span>
                                     </div>
                                 </div>
