@@ -12,6 +12,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
         property_address_line_2: "",
         city: "",
         postal_code: "",
+        state: "",
         purchase: "",
         sale_type: "",
         number_of_units: "",
@@ -149,7 +150,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             const url = `/api/place-autocomplete?query=${query}&type=${type}`;
             const response = await fetch(url);
             const data = await response.json();
-            // console.log("data suggestion: ", data);
+            console.log("data suggestion: ", data);
 
             if (data.predictions && Array.isArray(data.predictions)) {
                 if (type === "address") {
@@ -203,6 +204,9 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                 const country = addressComponents.find((component) =>
                     component.types.includes("country")
                 );
+                const state = addressComponents.find((component) =>
+                    component.types.includes("administrative_area_level_1")
+                );
                 const postalCodeComponent = addressComponents.find(
                     (component) => component.types.includes("postal_code")
                 );
@@ -223,6 +227,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                         : "",
                     city: city ? city.long_name : "",
                     country: country ? country.long_name : "",
+                    state: state ? state.long_name : "",
                     postalCode: postalCodeComponent
                         ? postalCodeComponent.long_name
                         : null,
@@ -245,7 +250,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
             const response = await fetch(url);
             const data = await response.json();
-            // console.log("checking geonames")
+            console.log("checking geonames", data);
 
             if (data.postalCodes && data.postalCodes.length > 0) {
                 const postalInfo = data.postalCodes[0];
@@ -276,11 +281,14 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     property_address_line_2,
                     city,
                     country,
+                    state,
                 } = googleResult;
 
                 let postalInfo = postalCode
                     ? { postalCode }
                     : await fetchPostalCodeFromGeonames(lat, lng);
+
+                console.log('postalCode', postalInfo);
 
                 setFormData({
                     ...formData,
@@ -289,7 +297,10 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     city,
                     country,
                     postal_code: postalInfo?.postalCode || postalCode || "",
+                    state: postalInfo?.adminName1 || state || "",
                 });
+
+                console.log("Updated formData:", formData);
             }
         } catch (error) {
             console.error("Error selecting address:", error);
@@ -312,7 +323,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
 
         setLoading(true);
         const data = new FormData();
-        // console.log("Form submitted:", formData);
+        console.log("Form submitted:", formData);
         // console.log("data : ", data);
         Object.keys(formData).forEach((key) => {
             if (key === "certificate_photos" || key === "property_photos") {
@@ -333,6 +344,10 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                 data.append(key, formData[key]);
             }
         });
+
+        if (formData.state) { 
+            data.append("state", formData.state); 
+        }
 
         try {
             const baseURL = `${window.location.origin}/apply-property`;

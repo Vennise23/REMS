@@ -28,7 +28,6 @@ class ChatMessageController extends Controller
 
             return response()->json($message);
         } catch (\Exception $e) {
-            \Log::error('Error creating chat message: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to send message'], 500);
         }
     }

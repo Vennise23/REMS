@@ -21,7 +21,8 @@ class PropertyController extends Controller
                 'property_address_line_1' => 'required|string|max:255',
                 'property_address_line_2' => 'nullable|string|max:255',
                 'city' => 'required|string|max:255',
-                'postal_code' => 'required|string|max:10',
+                'postal_code' => 'nullable|string|max:255',
+                'state' => 'required|string|max:255',
                 'purchase' => 'required|string|in:For Sale,For Rent',
                 'sale_type' => 'nullable|string|in:New Launch,Subsale',
                 'number_of_units' => 'required|integer',
@@ -320,11 +321,12 @@ class PropertyController extends Controller
             return response()->json([]);
         }
 
-        $addresses = Property::select('property_address_line_1', 'property_address_line_2', 'city', 'property_name', 'property_type', 'purchase')
+        $addresses = Property::select('property_address_line_1', 'property_address_line_2', 'city', 'property_name', 'property_type', 'purchase', 'state')
             ->where('property_address_line_1', 'like', '%' . $query . '%')
             ->orWhere('property_address_line_2', 'like', '%' . $query . '%')
             ->orWhere('city', 'like', '%' . $query . '%')
             ->orWhere('property_name', 'like', '%' . $query . '%')
+            ->orWhere('state', 'like', '%' . $query . '%')
             ->limit(10)
             ->get();
 

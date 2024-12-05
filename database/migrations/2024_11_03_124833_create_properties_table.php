@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('property_address_line_2')->nullable();
             $table->string('city');
             $table->string('postal_code');
+            $table->string('state')->nullable();
             $table->enum('purchase', ['For Sale', 'For Rent']);
             $table->enum('sale_type', ['New Launch', 'Subsale'])->nullable();
             $table->enum('property_type', ['Conventional Condominium', 'Bare Land Condominium', 'Commercial']);

@@ -18,6 +18,7 @@ class Property extends Model
         'property_address_line_2',
         'city',
         'postal_code',
+        'state',
         'purchase',
         'sale_type',
         'number_of_units',
