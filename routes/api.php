@@ -54,4 +54,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chat-rooms/{chatRoom}/messages', [ChatController::class, 'getMessages']);
     Route::get('/unread-messages/count', [ChatController::class, 'getUnreadCount']);
     Route::post('/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);
+    Route::post('/chat-rooms/create', [ChatController::class, 'createRoom']);
 });

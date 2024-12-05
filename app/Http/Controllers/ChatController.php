@@ -59,11 +59,14 @@ class ChatController extends Controller
                 'seller_id' => $validated['seller_id'],
             ]);
 
+            $chatRoom->load(['buyer', 'seller', 'property']);
+
             return response()->json([
-                'chatRoom' => $chatRoom->load(['buyer', 'seller', 'property']),
-                'messages' => $chatRoom->messages
+                'success' => true,
+                'chatRoom' => $chatRoom,
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error in createRoom: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to create chat room',
                 'message' => $e->getMessage()

@@ -53,17 +53,23 @@ const PropertyModal = ({
         }
 
         try {
-            const response = await axios.post('/api/chat-rooms', {
+            const response = await axios.post('/api/chat-rooms/create', {
                 property_id: property.id,
                 seller_id: property.user_id
             });
 
             if (response.data && response.data.chatRoom) {
                 onClose();
-                router.visit(`/chat/${response.data.chatRoom.id}`);
+                const chatUrl = `/chat/${response.data.chatRoom.id}`;
+                router.visit(chatUrl);
+            } else {
+                console.error('No chat room data in response:', response);
             }
         } catch (error) {
             console.error('Error creating/getting chat room:', error);
+            if (error.response) {
+                console.error('Error response:', error.response.data);
+            }
         }
     };
 
