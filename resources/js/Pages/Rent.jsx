@@ -162,15 +162,9 @@ const Rent = ({ auth }) => {
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
 
-            const filteredData = data.data.filter(
-                (property) =>
-                    property.approval_status !== "Rejected" &&
-                    property.approval_status !== "Pending"
-            );
-
-            if (filteredData) {
-                setProperties(filteredData);
-                setTotalPages(Math.ceil(v.total / propertiesPerPage));
+            if (data.data) {
+                setProperties(data.data);
+                setTotalPages(Math.ceil(data.total / propertiesPerPage));
 
                 filteredData.forEach((property) => {
                     fetchPropertyPhotos(property.id);

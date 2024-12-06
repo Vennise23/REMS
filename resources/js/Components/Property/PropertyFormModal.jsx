@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../axiosConfig";
 import ShowSuccessModal from "./ShowSuccessModal";
 import ShowConfirmationModal from "./ShowConfirmationModal";
 import "./../../../css/app.css";
@@ -288,7 +288,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     ? { postalCode }
                     : await fetchPostalCodeFromGeonames(lat, lng);
 
-                console.log('postalCode', postalInfo);
+                console.log("postalCode", postalInfo);
 
                 setFormData({
                     ...formData,
@@ -345,9 +345,13 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             }
         });
 
-        if (formData.state) { 
-            data.append("state", formData.state); 
+        if (formData.state) {
+            data.append("state", formData.state);
         }
+
+        const csrfToken = document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute("content");
 
         try {
             const baseURL = `${window.location.origin}/apply-property`;
@@ -355,6 +359,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             const response = await axios.post(baseURL, data, {
                 headers: {
                     "Content-Type": "multipart/form-data",
+                    "X-CSRF-TOKEN": csrfToken,
                 },
             });
             setShowConfirmationModal(false);
@@ -428,6 +433,11 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                 </h2>
 
                 <form onSubmit={onSubmitHandler}>
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="{{ csrf_token() }}"
+                    />
                     <div>
                         <h3
                             className="text-xl font-semibold mb-2 cursor-pointer flex justify-between items-center"
@@ -468,10 +478,10 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                         <option value="Agent">Agent</option>
                                     </select>
                                     {propertyNameError && (
-                                            <p className="text-red-500 whitespace-nowrap">
-                                                {propertyNameError}
-                                            </p>
-                                        )}
+                                        <p className="text-red-500 whitespace-nowrap">
+                                            {propertyNameError}
+                                        </p>
+                                    )}
 
                                     <div className="grid grid-cols-1 gap-4 col-span-2 relative">
                                         <div className="relative">

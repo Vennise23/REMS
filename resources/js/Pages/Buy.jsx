@@ -14,14 +14,14 @@ const Buy = ({ auth }) => {
         return savedFilters
             ? JSON.parse(savedFilters)
             : {
-                propertyType: "All Property",
-                saleType: "All",
-                priceMin: "0",
-                priceMax: "1000000000",
-                sizeMin: "0",
-                sizeMax: "100000",
-                amenities: [],
-            };
+                  propertyType: "All Property",
+                  saleType: "All",
+                  priceMin: "0",
+                  priceMax: "1000000000",
+                  sizeMin: "0",
+                  sizeMax: "100000",
+                  amenities: [],
+              };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [citySearchQuery, setCitySearchQuery] = useState("");
@@ -170,17 +170,11 @@ const Buy = ({ auth }) => {
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
 
-            const filteredData = data.data.filter(
-                (property) =>
-                    property.approval_status !== "Rejected" &&
-                    property.approval_status !== "Pending"
-            );
-            
-            if (filteredData) {
-                setProperties(filteredData);
-                setTotalPages(Math.ceil(filteredData.total / propertiesPerPage));
+            if (data.data) {
+                setProperties(data.data);
+                setTotalPages(Math.ceil(data.total / propertiesPerPage));
 
-                filteredData.forEach((property) => {
+                data.data.forEach((property) => {
                     fetchPropertyPhotos(property.id);
                 });
             }

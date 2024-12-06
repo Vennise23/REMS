@@ -92,6 +92,7 @@ class PropertyController extends Controller
     {
         try {
             $query = Property::query();
+            $query->where('approval_status', 'Approved');
             $purchaseType = $request->input('purchase', 'For Sale');
             $query->where('purchase', $purchaseType);
 

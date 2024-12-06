@@ -6,6 +6,7 @@ use App\Models\Property;
 use Inertia\Inertia;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -149,17 +150,30 @@ class AdminController extends Controller
     }
 
     public function approveProperty($id)
-    {
-        $property = Property::findOrFail($id);
-        $property->approval_status = 'Approved';
-        $property->save();
-        return response()->json(['status' => 'Property approved successfully']);
-    }
-    public function rejectProperty($id)
-    {
-        $property = Property::findOrFail($id);
-        $property->approval_status = 'Rejected';
-        $property->save();
-        return response()->json(['status' => 'Property rejected successfully']);
-    }
+{
+    $property = Property::findOrFail($id);
+    $property->approval_status = 'Approved';
+    $property->save();
+
+    $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+
+    return response()->json([
+        'status' => 'Property approved successfully',
+        'pendingCount' => $pendingCount,
+    ]);
+}
+
+public function rejectProperty($id)
+{
+    $property = Property::findOrFail($id);
+    $property->approval_status = 'Rejected';
+    $property->save();
+
+    $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+
+    return response()->json([
+        'status' => 'Property rejected successfully',
+        'pendingCount' => $pendingCount,
+    ]);
+}
 }
