@@ -5,6 +5,7 @@ import './axiosConfig';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { PendingCountProvider } from './Contexts/PendingCountContext';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -18,7 +19,11 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        root.render(<App {...props} />);
+        root.render(
+            <PendingCountProvider> 
+                <App {...props} />
+            </PendingCountProvider>
+        );
     },
     progress: {
         color: '#4B5563',

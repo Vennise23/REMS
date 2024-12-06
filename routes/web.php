@@ -58,6 +58,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
+Route::get('/admin/pending-count', [AdminController::class, 'getPendingCount'])->name('admin.pendingCount');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');

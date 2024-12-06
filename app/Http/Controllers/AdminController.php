@@ -150,30 +150,40 @@ class AdminController extends Controller
     }
 
     public function approveProperty($id)
-{
-    $property = Property::findOrFail($id);
-    $property->approval_status = 'Approved';
-    $property->save();
+    {
+        $property = Property::findOrFail($id);
+        $property->approval_status = 'Approved';
+        $property->save();
 
-    $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+        $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
 
-    return response()->json([
-        'status' => 'Property approved successfully',
-        'pendingCount' => $pendingCount,
-    ]);
-}
+        return response()->json([
+            'status' => 'Property approved successfully',
+            'pendingCount' => $pendingCount,
+        ]);
+    }
 
-public function rejectProperty($id)
-{
-    $property = Property::findOrFail($id);
-    $property->approval_status = 'Rejected';
-    $property->save();
+    public function rejectProperty($id)
+    {
+        $property = Property::findOrFail($id);
+        $property->approval_status = 'Rejected';
+        $property->save();
 
-    $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+        $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
 
-    return response()->json([
-        'status' => 'Property rejected successfully',
-        'pendingCount' => $pendingCount,
-    ]);
-}
+        return response()->json([
+            'status' => 'Property rejected successfully',
+            'pendingCount' => $pendingCount,
+        ]);
+    }
+
+    public function getPendingCount()
+    {
+        try {
+            $pendingCount = Property::where('approval_status', 'pending')->count();
+            return response()->json(['pendingCount' => $pendingCount]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
+    }
 }

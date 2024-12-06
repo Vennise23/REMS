@@ -166,7 +166,7 @@ const Rent = ({ auth }) => {
                 setProperties(data.data);
                 setTotalPages(Math.ceil(data.total / propertiesPerPage));
 
-                filteredData.forEach((property) => {
+                data.data.forEach((property) => {
                     fetchPropertyPhotos(property.id);
                 });
             }

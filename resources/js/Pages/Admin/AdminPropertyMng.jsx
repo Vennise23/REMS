@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import AdminSidebar from "@/Layouts/Admin/AdminSidebar";
 import AdminLayout from "@/Layouts/Admin/AdminLayout";
+import { usePendingCount } from "@/Contexts/PendingCountContext";
+import { Head } from "@inertiajs/react";
 
 export default function AdminPropertyMng({ auth, user }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -16,6 +18,7 @@ export default function AdminPropertyMng({ auth, user }) {
     const itemsPerPage = 10;
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
+    const { fetchPendingCount } = usePendingCount();
 
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
@@ -29,6 +32,7 @@ export default function AdminPropertyMng({ auth, user }) {
         }
         setSortConfig({ key, direction });
     };
+
     const sortedProperties = properties
         .filter(
             (property) =>
@@ -125,9 +129,7 @@ export default function AdminPropertyMng({ auth, user }) {
                     )
                 );
 
-                if (response.data.pendingCount !== undefined) {
-                    setPendingCount(response.data.pendingCount);
-                }
+                await fetchPendingCount();
             }
         } catch (error) {
             alert("Failed to approve property. Please try again.");
@@ -145,9 +147,7 @@ export default function AdminPropertyMng({ auth, user }) {
                     )
                 );
 
-                if (response.data.pendingCount !== undefined) {
-                    setPendingCount(response.data.pendingCount);
-                }
+                await fetchPendingCount();
             }
         } catch (error) {
             alert("Failed to reject property. Please try again.");
@@ -198,261 +198,280 @@ export default function AdminPropertyMng({ auth, user }) {
         fetchProperties();
         const interval = setInterval(() => {
             fetchReloadProperties();
-        }, 1000);
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
 
     const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
 
     return (
-        <div className="flex h-screen overflow-hidden">
-            <AdminSidebar
-                isOpen={isSidebarOpen}
-                toggleSidebar={toggleSidebar}
-                pendingCount={pendingCount}
-            />
-            {isSidebarOpen && (
-                <div
-                    onClick={toggleSidebar}
-                    className="fixed inset-0 bg-black opacity-50 lg:hidden z-10"
-                ></div>
-            )}
-            <div className="flex-1 flex flex-col h-full overflow-y-auto">
-                <AdminLayout>
-                    <button
+        <>
+            <Head title="Manage Property" />
+
+            <div className="flex h-screen overflow-hidden">
+                <AdminSidebar
+                    isOpen={isSidebarOpen}
+                    toggleSidebar={toggleSidebar}
+                    pendingCount={pendingCount}
+                />
+                {isSidebarOpen && (
+                    <div
                         onClick={toggleSidebar}
-                        className="lg:hidden p-4 text-blue-800"
-                    >
-                        Toggle Sidebar
-                    </button>
-                    <main
-                        className="p-6 bg-white rounded-lg shadow-md flex-1"
-                        
-                    >
-                        <h2 className="text-2xl font-bold mb-4">
-                            Property Management
-                        </h2>
-                        <div className="flex mb-4">
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={handleSearch}
-                                placeholder="Search property..."
-                                className="p-2 border rounded"
-                                style={{
-                                    width: "500px",
-                                }}
-                            />
-                            <button
-                                className="relative px-2 py-1 rounded bg-blue-800 text-white"
-                                onClick={() => {
-                                    fetchProperties();
-                                }}
-                                disabled={loading}
-                                style={{
-                                    marginLeft: "10px",
-                                }}
-                            >
-                                {"Reload Properties"}
-                                {hasNewData && (
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md">
-                                        !
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                        {loading ? (
-                            <div className="flex justify-center items-center max-h-screen">
-                                <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
-                            </div>
-                        ) : properties.length === 0 ? (
-                            <div className="text-center text-lg font-semibold text-gray-600 mt-8">
-                                No Properties available at the moment.
-                            </div>
-                        ) : (
-                            <>
-                                <table className="min-w-full bg-white border rounded shadow-lg">
-                                    <thead>
-                                        <tr className="bg-gray-100 text-left">
-                                            <th
-                                                className="px-4 py-2 cursor-pointer"
-                                                onClick={() =>
-                                                    handleSort("property_name")
-                                                }
-                                            >
-                                                Property Name
-                                            </th>
-                                            <th
-                                                className="px-4 py-2 cursor-pointer text-center"
-                                                onClick={() =>
-                                                    handleSort("username")
-                                                }
-                                            >
-                                                User
-                                            </th>
-                                            <th
-                                                className="px-4 py-2 cursor-pointer text-center"
-                                                onClick={() =>
-                                                    handleSort("purchase")
-                                                }
-                                                style={{ width: "200px" }}
-                                            >
-                                                Purchase
-                                            </th>
-                                            <th
-                                                className="px-4 py-2 cursor-pointer text-center"
-                                                onClick={() =>
-                                                    handleSort(
-                                                        "approval_status"
-                                                    )
-                                                }
-                                                style={{ width: "200px" }}
-                                            >
-                                                Status
-                                            </th>
-                                            <th
-                                                className="px-4 py-2 text-center"
-                                                style={{ width: "250px" }}
-                                            >
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {paginatedProperties.map((property) => (
-                                            <tr key={property.id}>
-                                                <td className="px-4 py-2">
-                                                    {property.property_name}
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    {property.username}
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <span
-                                                        className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getPurchaseClass(
-                                                            property.purchase
-                                                        )}`}
-                                                        style={{
-                                                            width: "100px",
-                                                            textAlign: "center",
-                                                        }}
-                                                    >
-                                                        {property.purchase}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <span
-                                                        className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusClass(
-                                                            property.approval_status
-                                                        )}`}
-                                                        style={{
-                                                            width: "100px",
-                                                            textAlign: "center",
-                                                        }}
-                                                    >
-                                                        {
-                                                            property.approval_status
-                                                        }
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <button
-                                                        className={`px-2 py-1 rounded mr-2 ${
-                                                            isButtonDisabled(
-                                                                property.approval_status,
-                                                                "approve"
-                                                            )
-                                                                ? "bg-gray-500 text-white cursor-not-allowed"
-                                                                : "bg-green-500 text-white"
-                                                        }`}
-                                                        style={{
-                                                            width: "100px",
-                                                            textAlign: "center",
-                                                        }}
-                                                        onClick={() =>
-                                                            handleApprove(
-                                                                property.id
-                                                            )
-                                                        }
-                                                        disabled={isButtonDisabled(
-                                                            property.approval_status,
-                                                            "approve"
-                                                        )}
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        className={`px-2 py-1 rounded ${
-                                                            isButtonDisabled(
-                                                                property.approval_status,
-                                                                "reject"
-                                                            )
-                                                                ? "bg-gray-500 text-white cursor-not-allowed"
-                                                                : "bg-red-500 text-white"
-                                                        }`}
-                                                        style={{
-                                                            width: "100px",
-                                                            textAlign: "center",
-                                                        }}
-                                                        onClick={() =>
-                                                            handleReject(
-                                                                property.id
-                                                            )
-                                                        }
-                                                        disabled={isButtonDisabled(
-                                                            property.approval_status,
-                                                            "reject"
-                                                        )}
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                <div
-                                    className="flex justify-between mt-4"
+                        className="fixed inset-0 bg-black opacity-50 lg:hidden z-10"
+                    ></div>
+                )}
+                <div className="flex-1 flex flex-col h-full overflow-y-auto">
+                    <AdminLayout>
+                        <button
+                            onClick={toggleSidebar}
+                            className="lg:hidden p-4 text-blue-800"
+                        >
+                            Toggle Sidebar
+                        </button>
+                        <main className="p-6 bg-white rounded-lg shadow-md flex-1">
+                            <h2 className="text-2xl font-bold mb-4">
+                                Property Management
+                            </h2>
+                            <div className="flex mb-4">
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={handleSearch}
+                                    placeholder="Search property..."
+                                    className="p-2 border rounded"
                                     style={{
-                                        display: "flex",
-                                        justifyContent: "flex-end",
-                                        gap: "10px",
-                                        marginRight: "10px",
+                                        width: "500px",
+                                    }}
+                                />
+                                <button
+                                    className="relative px-2 py-1 rounded bg-blue-700 text-white"
+                                    onClick={() => {
+                                        fetchProperties();
+                                    }}
+                                    disabled={loading}
+                                    style={{
+                                        marginLeft: "10px",
                                     }}
                                 >
-                                    <button
-                                        className="px-4 py-2 bg-gray-300 rounded"
-                                        disabled={currentPage === 1}
-                                        onClick={() =>
-                                            handlePageChange(currentPage - 1)
-                                        }
-                                        style={{
-                                            width: "100px",
-                                        }}
-                                    >
-                                        Previous
-                                    </button>
-                                    <span className="flex items-center">
-                                        Page {currentPage} of {totalPages}
-                                    </span>
-                                    <button
-                                        className="px-4 py-2 bg-gray-300 rounded"
-                                        disabled={currentPage === totalPages}
-                                        onClick={() =>
-                                            handlePageChange(currentPage + 1)
-                                        }
-                                        style={{
-                                            width: "100px",
-                                        }}
-                                    >
-                                        Next
-                                    </button>
+                                    {"Reload Properties"}
+                                    {hasNewData && (
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md">
+                                            !
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                            {loading ? (
+                                <div className="flex justify-center items-center max-h-screen">
+                                    <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
                                 </div>
-                            </>
-                        )}
-                    </main>
-                </AdminLayout>
+                            ) : properties.length === 0 ? (
+                                <div className="text-center text-lg font-semibold text-gray-600 mt-8">
+                                    No Properties available at the moment.
+                                </div>
+                            ) : (
+                                <>
+                                    <table className="min-w-full bg-white border rounded shadow-lg">
+                                        <thead>
+                                            <tr className="bg-gray-100 text-left">
+                                                <th
+                                                    className="px-4 py-2 cursor-pointer"
+                                                    onClick={() =>
+                                                        handleSort(
+                                                            "property_name"
+                                                        )
+                                                    }
+                                                >
+                                                    Property Name
+                                                </th>
+                                                <th
+                                                    className="px-4 py-2 cursor-pointer text-center"
+                                                    onClick={() =>
+                                                        handleSort("username")
+                                                    }
+                                                >
+                                                    User
+                                                </th>
+                                                <th
+                                                    className="px-4 py-2 cursor-pointer text-center"
+                                                    onClick={() =>
+                                                        handleSort("purchase")
+                                                    }
+                                                    style={{ width: "200px" }}
+                                                >
+                                                    Purchase
+                                                </th>
+                                                <th
+                                                    className="px-4 py-2 cursor-pointer text-center"
+                                                    onClick={() =>
+                                                        handleSort(
+                                                            "approval_status"
+                                                        )
+                                                    }
+                                                    style={{ width: "200px" }}
+                                                >
+                                                    Status
+                                                </th>
+                                                <th
+                                                    className="px-4 py-2 text-center"
+                                                    style={{ width: "250px" }}
+                                                >
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {paginatedProperties.map(
+                                                (property) => (
+                                                    <tr key={property.id}>
+                                                        <td className="px-4 py-2">
+                                                            {
+                                                                property.property_name
+                                                            }
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            {property.username}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <span
+                                                                className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getPurchaseClass(
+                                                                    property.purchase
+                                                                )}`}
+                                                                style={{
+                                                                    width: "100px",
+                                                                    textAlign:
+                                                                        "center",
+                                                                }}
+                                                            >
+                                                                {
+                                                                    property.purchase
+                                                                }
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <span
+                                                                className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusClass(
+                                                                    property.approval_status
+                                                                )}`}
+                                                                style={{
+                                                                    width: "100px",
+                                                                    textAlign:
+                                                                        "center",
+                                                                }}
+                                                            >
+                                                                {
+                                                                    property.approval_status
+                                                                }
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <button
+                                                                className={`px-2 py-1 rounded mr-2 ${
+                                                                    isButtonDisabled(
+                                                                        property.approval_status,
+                                                                        "approve"
+                                                                    )
+                                                                        ? "bg-gray-500 text-white cursor-not-allowed"
+                                                                        : "bg-green-500 text-white"
+                                                                }`}
+                                                                style={{
+                                                                    width: "100px",
+                                                                    textAlign:
+                                                                        "center",
+                                                                }}
+                                                                onClick={() =>
+                                                                    handleApprove(
+                                                                        property.id
+                                                                    )
+                                                                }
+                                                                disabled={isButtonDisabled(
+                                                                    property.approval_status,
+                                                                    "approve"
+                                                                )}
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                className={`px-2 py-1 rounded ${
+                                                                    isButtonDisabled(
+                                                                        property.approval_status,
+                                                                        "reject"
+                                                                    )
+                                                                        ? "bg-gray-500 text-white cursor-not-allowed"
+                                                                        : "bg-red-500 text-white"
+                                                                }`}
+                                                                style={{
+                                                                    width: "100px",
+                                                                    textAlign:
+                                                                        "center",
+                                                                }}
+                                                                onClick={() =>
+                                                                    handleReject(
+                                                                        property.id
+                                                                    )
+                                                                }
+                                                                disabled={isButtonDisabled(
+                                                                    property.approval_status,
+                                                                    "reject"
+                                                                )}
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            )}
+                                        </tbody>
+                                    </table>
+                                    <div
+                                        className="flex justify-between mt-4"
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "flex-end",
+                                            gap: "10px",
+                                            marginRight: "10px",
+                                        }}
+                                    >
+                                        <button
+                                            className="px-4 py-2 bg-gray-300 rounded"
+                                            disabled={currentPage === 1}
+                                            onClick={() =>
+                                                handlePageChange(
+                                                    currentPage - 1
+                                                )
+                                            }
+                                            style={{
+                                                width: "100px",
+                                            }}
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="flex items-center">
+                                            Page {currentPage} of {totalPages}
+                                        </span>
+                                        <button
+                                            className="px-4 py-2 bg-gray-300 rounded"
+                                            disabled={
+                                                currentPage === totalPages
+                                            }
+                                            onClick={() =>
+                                                handlePageChange(
+                                                    currentPage + 1
+                                                )
+                                            }
+                                            style={{
+                                                width: "100px",
+                                            }}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </main>
+                    </AdminLayout>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

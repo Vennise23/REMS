@@ -1,11 +1,13 @@
 // resources/js/Layouts/AdminSidebar.jsx
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, usePage } from "@inertiajs/react";
 import axios from "axios";
+import { usePendingCount } from "@/Contexts/PendingCountContext";
 
-export default function AdminSidebar({ isOpen, toggleSidebar, pendingCount }) {
+export default function AdminSidebar({ isOpen, toggleSidebar }) {
     const { csrf_token } = usePage().props;
+    const { pendingCount, fetchPendingCount } = usePendingCount();
 
     const handleLogout = async (e) => {
         e.preventDefault();
