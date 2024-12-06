@@ -13,6 +13,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatMessageController;
+use App\Http\Controllers\PropertyStatusController;
 
 // Main Route
 Route::get('/', function () {
@@ -62,6 +63,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
     Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
+    Route::get('/my-properties', [PropertyStatusController::class, 'index'])->name('my.properties');
+    Route::put('/api/properties/{property}/status', [PropertyStatusController::class, 'updateStatus']);
+    Route::get('/api/properties/{property}/potential-buyers', [PropertyStatusController::class, 'getPotentialBuyers']);
+    Route::post('/api/chat-rooms/create', [ChatController::class, 'createRoom']);
+    Route::delete('/api/properties/{property}', [PropertyController::class, 'destroy']);
 });
 
 // Profile routes

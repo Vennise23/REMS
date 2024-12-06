@@ -53,17 +53,43 @@ class ChatController extends Controller
                 'seller_id' => 'required|exists:users,id',
             ]);
 
-            $chatRoom = ChatRoom::firstOrCreate([
+            // 检查用户是否试图与自己聊天
+            if (Auth::id() === $validated['seller_id']) {
+                return response()->json([
+                    'error' => 'You cannot create a chat room with yourself'
+                ], 400);
+            }
+
+            // 检查是否已存在聊天室
+            $existingRoom = ChatRoom::where('property_id', $validated['property_id'])
+                ->where(function ($query) use ($validated) {
+                    $query->where(function ($q) use ($validated) {
+                        $q->where('buyer_id', Auth::id())
+                          ->where('seller_id', $validated['seller_id']);
+                    })->orWhere(function ($q) use ($validated) {
+                        $q->where('seller_id', Auth::id())
+                          ->where('buyer_id', $validated['seller_id']);
+                    });
+                })
+                ->first();
+
+            if ($existingRoom) {
+                return response()->json([
+                    'success' => true,
+                    'chatRoom' => $existingRoom->load(['buyer', 'seller', 'property']),
+                ]);
+            }
+
+            // 创建新的聊天室
+            $chatRoom = ChatRoom::create([
                 'property_id' => $validated['property_id'],
                 'buyer_id' => Auth::id(),
                 'seller_id' => $validated['seller_id'],
             ]);
 
-            $chatRoom->load(['buyer', 'seller', 'property']);
-
             return response()->json([
                 'success' => true,
-                'chatRoom' => $chatRoom,
+                'chatRoom' => $chatRoom->load(['buyer', 'seller', 'property']),
             ]);
         } catch (\Exception $e) {
             \Log::error('Error in createRoom: ' . $e->getMessage());

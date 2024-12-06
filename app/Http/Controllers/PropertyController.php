@@ -7,6 +7,7 @@ use App\Models\Property;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ChatRoom;
 
 class PropertyController extends Controller
 {
@@ -308,5 +309,31 @@ class PropertyController extends Controller
                 'user' => Auth::user()
             ]
         ]);
+    }
+
+    public function destroy(Property $property)
+    {
+        // 检查权限
+        if ($property->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            // 删除所有相关的聊天室和消息
+            $chatRooms = ChatRoom::where('property_id', $property->id)->get();
+            foreach ($chatRooms as $chatRoom) {
+                // 删除聊天室中的所有消息
+                $chatRoom->messages()->delete();
+                // 删除聊天室
+                $chatRoom->delete();
+            }
+            
+            // 删除属性
+            $property->delete();
+
+            return response()->json(['message' => 'Property deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete property'], 500);
+        }
     }
 }

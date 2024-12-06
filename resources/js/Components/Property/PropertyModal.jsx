@@ -47,8 +47,13 @@ const PropertyModal = ({
     }, [property]);
 
     const handleContactOwner = async () => {
-        if (!property || !property.user) {
-            console.error('Property or property user is undefined');
+        if (!currentUser) {
+            router.visit(route('login'));
+            return;
+        }
+
+        if (!property || !property.user_id) {
+            console.error('Property or property user_id is undefined');
             return;
         }
 
@@ -60,8 +65,7 @@ const PropertyModal = ({
 
             if (response.data && response.data.chatRoom) {
                 onClose();
-                const chatUrl = `/chat/${response.data.chatRoom.id}`;
-                router.visit(chatUrl);
+                router.visit(route('chat.show', { chatRoom: response.data.chatRoom.id }));
             } else {
                 console.error('No chat room data in response:', response);
             }
