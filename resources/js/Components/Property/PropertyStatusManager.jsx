@@ -8,7 +8,6 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
     const [potentialBuyers, setPotentialBuyers] = useState([]);
     const [selectedBuyerId, setSelectedBuyerId] = useState(null);
 
-    // 获取潜在买家列表（从聊天记录中）
     useEffect(() => {
         if (showBuyerModal) {
             const fetchPotentialBuyers = async () => {

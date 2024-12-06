@@ -313,22 +313,22 @@ class PropertyController extends Controller
 
     public function destroy(Property $property)
     {
-        // 检查权限
+        // Check authorization
         if ($property->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         try {
-            // 删除所有相关的聊天室和消息
+            // Delete all related chat rooms and messages
             $chatRooms = ChatRoom::where('property_id', $property->id)->get();
             foreach ($chatRooms as $chatRoom) {
-                // 删除聊天室中的所有消息
+                // Delete all messages in the chat room
                 $chatRoom->messages()->delete();
-                // 删除聊天室
+                // Delete the chat room
                 $chatRoom->delete();
             }
             
-            // 删除属性
+            // Delete the property
             $property->delete();
 
             return response()->json(['message' => 'Property deleted successfully']);
