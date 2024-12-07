@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+
 class Property extends Model
 {
     use HasFactory;
@@ -24,7 +25,6 @@ class Property extends Model
         'number_of_units',
         'square_feet',
         'price',
-        'certificate_number',
         'certificate_photos',
         'property_photos',
         'each_unit_has_furnace',
@@ -34,8 +34,9 @@ class Property extends Model
         'amenities',
         'other_amenities',
         'additional_info',
-        'user_phone',
-        'user_email'
+        'status',
+        'buyer_id',
+        'transaction_date'
     ];
 
     protected $casts = [
@@ -45,6 +46,7 @@ class Property extends Model
         'each_unit_has_furnace' => 'boolean',
         'each_unit_has_electrical_meter' => 'boolean',
         'has_onsite_caretaker' => 'boolean',
+        'transaction_date' => 'datetime'
     ];
 
     // 添加默认值属性
@@ -66,7 +68,22 @@ class Property extends Model
         'has_onsite_caretaker' => false,
         'additional_info' => '',
         'username' => 'Anonymous',
+        'status' => 'available'
     ];
+
+    protected $with = ['user'];  // 自动加载 user 关系
+
+    // 与卖家（所有者）的关联
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // 与买家的关联
+    public function buyer()
+    {
+        return $this->belongsTo(User::class, 'buyer_id');
+    }
 
     public function getFullAddress()
     {
@@ -78,10 +95,5 @@ class Property extends Model
         $address .= ', ' . $this->postal_code;
         $address .= ', Malaysia';
         return $address;
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 }

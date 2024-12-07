@@ -47,13 +47,18 @@ const PropertyModal = ({
     }, [property]);
 
     const handleContactOwner = async () => {
-        if (!property || !property.user) {
-            console.error('Property or property user is undefined');
+        if (!currentUser) {
+            router.visit(route('login'));
+            return;
+        }
+
+        if (!property || !property.user_id) {
+            console.error('Property or property user_id is undefined');
             return;
         }
 
         try {
-            const response = await axios.post('/api/chat-rooms', {
+            const response = await axios.post('/api/chat-rooms/create', {
                 property_id: property.id,
                 seller_id: property.user_id,
             }, {
@@ -62,10 +67,15 @@ const PropertyModal = ({
 
             if (response.data && response.data.chatRoom) {
                 onClose();
-                router.visit(`/chat/${response.data.chatRoom.id}`);
+                router.visit(route('chat.show', { chatRoom: response.data.chatRoom.id }));
+            } else {
+                console.error('No chat room data in response:', response);
             }
         } catch (error) {
             console.error('Error creating/getting chat room:', error);
+            if (error.response) {
+                console.error('Error response:', error.response.data);
+            }
         }
     };
 

@@ -217,6 +217,12 @@ export default function HeaderMenu({ auth }) {
                                             >
                                                 Admin Dashboard
                                             </Link>
+                                            <Link
+                                                href={route("my.properties")}
+                                                className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                                            >
+                                                My Properties
+                                            </Link>
                                             <button
                                                 onClick={handleLogout}
                                                 className="block px-4 py-2 text-gray-800 hover:bg-gray-100 w-full text-left"
@@ -253,6 +259,12 @@ export default function HeaderMenu({ auth }) {
                                                 className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
                                             >
                                                 User Profile
+                                            </Link>
+                                            <Link
+                                                href={route("my.properties")}
+                                                className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                                            >
+                                                My Properties
                                             </Link>
                                             <button
                                                 onClick={handleLogout}

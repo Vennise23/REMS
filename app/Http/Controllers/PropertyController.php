@@ -7,6 +7,7 @@ use App\Models\Property;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ChatRoom;
 
 class PropertyController extends Controller
 {
@@ -332,5 +333,31 @@ class PropertyController extends Controller
             ->get();
 
         return response()->json($addresses);
+    }
+
+    public function destroy(Property $property)
+    {
+        // Check authorization
+        if ($property->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            // Delete all related chat rooms and messages
+            $chatRooms = ChatRoom::where('property_id', $property->id)->get();
+            foreach ($chatRooms as $chatRoom) {
+                // Delete all messages in the chat room
+                $chatRoom->messages()->delete();
+                // Delete the chat room
+                $chatRoom->delete();
+            }
+            
+            // Delete the property
+            $property->delete();
+
+            return response()->json(['message' => 'Property deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete property'], 500);
+        }
     }
 }
