@@ -99,38 +99,7 @@ Route::get('/property', [PropertyController::class, 'GetPropertyList']);
 Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
-// Route::get('/check-property-name/{name}', [PropertyController::class, 'checkPropertyName']);
 
-// GOOGLE API TESTING
-// Route::get('/test-google-maps', function () {
-//     $apiKey = env('GOOGLE_MAPS_API_KEY');
-//     $response = Http::get("https://maps.googleapis.com/maps/api/geocode/json", [
-//         'address' => 'JALAN PULAI JAYA 2/9',
-//         'key' => $apiKey,
-//     ]);
-
-//     if ($response->successful()) {
-//         return response()->json($response->json());
-//     }
-
-//     return response()->json(['error' => 'API call failed'], 500);
-// });
-
-// Route::get('/test-geocode', function () {
-//     $placeId = request('place_id');
-//     $apiKey = env('GOOGLE_MAPS_API_KEY');
-
-//     $url = "https://maps.googleapis.com/maps/api/geocode/json";
-
-//     $response = Http::get($url, [
-//         'place_id' => $placeId,
-//         'key' => $apiKey,
-//     ]);
-
-//     return response()->json($response->json());
-// });
-
-// GOOGLE MAPS API
 Route::get('/place-details', function () {
     $placeId = request('place_id');
     $apiKey = env('GOOGLE_MAPS_API_KEY');

@@ -66,8 +66,6 @@ class PropertyController extends Controller
                 $propertyPhotos = [];
                 foreach ($request->file('property_photos') as $photo) {
                     $propertyPhotos[] = $photo->store('property_photos', 'public');
-                    // $path = $photo->store('property_photos', 'public');
-                    // $propertyPhotos[] = asset('storage/' . $path);
                 }
                 $validatedData['property_photos'] = $propertyPhotos;
             }
@@ -84,7 +82,7 @@ class PropertyController extends Controller
 
     public function GetPropertyList()
     {
-        $properties = Property::all();
+        $properties = Property::all();// == sql select * from properties
         return response()->json($properties);
     }
 
@@ -149,6 +147,7 @@ class PropertyController extends Controller
 
     public function showRentPage()
     {
+        // create a new page for rent and with user
         return Inertia::render('Rent', [
             'auth' => ['user' => auth()->user()]
         ]);

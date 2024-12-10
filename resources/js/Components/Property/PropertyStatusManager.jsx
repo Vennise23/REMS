@@ -24,10 +24,10 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'available': return 'bg-green-500';
-            case 'sold': return 'bg-red-500';
-            case 'rented': return 'bg-blue-500';
-            case 'cancelled': return 'bg-gray-500';
+            case 'available': return 'bg-emerald-500';
+            case 'sold': return 'bg-rose-500';
+            case 'rented': return 'bg-sky-500';
+            case 'cancelled': return 'bg-slate-500';
             default: return 'bg-gray-300';
         }
     };
@@ -69,25 +69,25 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
                 actions.push({
                     label: 'Mark as Sold',
                     status: 'sold',
-                    className: 'bg-red-500 hover:bg-red-600'
+                    className: 'bg-rose-500 hover:bg-rose-600 transition-colors duration-200'
                 });
             } else {
                 actions.push({
                     label: 'Mark as Rented',
                     status: 'rented',
-                    className: 'bg-blue-500 hover:bg-blue-600'
+                    className: 'bg-sky-500 hover:bg-sky-600 transition-colors duration-200'
                 });
             }
             actions.push({
                 label: 'Cancel Listing',
                 status: 'cancelled',
-                className: 'bg-gray-500 hover:bg-gray-600'
+                className: 'bg-slate-500 hover:bg-slate-600 transition-colors duration-200'
             });
         } else if (property.status === 'cancelled') {
             actions.push({
                 label: 'Reactivate Listing',
                 status: 'available',
-                className: 'bg-green-500 hover:bg-green-600'
+                className: 'bg-emerald-500 hover:bg-emerald-600 transition-colors duration-200'
             });
         }
 
@@ -102,7 +102,6 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
         try {
             setLoading(true);
             await axios.delete(`/api/properties/${property.id}`);
-            // 刷新页面或更新列表
             window.location.reload();
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to delete property');
@@ -113,66 +112,59 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
 
     const BuyerSelectionModal = () => (
         <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
             onClick={(e) => {
                 if (e.target === e.currentTarget) {
                     setShowBuyerModal(false);
                 }
             }}
         >
-            <div className="bg-white p-6 rounded-lg max-w-md w-full relative">
+            <div className="bg-white p-8 rounded-xl max-w-md w-full relative shadow-xl">
                 <button
                     onClick={() => setShowBuyerModal(false)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                 >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                        />
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
 
-                <h3 className="text-lg font-semibold mb-4">Select Buyer</h3>
+                <h3 className="text-xl font-semibold mb-6">Select Buyer</h3>
                 {potentialBuyers.length > 0 ? (
                     <>
-                        <div className="max-h-60 overflow-y-auto">
+                        <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                             {potentialBuyers.map(buyer => (
                                 <div
                                     key={buyer.id}
-                                    className={`p-3 border-b cursor-pointer hover:bg-gray-50 ${
-                                        selectedBuyerId === buyer.id ? 'bg-blue-50' : ''
-                                    }`}
+                                    className={`p-4 border-b last:border-b-0 cursor-pointer transition-colors duration-200
+                                        ${selectedBuyerId === buyer.id ? 'bg-blue-50 border-blue-100' : 'hover:bg-gray-50'}`}
                                     onClick={() => setSelectedBuyerId(buyer.id)}
                                 >
-                                    <div className="font-medium">{buyer.firstname} {buyer.lastname}</div>
-                                    <div className="text-sm text-gray-500">{buyer.email}</div>
+                                    <div className="font-medium text-gray-900">{buyer.firstname} {buyer.lastname}</div>
+                                    <div className="text-sm text-gray-500 mt-1">{buyer.email}</div>
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-4 flex justify-end space-x-3">
+                        <div className="mt-6 flex justify-end space-x-3">
                             <button
                                 onClick={() => setShowBuyerModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-200"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={() => handleStatusChange(property.purchase === 'For Sale' ? 'sold' : 'rented')}
                                 disabled={!selectedBuyerId}
-                                className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 ${
-                                    !selectedBuyerId ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
+                                className={`px-6 py-2 bg-blue-500 text-white rounded-lg shadow-sm hover:bg-blue-600 
+                                    transition-all duration-200 ${!selectedBuyerId ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'}`}
                             >
                                 Confirm
                             </button>
                         </div>
                     </>
                 ) : (
-                    <div className="text-center py-4">
-                        <p className="text-gray-500">No potential buyers found.</p>
+                    <div className="text-center py-8">
+                        <p className="text-gray-600">No potential buyers found.</p>
                         <p className="text-sm text-gray-400 mt-2">
                             Only users who have contacted you about this property will appear here.
                         </p>
@@ -183,23 +175,22 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
     );
 
     return (
-        <div className="mt-4">
-            <div className="flex items-center mb-2">
-                <span className="mr-2">Status:</span>
-                <span className={`px-2 py-1 rounded text-white text-sm ${getStatusColor(property.status)}`}>
+        <div className="mt-6">
+            <div className="flex items-center mb-4">
+                <span className="mr-2 text-gray-600">Status:</span>
+                <span className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getStatusColor(property.status)}`}>
                     {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
                 </span>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
                 {getAvailableActions().map((action) => (
                     <button
                         key={action.status}
                         onClick={() => handleStatusChange(action.status)}
                         disabled={loading}
-                        className={`px-4 py-2 rounded text-white text-sm ${action.className} ${
-                            loading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`px-4 py-2 rounded-lg shadow-sm text-white text-sm font-medium 
+                            ${action.className} ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'}`}
                     >
                         {action.label}
                     </button>
@@ -208,14 +199,15 @@ const PropertyStatusManager = ({ property, onStatusUpdate }) => {
                 <button
                     onClick={handleDelete}
                     disabled={loading}
-                    className="px-4 py-2 rounded text-white text-sm bg-red-600 hover:bg-red-700"
+                    className="px-4 py-2 rounded-lg shadow-sm text-white text-sm font-medium 
+                        bg-red-600 hover:bg-red-700 transition-colors duration-200 hover:shadow-md"
                 >
                     Delete Property
                 </button>
             </div>
 
             {error && (
-                <div className="text-red-500 text-sm mb-2">
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                     {error}
                 </div>
             )}
