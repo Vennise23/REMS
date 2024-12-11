@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\ThreeController;
+use App\Http\Controllers\FileController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -66,7 +69,7 @@ Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->n
 
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 Route::get('/apply-property', [PropertyController::class, 'create']);
 Route::post('/apply-property', [PropertyController::class, 'store']);
@@ -94,13 +97,14 @@ Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'get
 Route::middleware(['auth'])->group(function () {
     // Add this route for fetching users
     Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-    
+
     // Your other web routes...
 });
 
+//THREE - basic upload and binarization testing.
+Route::get('/three/upload', [ThreeController::class, 'showUploadForm'])->name('upload.show');
+Route::post('/three/upload', [ThreeController::class, 'handleUpload'])->name('upload.handle');
+Route::post('/three/saveUpload', [ThreeController::class, 'saveUploadFiles'])->name('uplaod.save');
 
-
-
-
-
-
+//THREE - new :: allow upload multiple files and binarize.
+Route::get('/three/uploadFile',[FileController::class,'uploadFile']);
