@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 
 // Main Route
 Route::get('/', function () {
@@ -27,7 +28,8 @@ Route::get('/', function () {
 
 // User Profile and Logout routes
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
+    Route::get('/profile'
+    , [ProfileController::class, 'edit'])->name('profile');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
@@ -62,9 +64,13 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Profile routes
-Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
-Route::post('/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
-Route::post('/check-ic', [ProfileController::class, 'checkIC'])->name('profile.checkIC');
+Route::middleware(['auth'])->group(function () {
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/check-name', [ProfileController::class, 'checkName'])->name('profile.checkName');
+    Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
+    Route::post('/profile/check-ic', [ProfileController::class, 'checkIC'])->name('profile.checkIC');
+    Route::post('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+});
 
 // Buy Route
 Route::get('/buy', function () {
@@ -194,3 +200,24 @@ Route::post('/api/check-ic', [UserController::class, 'checkIcUniqueness'])
     ->name('users.check-ic');
 
 Route::post('/api/check-email', [RegisterController::class, 'checkEmailUniqueness']);
+
+Route::get('/profile', [ProfileController::class, 'show'])->middleware(['auth'])->name('profile.show');
+
+// Password Reset Routes
+Route::get('/password-reset/{token}', [ResetPasswordController::class, 'showResetForm'])
+    ->middleware(['guest'])
+    ->name('password.reset');
+
+Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'validateToken'])
+    ->name('password.validate.token');
+
+Route::post('/api/reset-password', [ResetPasswordController::class, 'reset'])
+    ->name('password.update');
+
+Route::post('/forgot-password', [UserController::class, 'sendResetLinkEmail'])
+    ->name('password.email');
+
+// Registration Routes
+Route::get('/register', [App\Http\Controllers\Auth\RegisterController::class, 'create'])
+    ->name('register');
+Route::post('/register', [App\Http\Controllers\Auth\RegisterController::class, 'store']);

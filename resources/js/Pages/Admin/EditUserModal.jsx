@@ -34,6 +34,12 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
     const [suggestions, setSuggestions] = useState([]);
     const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
 
+    const genderOptions = [
+        { value: 'male', label: 'Male' },
+        { value: 'female', label: 'Female' },
+        { value: 'other', label: 'Other' }
+    ];
+
     // Reset form data when user prop changes
     useEffect(() => {
         if (user) {
@@ -121,21 +127,22 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
         return true;
     };
 
-    const validatePhone = (phone, skipValidation = false) => {
-        // Skip validation if phone hasn't changed
-        if (skipValidation || phone === user.phone) {
-            return true;
+    const validatePhone = (phone) => {
+        // Remove any non-digits
+        const cleanPhone = phone.replace(/\D/g, '');
+        
+        // Malaysian phone format: 01xxxxxxxx (10-11 digits)
+        const myPhoneRegex = /^0[1][0-9]{8,9}$/;  // Starts with 01, followed by 8-9 digits
+        
+        // International format (if starts with '+')
+        const intlPhoneRegex = /^\+(\d{1,3})(\d{4,14})$/;
+        
+        // If starts with '+', use international format, otherwise use Malaysian format
+        if (phone.startsWith('+')) {
+            return intlPhoneRegex.test(phone);
         }
-
-        const phoneRegex = /^(?:\+60|0)(1[0-9]{8,9})$/;
-        if (!phoneRegex.test(phone)) {
-            setErrors((prev) => ({
-                ...prev,
-                phone: "Invalid Malaysian phone number format",
-            }));
-            return false;
-        }
-        return true;
+        
+        return myPhoneRegex.test(cleanPhone);
     };
 
     const validateIC = (ic) => {
@@ -155,32 +162,74 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
             case 'lastname':
                 const newFirstname = name === 'firstname' ? value : formData.firstname;
                 const newLastname = name === 'lastname' ? value : formData.lastname;
+                
+                setFormData(prev => ({ ...prev, [name]: value }));
 
+                // Check if names are the same
                 if (newFirstname.toLowerCase() === newLastname.toLowerCase()) {
                     setErrors(prev => ({
                         ...prev,
                         firstname: 'First name and last name cannot be the same',
                         lastname: 'First name and last name cannot be the same'
                     }));
-                } else {
-                    setErrors(prev => ({
-                        ...prev,
-                        firstname: '',
-                        lastname: ''
-                    }));
+                    return;
                 }
-                setFormData(prev => ({ ...prev, [name]: value }));
+
+                // Clear name-related errors
+                setErrors(prev => ({
+                    ...prev,
+                    firstname: '',
+                    lastname: '',
+                    nameCombo: ''
+                }));
+
+                // Only check uniqueness if both names are filled
+                if (newFirstname && newLastname) {
+                    try {
+                        const response = await fetch('/api/check-name', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                firstname: newFirstname,
+                                lastname: newLastname,
+                                user_id: user.id // Include user_id for excluding current user
+                            })
+                        });
+                        const data = await response.json();
+                        
+                        if (!data.available) {
+                            setErrors(prev => ({
+                                ...prev,
+                                nameCombo: 'This name combination is already registered'
+                            }));
+                        }
+                    } catch (error) {
+                        console.error('Error checking name:', error);
+                    }
+                }
                 break;
 
             case 'email':
                 setFormData(prev => ({ ...prev, [name]: value }));
                 
-                // Email format validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[com]+$/;
+                // Comprehensive email validation regex
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                
+                if (!value) {
+                    setErrors(prev => ({
+                        ...prev,
+                        email: 'Email is required'
+                    }));
+                    return;
+                }
+
                 if (!emailRegex.test(value)) {
                     setErrors(prev => ({
                         ...prev,
-                        email: 'Invalid email format. Must contain @ and end with .com'
+                        email: 'Please enter a valid email address, must have @ and .com/.my/..'
                     }));
                     return;
                 }
@@ -191,121 +240,86 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                     return;
                 }
 
-                // Check email uniqueness
                 try {
-                    const response = await fetch('/api/check-email', {
-                        method: 'POST',
+                    const response = await axios.post('/api/check-email-availability', {
+                        email: value,
+                        user_id: user.id // Include user_id to exclude current user
+                    }, {
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        },
-                        body: JSON.stringify({ 
-                            email: value,
-                            user_id: user.id 
-                        })
+                        }
                     });
-                    const data = await response.json();
-                    if (!data.available) {
+                    
+                    if (!response.data.available) {
                         setErrors(prev => ({ ...prev, email: 'This email is already in use' }));
                     } else {
                         setErrors(prev => ({ ...prev, email: '' }));
                     }
                 } catch (error) {
                     console.error('Email check error:', error);
-                }
-                break;
-
-            case 'phone':
-                const numericValue = value.replace(/[^0-9]/g, '');
-                setFormData(prev => ({ ...prev, [name]: numericValue }));
-                
-                const phoneRegex = /^(?:0|60|\+60)?1(?:[0-46-9])(?:\d{7}|\d{8})$/;
-                if (!phoneRegex.test(numericValue)) {
                     setErrors(prev => ({ 
                         ...prev, 
-                        phone: 'Invalid Malaysian phone format (e.g., 0123456789)'
+                        email: 'Error checking email availability' 
                     }));
-                } else {
-                    setErrors(prev => ({ ...prev, phone: '' }));
                 }
                 break;
 
-            case 'ic_number':
-                const icValue = value.replace(/[^0-9]/g, '');
-                if (icValue.length <= 12) {
-                    setFormData(prev => ({ ...prev, [name]: icValue }));
+                case 'phone':
+                    // Allow only digits and + at the start
+                    const phoneValue = value.replace(/[^\d+]/g, '');
+                    setFormData(prev => ({ ...prev, [name]: phoneValue }));
                     
-                    if (icValue.length === 12) {
-                        // Skip uniqueness check if value is same as original
-                        if (icValue === user.ic_number) {
-                            setErrors(prev => ({ ...prev, ic_number: '' }));
-                            
-                            const birthDate = icValue.substring(0, 6);
-                            const gender = parseInt(icValue.charAt(11)) % 2 === 0 ? 'Female' : 'Male';
-                            
-                            // Calculate age
-                            const year = parseInt(birthDate.substring(0, 2));
-                            const month = parseInt(birthDate.substring(2, 4)) - 1;
-                            const day = parseInt(birthDate.substring(4, 6));
-                            const fullYear = year + (year > 50 ? 1900 : 2000);
-                            const birthDateTime = new Date(fullYear, month, day);
-                            const today = new Date();
-                            let age = today.getFullYear() - birthDateTime.getFullYear();
-                            
-                            setFormData(prev => ({
-                                ...prev,
-                                born_date: birthDateTime.toISOString().split('T')[0],
-                                gender: gender,
-                                age: age.toString()
-                            }));
-                            return;
-                        }
-
-                        // Check IC uniqueness
-                        try {
-                            const response = await fetch('/api/check-ic', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                                },
-                                body: JSON.stringify({ 
-                                    ic_number: icValue,
-                                    user_id: user.id 
-                                })
-                            });
-                            const data = await response.json();
-                            if (!data.available) {
-                                setErrors(prev => ({ ...prev, ic_number: 'This IC number is already registered' }));
-                            } else {
-                                setErrors(prev => ({ ...prev, ic_number: '' }));
-                                
-                                // Process IC number data only if unique
-                                const birthDate = icValue.substring(0, 6);
-                                const gender = parseInt(icValue.charAt(11)) % 2 === 0 ? 'Female' : 'Male';
-                                
-                                // Calculate age
-                                const year = parseInt(birthDate.substring(0, 2));
-                                const month = parseInt(birthDate.substring(2, 4)) - 1;
-                                const day = parseInt(birthDate.substring(4, 6));
-                                const fullYear = year + (year > 50 ? 1900 : 2000);
-                                const birthDateTime = new Date(fullYear, month, day);
-                                const today = new Date();
-                                let age = today.getFullYear() - birthDateTime.getFullYear();
-                                
-                                setFormData(prev => ({
-                                    ...prev,
-                                    born_date: birthDateTime.toISOString().split('T')[0],
-                                    gender: gender,
-                                    age: age.toString()
-                                }));
-                            }
-                        } catch (error) {
-                            console.error('IC check error:', error);
-                        }
-                    } else if (icValue.length > 0) {
-                        setErrors(prev => ({ ...prev, ic_number: 'IC number must be 12 digits' }));
+                    if (!validatePhone(phoneValue)) {
+                        setErrors(prev => ({
+                            ...prev,
+                            phone: 'Please enter a valid phone number'
+                        }));
+                    } else {
+                        setErrors(prev => ({ ...prev, phone: '' }));
                     }
+                    break;
+                
+
+            case 'ic_number':
+                // Only allow numbers and limit to 12 digits
+                const icValue = value.replace(/[^0-9]/g, '').slice(0, 12);
+                setFormData(prev => ({ ...prev, [name]: icValue }));
+                
+                // Validate format when length is 12
+                if (icValue.length === 12) {
+                    const icRegex = /^\d{12}$/;
+                    if (!icRegex.test(icValue)) {
+                        setErrors(prev => ({
+                            ...prev,
+                            ic_number: 'IC must contain exactly 12 numbers'
+                        }));
+                        return;
+                    }
+
+                    // Check uniqueness if format is valid
+                    try {
+                        const response = await axios.post('/api/check-ic-availability', {
+                            ic_number: icValue,
+                            user_id: user.id
+                        });
+
+                        if (!response.data.available) {
+                            setErrors(prev => ({
+                                ...prev,
+                                ic_number: 'This IC number is already registered'
+                            }));
+                        } else {
+                            setErrors(prev => ({ ...prev, ic_number: '' }));
+                        }
+                    } catch (error) {
+                        console.error('IC check error:', error);
+                    }
+                } else {
+                    setErrors(prev => ({
+                        ...prev,
+                        ic_number: 'IC must be 12 digits'
+                    }));
                 }
                 break;
 
@@ -576,88 +590,62 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
 
     const handleSave = async (e) => {
         e.preventDefault();
-
-        // Only validate fields that have changed
-        let hasErrors = false;
-
-        if (formData.email !== user.email) {
-            if (!validateEmail(formData.email)) hasErrors = true;
-        }
-
-        if (formData.phone !== user.phone) {
-            if (!validatePhone(formData.phone)) hasErrors = true;
-        }
-
-        if (
-            formData.firstname !== user.firstname ||
-            formData.lastname !== user.lastname
-        ) {
-            if (
-                formData.firstname.toLowerCase() ===
-                formData.lastname.toLowerCase()
-            ) {
-                setErrors((prev) => ({
-                    ...prev,
-                    firstname: "First name and last name cannot be the same",
-                    lastname: "First name and last name cannot be the same",
-                }));
-                hasErrors = true;
-            }
-            if (!(await validateName(formData.firstname, formData.lastname))) {
-                hasErrors = true;
-            }
-        }
-
-        if (hasErrors) return;
-
-        setIsSubmitting(true);
-        const formDataToSend = new FormData();
-
-        // Only append changed values and ensure proper formatting
-        Object.keys(formData).forEach((key) => {
-            // Skip empty password field
-            if (key === "password" && !formData[key]) return;
-
-            // Skip null/undefined values
-            if (formData[key] === null || formData[key] === undefined) return;
-
-            // Handle file separately
-            if (key === "profile_picture" && formData[key] instanceof File) {
-                formDataToSend.append("profile_picture", formData[key]);
-            } else {
-                // Convert non-string values to string
-                formDataToSend.append(key, String(formData[key]));
-            }
+        console.log('Save button clicked');
+        
+        // Log the exact user we're trying to update
+        console.log('Attempting to update user:', {
+            id: user.id,
+            name: user.firstname,
+            current_role: user.role
         });
 
         try {
-            const response = await axios.post(
-                `/api/users/${user.id}`,
-                formDataToSend,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                        "X-HTTP-Method-Override": "PUT",
-                        Accept: "application/json",
-                    },
-                }
-            );
+            setIsSubmitting(true);
+            const formDataToSend = new FormData();
 
-            if (response.data.success) {
-                onUpdate();
-                onClose();
+            // First, explicitly set the user ID
+            formDataToSend.append('id', user.id);
+
+            // Add changed fields
+            Object.keys(formData).forEach(key => {
+                // Only append if the value has changed
+                if (formData[key] !== user[key]) {
+                    if (key === 'profile_picture' && formData[key] instanceof File) {
+                        formDataToSend.append('profile_picture', formData[key]);
+                    } else if (formData[key] !== null && formData[key] !== undefined) {
+                        formDataToSend.append(key, formData[key]);
+                        console.log(`Appending changed field: ${key} = ${formData[key]}`);
+                    }
+                }
+            });
+
+            // Log the final form data being sent
+            for (let pair of formDataToSend.entries()) {
+                console.log('FormData entry:', pair[0], pair[1]);
+            }
+
+            const response = await axios.post(`/api/users/${user.id}`, formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-HTTP-Method-Override': 'PUT'
+                }
+            });
+
+            console.log('Response:', response.data);
+
+            if (response.status === 200) {
+                onUpdate(); // Refresh the user list
+                onClose(); // Close the modal
+                alert(`Successfully updated user ${user.firstname} (ID: ${user.id})`);
             }
         } catch (error) {
-            if (error.response?.data?.errors) {
-                // Handle validation errors from Laravel
-                setErrors(error.response.data.errors);
-            } else {
-                setErrors({
-                    submit:
-                        error.response?.data?.message ||
-                        "An error occurred while updating the user",
-                });
-            }
+            console.error('Update error:', {
+                userId: user.id,
+                error: error.response?.data || error.message
+            });
+            alert(`Error updating user ${user.firstname} (ID: ${user.id}). Please check console.`);
         } finally {
             setIsSubmitting(false);
         }
@@ -889,15 +877,20 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                             <label>Gender</label>
                             <select
                                 name="gender"
-                                value={formData.gender}
+                                value={formData.gender || ''}
                                 onChange={handleInputChange}
-                                disabled={formData.idType === "ic"}
-                                className="w-full"
+                                className={`w-full ${errors.gender ? 'border-red-500' : ''}`}
                             >
                                 <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
+                                {genderOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
                             </select>
+                            {errors.gender && (
+                                <span className="text-red-500 text-sm">{errors.gender}</span>
+                            )}
                         </div>
 
                         <div className="form-group">
@@ -1094,10 +1087,12 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                                 Cancel
                             </button>
                             <button
-                                type="submit"
-                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                type="button"
+                                onClick={handleSave}
+                                disabled={isSubmitting}
+                                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
                             >
-                                Save Changes
+                                {isSubmitting ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </form>

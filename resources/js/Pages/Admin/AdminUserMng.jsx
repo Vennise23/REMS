@@ -5,6 +5,7 @@ import AdminLayout from "@/Layouts/Admin/AdminLayout";
 import AdminSidebar from "@/Layouts/Admin/AdminSidebar";
 import EditUserModal from './EditUserModal';
 import debounce from 'lodash/debounce';
+import { toast } from 'react-hot-toast';
 
 export default function AdminUserMng({ auth, user }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -28,6 +29,7 @@ export default function AdminUserMng({ auth, user }) {
         password: "",
         password_confirmation: "",
         profile_picture: null,
+        gender: "",
     });
     const [profilePreview, setProfilePreview] = useState(null);
     const [showAddUserForm, setShowAddUserForm] = useState(false);
@@ -102,15 +104,100 @@ export default function AdminUserMng({ auth, user }) {
         }
     };
 
-    // Add Malaysian phone validation function
-    const validateMalaysianPhone = (phone) => {
+    const checkIcUniqueness = async (ic_number) => {
+        try {
+            const response = await axios.post('/api/check-ic-availability', { ic_number });
+            if (!response.data.available) {
+                setErrors(prev => ({
+                    ...prev,
+                    ic_number: "This IC number is already registered with another account"
+                }));
+                return false;
+            }
+            // Clear IC error if it's available
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors.ic_number;
+                return newErrors;
+            });
+            return true;
+        } catch (error) {
+            console.error('Error checking IC:', error);
+            return false;
+        }
+    };
+
+    const validatePhone = (phone) => {
         // Remove any non-digits
         const cleanPhone = phone.replace(/\D/g, '');
         
         // Malaysian phone format: 01xxxxxxxx (10-11 digits)
-        const phoneRegex = /^01\d{8,9}$/;
+        const myPhoneRegex = /^0[1][0-9]{8,9}$/;  // Starts with 01, followed by 8-9 digits
         
-        return phoneRegex.test(cleanPhone);
+        // International format (if starts with '+')
+        const intlPhoneRegex = /^\+(\d{1,3})(\d{4,14})$/;
+        
+        // If starts with '+', use international format, otherwise use Malaysian format
+        if (phone.startsWith('+')) {
+            return intlPhoneRegex.test(phone);
+        }
+        
+        return myPhoneRegex.test(cleanPhone);
+    };
+
+    // Add this helper function near the top of your component
+    const formatDateString = (dateStr) => {
+        if (!dateStr) return '';
+        
+        // Remove any trailing dashes and clean up the string
+        dateStr = dateStr.replace(/-+$/, '');
+        
+        // Handle "NaN" case
+        if (dateStr === 'NaN') return '';
+
+        try {
+            // Split the date string
+            let parts = dateStr.split('-');
+            
+            // Pad year to 4 digits if necessary
+            if (parts[0] && parts[0].length <= 2) {
+                // If year is 2 digits, assume 20XX for years less than current year, 19XX otherwise
+                const currentYear = new Date().getFullYear();
+                const currentCentury = Math.floor(currentYear / 100) * 100;
+                const yearNum = parseInt(parts[0]);
+                parts[0] = (yearNum + currentCentury).toString();
+                if (parseInt(parts[0]) > currentYear) {
+                    parts[0] = (yearNum + (currentCentury - 100)).toString();
+                }
+            }
+            
+            // Ensure month and day are padded with zeros
+            if (parts[1]) {
+                parts[1] = parts[1].padStart(2, '0');
+            } else {
+                parts[1] = '01';
+            }
+            
+            if (parts[2]) {
+                parts[2] = parts[2].padStart(2, '0');
+            } else {
+                parts[2] = '01';
+            }
+            
+            // Join parts back together
+            const formattedDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
+            
+            // Validate the date
+            const date = new Date(formattedDate);
+            if (isNaN(date.getTime())) {
+                return '';
+            }
+            
+            return formattedDate;
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return '';
+        }
     };
 
     const handleInputChange = async (e) => {
@@ -163,52 +250,77 @@ export default function AdminUserMng({ auth, user }) {
 
             case 'email':
                 setNewUser(prev => ({ ...prev, email: value }));
-                // Email validation
-                if (!value.includes('@') || !value.toLowerCase().endsWith('.com')) {
+                // Enhanced email validation
+                const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                
+                if (!value) {
                     setErrors(prev => ({
                         ...prev,
-                        email: "Email must contain '@' and end with '.com'"
+                        email: "Email is required"
+                    }));
+                } else if (!emailRegex.test(value)) {
+                    setErrors(prev => ({
+                        ...prev,
+                        email: "Please enter a valid email address, must have @ and .com/.my/..."
                     }));
                 } else {
+                    // Only check uniqueness if the email format is valid
                     await checkEmailUniqueness(value);
                 }
                 break;
 
-            case 'phone':
-                // Only allow numbers
-                const phoneNumbers = value.replace(/\D/g, '');
-                setNewUser(prev => ({ ...prev, phone: phoneNumbers }));
+                case 'phone':
+                    // Only allow numbers
+                    let phoneValue = value.replace(/\D/g, '');
+                    
+                    // If it starts with '+', keep the '+'
+                    if (value.startsWith('+')) {
+                        phoneValue = '+' + phoneValue;
+                    }
+                    
+                    setNewUser(prev => ({ ...prev, phone: phoneValue }));
+                    
+                    if (phoneValue.length > 0 && !validatePhone(phoneValue)) {
+                        setErrors(prev => ({
+                            ...prev,
+                            phone: "Please enter a valid phone number"
+                        }));
+                    } else {
+                        setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.phone;
+                            return newErrors;
+                        });
+                    }
+                    break;
                 
-                // Validate Malaysian phone format
-                if (phoneNumbers.length > 0 && !validateMalaysianPhone(phoneNumbers)) {
-                    setErrors(prev => ({
-                        ...prev,
-                        phone: "Please enter a valid Malaysian phone number (e.g., 0123456789)"
-                    }));
-                } else {
-                    setErrors(prev => {
-                        const newErrors = { ...prev };
-                        delete newErrors.phone;
-                        return newErrors;
-                    });
-                }
-                break;
 
             case 'ic_number':
                 // Only allow numbers
                 const numbersOnly = value.replace(/\D/g, '');
                 setNewUser(prev => ({ ...prev, ic_number: numbersOnly }));
 
-                console.log("IC Number Input:", numbersOnly); // Debugging log
+                // Only check uniqueness if we have all 12 digits
+                if (numbersOnly.length === 12) {
+                    // Validate IC number format first
+                    const icRegex = /^\d{12}$/;
+                    if (!icRegex.test(numbersOnly)) {
+                        setErrors(prev => ({
+                            ...prev,
+                            ic_number: "Please enter a valid IC number format (YYMMDDPBXXXX)"
+                        }));
+                        return;
+                    }
 
-                // Validate IC number format
-                const icRegex = /^\d{12}$/; // Check for exactly 12 digits
-                if (!icRegex.test(numbersOnly)) {
-                    setErrors(prev => ({
-                        ...prev,
-                        ic_number: "Please enter a valid IC number format (YYMMDDPBXXXX)"
-                    }));
-                    return;
+                    // Check IC uniqueness immediately when we have 12 digits
+                    const isUnique = await checkIcUniqueness(numbersOnly);
+                    if (!isUnique) {
+                        setErrors(prev => ({
+                            ...prev,
+                            ic_number: "This IC number is already registered with another account"
+                        }));
+                        return;
+                    }
                 }
 
                 // Extract date components
@@ -292,8 +404,8 @@ export default function AdminUserMng({ auth, user }) {
                 }
                 break;
 
-            case 'confirm_password':
-                setNewUser(prev => ({ ...prev, confirm_password: value }));
+            case 'password_confirmation':
+                setNewUser(prev => ({ ...prev, password_confirmation: value }));
                 // Check if passwords match
                 if (value !== newUser.password) {
                     setErrors(prev => ({
@@ -307,6 +419,14 @@ export default function AdminUserMng({ auth, user }) {
                         return newErrors;
                     });
                 }
+                break;
+
+            case 'born_date':
+                const formattedDate = formatDateString(value);
+                setNewUser(prev => ({
+                    ...prev,
+                    born_date: formattedDate
+                }));
                 break;
 
             default:
@@ -341,8 +461,8 @@ export default function AdminUserMng({ auth, user }) {
         // Email validation
         if (!newUser.email) {
             newErrors.email = 'Email is required';
-        } else if (!newUser.email.includes('@') || !newUser.email.endsWith('.com')) {
-            newErrors.email = 'Email must contain @ and end with .com';
+        } else if (!newUser.email.includes('@')) {
+            newErrors.email = 'Email must contain @';
         }
 
         // Phone validation
@@ -357,7 +477,7 @@ export default function AdminUserMng({ auth, user }) {
         if (!newUser.ic_number) {
             newErrors.ic_number = 'IC number is required';
         } else {
-            const icRegex = /^\d{6}-\d{2}-\d{4}$/;
+            const icRegex = /^\d{12}$/;
             if (!icRegex.test(newUser.ic_number)) {
                 newErrors.ic_number = 'Please enter a valid IC number format (YYMMDDPBXXXX)';
             }
@@ -397,6 +517,11 @@ export default function AdminUserMng({ auth, user }) {
             newErrors.postal_code = 'Postal Code must be 5 digits';
         }
 
+        // Add gender validation
+        if (!newUser.gender && documentType !== 'ic') {
+            newErrors.gender = "Gender is required";
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -404,71 +529,46 @@ export default function AdminUserMng({ auth, user }) {
     const handleAddUser = async (e) => {
         e.preventDefault();
         
-        // First run the client-side validation
-        if (!validateForm()) {
-            return;
-        }
-
         try {
             setIsSubmitting(true);
-            
-            // Check name availability before submission
-            const nameResponse = await axios.post('/api/check-name-availability', {
-                firstname: newUser.firstname,
-                lastname: newUser.lastname
-            });
+            console.log('Starting user creation process...');
 
-            if (!nameResponse.data.available) {
-                setErrors(prev => ({
-                    ...prev,
-                    name: "This name combination is already registered"
-                }));
-                setIsSubmitting(false);
-                return;
-            }
-
-            // Check email availability before submission
-            const emailResponse = await axios.post('/api/check-email-availability', {
-                email: newUser.email
-            });
-
-            if (!emailResponse.data.available) {
-                setErrors(prev => ({
-                    ...prev,
-                    email: "This email is already registered"
-                }));
-                setIsSubmitting(false);
-                return;
-            }
-
-            const formData = new FormData();
-            Object.keys(newUser).forEach((key) => {
-                if (newUser[key] !== null && newUser[key] !== undefined && newUser[key] !== '') {
-                    formData.append(key, newUser[key]);
-                }
-            });
-
-            if (newUser.profile_picture) {
-                formData.append('profile_picture', newUser.profile_picture);
-            }
-
+            // Create user first
             const response = await axios.post("/users", formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             });
 
-            setUsers([...users, response.data.user]);
+            // Log the response
+            console.log('User creation response:', response.data);
+
+            // Send welcome email
+            console.log('Attempting to send welcome email...');
+            const emailData = {
+                email: formData.get('email'),
+                firstname: formData.get('firstname'),
+                lastname: formData.get('lastname'),
+                password: formData.get('password'),
+                resetLink: `${window.location.origin}/reset-password`
+            };
+
+            console.log('Email data being sent:', emailData);
+
+            const emailResponse = await axios.post('/api/send-welcome-email', emailData);
+            console.log('Email response:', emailResponse.data);
+
+            if (emailResponse.data.message) {
+                alert('User created successfully and welcome email has been sent!');
+            }
+
+            await fetchUsers();
             resetForm();
             setShowAddUserForm(false);
-            alert('User added successfully!');
 
         } catch (error) {
-            if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
-            } else {
-                alert(error.response?.data?.message || 'An error occurred while adding the user.');
-            }
+            console.error('Error:', error.response?.data || error.message);
+            alert(error.response?.data?.message || 'An error occurred');
         } finally {
             setIsSubmitting(false);
         }
@@ -689,8 +789,10 @@ export default function AdminUserMng({ auth, user }) {
             password: "",
             password_confirmation: "",
             profile_picture: null,
+            gender: "",
         });
         setProfilePreview(null);
+        setErrors({}); // Clear any existing errors
     };
 
     const handleCancelAddUser = () => {
@@ -779,107 +881,68 @@ export default function AdminUserMng({ auth, user }) {
         }
     };
 
-   
-
     // Update form submission handler
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Validate all required fields
-        const newErrors = {};
-
-        // Check required fields
-        if (!newUser.firstname) newErrors.firstname = "First name is required";
-        if (!newUser.lastname) newErrors.lastname = "Last name is required";
-        if (!newUser.email) newErrors.email = "Email is required";
-        if (!newUser.phone) newErrors.phone = "Phone number is required";
-        if (!newUser.ic_number) newErrors.ic_number = "IC number is required";
-        if (!newUser.address_line_1) newErrors.address_line_1 = "Address is required";
-        if (!newUser.city) newErrors.city = "City is required";
-        if (!newUser.postal_code) newErrors.postal_code = "Postal code is required";
         
-        // Password validation
-        if (!newUser.password) {
-            newErrors.password = "Password is required";
-        } else if (newUser.password.length < 8) {
-            newErrors.password = "Password must be at least 8 characters long";
-        }
-
-        // Confirm password validation
-        if (!newUser.confirm_password) {
-            newErrors.confirm_password = "Please confirm your password";
-        } else if (newUser.password !== newUser.confirm_password) {
-            newErrors.confirm_password = "Passwords do not match";
-        }
-
-        // If there are errors, display them and stop submission
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
-
         try {
-            // Create FormData object to handle file upload
-            const formData = new FormData();
+            setIsSubmitting(true);
             
-            // Append all user data to FormData
-            Object.keys(newUser).forEach(key => {
-                if (key === 'profile_picture' && newUser[key]) {
-                    formData.append('profile_picture', newUser[key]);
-                } else if (newUser[key]) {
-                    formData.append(key, newUser[key]);
-                }
-            });
-
-            // Submit the form data
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('firstname', newUser.firstname);
+            formData.append('lastname', newUser.lastname);
+            formData.append('email', newUser.email);
+            formData.append('phone', newUser.phone);
+            formData.append('password', newUser.password);
+            formData.append('password_confirmation', newUser.password_confirmation);
+            formData.append('ic_number', newUser.ic_number);
+            formData.append('age', newUser.age);
+            formData.append('born_date', newUser.born_date);
+            formData.append('gender', newUser.gender);
+            formData.append('address_line_1', newUser.address_line_1);
+            formData.append('address_line_2', newUser.address_line_2 || '');
+            formData.append('city', newUser.city);
+            formData.append('postal_code', newUser.postal_code);
+            formData.append('role', newUser.role || 'user');
+            
+            if (newUser.profile_picture) {
+                formData.append('profile_picture', newUser.profile_picture);
+            }
+    
+            // Send request
             const response = await axios.post('/api/users', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
-                    'Accept': 'application/json'
                 }
             });
-            
+    
+            console.log('Response:', response.data); // Add this for debugging
+    
             if (response.data.success) {
-                // Clear form and show success message
-                setNewUser({
-                    firstname: '',
-                    lastname: '',
-                    email: '',
-                    phone: '',
-                    ic_number: '',
-                    passport: '',
-                    address_line_1: '',
-                    address_line_2: '',
-                    city: '',
-                    postal_code: '',
-                    password: '',
-                    confirm_password: '',
-                    gender: '',
-                    age: '',
-                    born_date: '',
-                    profile_picture: null
-                });
-                setErrors({});
-                alert('User added successfully!');
-            }
-        } catch (error) {
-            console.error('Error adding user:', error);
-            if (error.response) {
-                // Handle specific error messages from the server
-                if (error.response.data.errors) {
-                    setErrors(error.response.data.errors);
-                } else {
-                    setErrors(prev => ({
-                        ...prev,
-                        submit: error.response.data.message || "Error adding user. Please try again."
-                    }));
-                }
+                // Show success toast
+                toast.success(response.data.message || 'User created successfully');
+                
+                // Reset form and refresh user list
+                resetForm();
+                setShowAddUserForm(false); // Close the form
+                await fetchUsers();
             } else {
-                setErrors(prev => ({
-                    ...prev,
-                    submit: "Network error. Please try again."
-                }));
+                // Show error toast if success is false
+                toast.error(response.data.message || 'Failed to create user');
             }
+    
+        } catch (error) {
+            console.error('Error details:', error.response?.data);
+            
+            // Show detailed error message
+            const errorMessage = error.response?.data?.message 
+                || error.response?.data?.error 
+                || 'An error occurred while creating the user';
+            toast.error(errorMessage);
+            
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -965,7 +1028,7 @@ export default function AdminUserMng({ auth, user }) {
                                             value={newUser.phone} 
                                             onChange={handleInputChange}
                                             placeholder="Phone Number (e.g., 0123456789)"
-                                            maxLength="11"
+                                            maxLength="15"
                                             className={`w-full p-2 border rounded ${
                                                 errors.phone ? 'border-red-500' : 'border-gray-300'
                                             }`}
@@ -1101,46 +1164,29 @@ export default function AdminUserMng({ auth, user }) {
                                         </select>
                                     </div>
 
-                                    <div className="form-group">
+                                    <div className="form-group relative">
                                         <input 
                                             type="text" 
                                             name="address_line_1"
                                             placeholder="Address Line 1*"
-                                            value={
-                                                newUser.address_line_1
-                                            }
+                                            value={newUser.address_line_1}
                                             onChange={handleAddressChange}
                                             required
                                             className="p-2 border rounded-md w-full"
                                         />
-                                        {/* Display address suggestions */}
                                         {suggestions.length > 0 && (
-                                            <ul className="suggestions-list absolute bg-white border border-gray-300 w-full max-h-40 overflow-auto z-10">
-                                                {suggestions.map(
-                                                    (suggestion, index) => (
-                                                        <li
-                                                            key={index}
-                                                            onClick={() =>
-                                                                onAddressSelect(
-                                                                    suggestion
-                                                                )
-                                                            }
-                                                            className="p-2 hover:bg-gray-200 cursor-pointer"
-                                                        >
-                                                            <div className="font-bold">
-                                                                {suggestion.description ||
-                                                                    "Unknown Address"}
-                                                            </div>
-                                                            {/* <div className="text-sm text-gray-500">
-                                                                {suggestion.city ||
-                                                                    "Unknown City"}{" "}
-                                                                ,{" "}
-                                                                {suggestion.country ||
-                                                                    "Unknown Region"}
-                                                            </div> */}
-                                                        </li>
-                                                    )
-                                                )}
+                                            <ul className="suggestions-list absolute left-0 right-0 top-full mt-1 bg-white border border-gray-300 rounded-md max-h-40 overflow-auto z-50">
+                                                {suggestions.map((suggestion, index) => (
+                                                    <li
+                                                        key={index}
+                                                        onClick={() => onAddressSelect(suggestion)}
+                                                        className="p-2 hover:bg-gray-200 cursor-pointer"
+                                                    >
+                                                        <div className="font-bold">
+                                                            {suggestion.description || "Unknown Address"}
+                                                        </div>
+                                                    </li>
+                                                ))}
                                             </ul>
                                         )}
                                     </div>
@@ -1195,6 +1241,7 @@ export default function AdminUserMng({ auth, user }) {
 
                                     <div className="form-group">
                                         <select
+                                            name="role"
                                             value={newUser.role}
                                             onChange={(e) => {
                                                 setNewUser({ ...newUser, role: e.target.value });
@@ -1203,6 +1250,7 @@ export default function AdminUserMng({ auth, user }) {
                                             className={`w-full p-2 border rounded ${errors.role ? 'border-red-500' : 'border-gray-300'}`}
                                             required
                                         >
+                                            <option value="">Role</option>
                                             <option value="user">User</option>
                                             <option value="admin">Admin</option>
                                         </select>
@@ -1229,16 +1277,16 @@ export default function AdminUserMng({ auth, user }) {
                                         <div className="form-group">
                                             <input 
                                                 type="password" 
-                                                name="confirm_password"
-                                                value={newUser.confirm_password}
+                                                name="password_confirmation"
+                                                value={newUser.password_confirmation || ""}
                                                 onChange={handleInputChange}
                                                 placeholder="Confirm Password*"
                                                 className={`w-full p-2 border rounded ${
-                                                    errors.confirm_password ? 'border-red-500' : 'border-gray-300'
+                                                    errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
                                                 }`}
                                             />
-                                            {errors.confirm_password && (
-                                                <span className="text-red-500 text-sm">{errors.confirm_password}</span>
+                                            {errors.password_confirmation && (
+                                                <span className="text-red-500 text-sm">{errors.password_confirmation}</span>
                                             )}
                                         </div>
                                     </div>
@@ -1306,7 +1354,7 @@ export default function AdminUserMng({ auth, user }) {
                                         <td className="px-4 py-2 flex items-center">
                                             {user.profile_picture ? (
                                                 <img 
-                                                    src={user.profile_picture ? `/storage/profile_pictures/${user.profile_picture}` : null} 
+                                                    src={user.profile_picture ? `/storage/${user.profile_picture}` : null} 
                                                     alt={`${user.firstname}'s profile`} 
                                                     className="w-10 h-10 object-cover rounded-full mr-2"
                                                     onError={(e) => {

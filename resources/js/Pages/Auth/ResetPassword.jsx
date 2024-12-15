@@ -1,31 +1,195 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
+import axios from 'axios';
+
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;
 
 export default function ResetPassword({ token, email }) {
+    const [tokenValid, setTokenValid] = useState(true);
+    const [tokenExpired, setTokenExpired] = useState(false);
+    const [tokenUsed, setTokenUsed] = useState(false);
+    const [resetSuccess, setResetSuccess] = useState(false);
+    const [isTokenValid, setIsTokenValid] = useState(true);
+    const [error, setError] = useState(null);
+    const [passwordError, setPasswordError] = useState('');
+    const [confirmPasswordError, setConfirmPasswordError] = useState('');
+
     const { data, setData, post, processing, errors, reset } = useForm({
-        token: token,
-        email: email,
+        token: token || '',
+        email: email || '',
         password: '',
         password_confirmation: '',
     });
 
-    useEffect(() => {
-        return () => {
-            reset('password', 'password_confirmation');
+    const validatePassword = (password) => {
+        const minLength = 8;
+        
+        return {
+            isValid: password.length >= minLength,
+            message: password.length >= minLength ? 
+                '' : 'Password must be at least 8 characters'
         };
-    }, []);
-
-    const submit = (e) => {
-        e.preventDefault();
-
-        post(route('password.store'));
     };
 
+    const validateToken = async (token) => {
+        try {
+            const response = await axios.post('/api/validate-reset-token', {
+                token: token
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Token validation error:', error);
+            throw error;
+        }
+    };
+
+    useEffect(() => {
+        const validateResetToken = async () => {
+            try {
+                const result = await validateToken(token);
+                if (result.valid) {
+                    // Token is valid
+                    setIsTokenValid(true);
+                } else {
+                    // Token is invalid
+                    setIsTokenValid(false);
+                    setError(result.message);
+                }
+            } catch (error) {
+                setIsTokenValid(false);
+                setError(error.response?.data?.message || 'Error validating token');
+            }
+        };
+
+        if (token) {
+            validateResetToken();
+        }
+    }, [token]);
+
+    const validateConfirmPassword = (password, confirmPassword) => {
+        if (!confirmPassword) {
+            setConfirmPasswordError('Please confirm your password');
+            return false;
+        }
+        
+        if (password !== confirmPassword) {
+            setConfirmPasswordError('Passwords do not match');
+            return false;
+        }
+        
+        setConfirmPasswordError('');
+        return true;
+    };
+
+    const submit = async (e) => {
+        e.preventDefault();
+
+        // Password validation
+        const passwordValidation = validatePassword(data.password);
+        if (!passwordValidation.isValid) {
+            setData('errors', {
+                ...errors,
+                password: passwordValidation.message
+            });
+            return;
+        }
+
+        // Confirm Password validation
+        if (!validateConfirmPassword(data.password, data.password_confirmation)) {
+            return;
+        }
+
+        try {
+            const response = await axios.post('/api/reset-password', {
+                token: data.token,
+                email: data.email,
+                password: data.password,
+                password_confirmation: data.password_confirmation
+            });
+
+            if (response.data.success) {
+                setResetSuccess(true);
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            }
+        } catch (error) {
+            handleError(error);
+        }
+    };
+
+    const handleError = (error) => {
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            setError(error.response.data.message || 'An error occurred');
+        } else if (error.request) {
+            // The request was made but no response was received
+            setError('No response received from server');
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            setError('Error setting up the request');
+        }
+    };
+
+    const handlePasswordChange = (e) => {
+        const newPassword = e.target.value;
+        setData('password', newPassword);
+        
+        // Real-time validation
+        const validation = validatePassword(newPassword);
+        setPasswordError(validation.message);
+    };
+
+    const handleConfirmPasswordChange = (e) => {
+        const confirmPassword = e.target.value;
+        setData('password_confirmation', confirmPassword);
+        validateConfirmPassword(data.password, confirmPassword);
+    };
+
+    if (!isTokenValid) {
+        return (
+            <GuestLayout>
+                <Head title="Invalid Token" />
+                <div className="text-center">
+                    <h2 className="text-xl font-bold text-red-600">
+                        {tokenExpired ? "Token has expired" : 
+                         tokenUsed ? "Token has already been used" : 
+                         "Invalid token"}
+                    </h2>
+                    <p className="mt-4">
+                        Please request a new password reset link.
+                    </p>
+                    <a href="/forgot-password" className="mt-4 text-blue-600 hover:underline">
+                        Request New Reset Link
+                    </a>
+                </div>
+            </GuestLayout>
+        );
+    }
+
+    if (resetSuccess) {
+        return (
+            <GuestLayout>
+                <Head title="Password Reset Successful" />
+                <div className="text-center">
+                    <h2 className="text-xl font-bold text-green-600">
+                        Password Reset Successful
+                    </h2>
+                    <p className="mt-4">
+                        Redirecting to login page...
+                    </p>
+                </div>
+            </GuestLayout>
+        );
+    }
+
+    // Original form JSX remains the same
     return (
         <GuestLayout>
             <Head title="Reset Password" />
@@ -58,10 +222,10 @@ export default function ResetPassword({ token, email }) {
                         className="mt-1 block w-full"
                         autoComplete="new-password"
                         isFocused={true}
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={handlePasswordChange}
                     />
 
-                    <InputError message={errors.password} className="mt-2" />
+                    {passwordError && <InputError message={passwordError} className="mt-2" />}
                 </div>
 
                 <div className="mt-4">
@@ -73,10 +237,10 @@ export default function ResetPassword({ token, email }) {
                         value={data.password_confirmation}
                         className="mt-1 block w-full"
                         autoComplete="new-password"
-                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                        onChange={handleConfirmPasswordChange}
                     />
 
-                    <InputError message={errors.password_confirmation} className="mt-2" />
+                    <InputError message={confirmPasswordError || errors.password_confirmation} className="mt-2" />
                 </div>
 
                 <div className="flex items-center justify-end mt-4">

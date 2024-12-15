@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm, Head } from "@inertiajs/react";
+import { useForm, Head, usePage } from "@inertiajs/react";
 import Header from "@/layouts/HeaderMenu";
 import UserSidebar from "@/Components/UserSidebar";
 import axios from "axios";
@@ -7,6 +7,8 @@ import { debounce } from "lodash";
 
 
 export default function Profile({ auth, user }) {
+    const { csrf_token } = usePage().props;
+
     const originalEmail = user.email; // Define the original email here
     const { data, setData, processing, errors, setError, clearErrors, post } =
         useForm({
@@ -34,35 +36,7 @@ export default function Profile({ auth, user }) {
     const [suggestions, setSuggestions] = useState([]);
     const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
 
-    const validateFields = (field, value) => {
-        let errors = { ...formErrors };
-
-        if (field === "firstname" || field === "lastname") {
-            if (data.firstname === data.lastname) {
-                errors["nameMatch"] =
-                    "First name and last name cannot be the same.";
-            } else {
-                delete errors["nameMatch"];
-            }
-        }
-
-        if (field === "age") {
-            const age = parseInt(value);
-            if (age < 1 || age > 100) {
-                errors["age"] = "Age must be between 1 and 100.";
-            } else {
-                delete errors["age"];
-            }
-        }
-
-        if (field === "phone" && /\D/.test(value)) {
-            errors["phone"] = "Phone number can only contain digits.";
-        } else {
-            delete errors["phone"];
-        }
-
-        setFormErrors(errors);
-    };
+    
 
     const validateIC = (value) => {
         if (!/^\d{12}$/.test(value)) {
@@ -252,25 +226,23 @@ export default function Profile({ auth, user }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Basic validations
-        if (!data.firstname || !data.lastname) {
-            alert("Please fill in both first name and last name");
-            return;
-        }
-
-        if (!data.email) {
-            alert("Please provide an email address");
-            return;
+        // Validate email before submission
+        const emailError = validateEmail(data.email);
+        if (emailError) {
+            setError("email", emailError);
+            alert('Please fix the email format before submitting.');
+            return; // Prevent form submission
         }
 
         // Create FormData object
         const formData = new FormData();
         
+        // Add method spoofing for Laravel
+        formData.append('_method', 'PUT');
+        
         // Add all form fields to FormData
         Object.keys(data).forEach(key => {
-            // Skip null or undefined values
             if (data[key] != null) {
-                // Special handling for profile picture
                 if (key === 'profile_picture' && data[key] instanceof File) {
                     formData.append(key, data[key]);
                 } else {
@@ -279,26 +251,24 @@ export default function Profile({ auth, user }) {
             }
         });
 
-        // Submit using Inertia
-        post(route('profile.update'), formData, {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                alert('Profile updated successfully!');
-            },
-            onError: (errors) => {
-                console.error('Form submission errors:', errors);
-                // Display specific error messages
-                if (errors.email) {
-                    setEmailError(errors.email);
-                }
-                if (errors.ic_number) {
-                    setIcError(errors.ic_number);
-                }
-                // Show general error message
-                alert(Object.values(errors).flat()[0] || 'An error occurred while saving your profile');
-            },
-        });
+        try {
+            // Submit using Inertia
+            post(route('profile.update'), formData, {
+                forceFormData: true,
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    alert('Profile updated successfully!');
+                },
+                onError: (errors) => {
+                    console.error('Form submission errors:', errors);
+                    alert(Object.values(errors).flat()[0] || 'An error occurred while saving your profile');
+                },
+            });
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('An error occurred while saving your profile');
+        }
     };
 
     const userImage = data.profile_picture
@@ -315,23 +285,39 @@ export default function Profile({ auth, user }) {
     };
 
     const validateEmail = (email) => {
+        // Basic email format check
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return "Please enter a valid email address";
         }
-        if (!email.toLowerCase().endsWith(".com")) {
-            return "Email must end with .com";
+        
+        // Check for valid domain extensions (.com, .my, etc.)
+        const domainExtensionRegex = /\.[a-z]{2,}$/i;
+        if (!domainExtensionRegex.test(email)) {
+            return "Email must end with a valid domain (e.g., .com, .my)";
         }
+        
         return null;
     };
 
     const validatePhone = (phone) => {
-        // Adjust regex based on your country's phone format
-        const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
-        if (!phoneRegex.test(phone)) {
-            return "Please enter a valid phone number format";
+        // Remove all spaces and special characters for validation
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+
+        // Malaysian phone number patterns:
+        // 1. Starting with 0: 01xxxxxxxx (10-11 digits total)
+        // 2. Starting with +60: +60xxxxxxxxx (11-12 digits total)
+        const malaysianPattern = /^(?:0|(\+?60))(?:1[0-46-9]\d{7,8}|[3-9]\d{7})$/;
+
+        // International phone number pattern (for other countries)
+        const internationalPattern = /^\+(?:[0-9] ?){6,14}[0-9]$/;
+
+        if (malaysianPattern.test(cleanPhone)) {
+            return null; // Valid Malaysian number
+        } else if (internationalPattern.test(cleanPhone)) {
+            return null; // Valid international number
         }
-        return null;
+        return "Please enter a valid phone number";
     };
 
     const handleNameChange = (field, value) => {
@@ -359,20 +345,30 @@ export default function Profile({ auth, user }) {
         setData("email", value);
 
         // Clear existing email error
-        if (errors.email) {
-            clearErrors("email");
-        }
+        clearErrors("email");
 
-        const emailError = validateEmail(value);
-        if (emailError) {
-            setError("email", emailError);
+        if (value) {
+            const emailError = validateEmail(value);
+            if (emailError) {
+                setError("email", emailError);
+            } else if (value !== originalEmail) {
+                // Only check uniqueness if email is valid and different from original
+                checkEmailUniqueness(value);
+            }
         } else {
-            checkEmailUniqueness(value);
+            setError("email", "Email is required");
         }
     };
 
     const handlePhoneChange = (e) => {
-        const value = e.target.value.replace(/\D/g, "");
+        let value = e.target.value;
+
+        // Allow digits, +, spaces, hyphens
+        value = value.replace(/[^\d\+\-\s]/g, "");
+
+        // Format the value
+        value = formatPhoneNumber(value);
+
         setData("phone", value);
 
         // Clear existing phone error
@@ -384,6 +380,40 @@ export default function Profile({ auth, user }) {
         if (phoneError) {
             setError("phone", phoneError);
         }
+    };
+
+    const formatPhoneNumber = (value) => {
+        // Remove all non-digit characters except + 
+        let digits = value.replace(/[^\d+]/g, "");
+
+        // Handle Malaysian numbers
+        if (digits.startsWith('0')) {
+            // Convert 01x format to +601x format
+            digits = '+6' + digits;
+        } else if (!digits.startsWith('+')) {
+            // If no + or 0 prefix, assume it's a Malaysian number without prefix
+            digits = '+60' + digits;
+        }
+
+        // Format based on country code
+        if (digits.startsWith('+60')) {
+            // Malaysian format: +60 12-3456789
+            if (digits.length >= 12) {
+                return digits.slice(0, 3) + " " + 
+                       digits.slice(3, 5) + "-" + 
+                       digits.slice(5);
+            }
+        } else {
+            // Simple international format: +XX XXX-XXXXXXX
+            if (digits.length >= 8) {
+                const countryCode = digits.slice(0, 3);
+                const areaCode = digits.slice(3, 6);
+                const number = digits.slice(6);
+                return `${countryCode} ${areaCode}-${number}`;
+            }
+        }
+
+        return digits; // Return unformatted if no specific format matches
     };
 
     const handleAddressChange = (e) => {
@@ -629,7 +659,9 @@ export default function Profile({ auth, user }) {
                             <form
                                 onSubmit={handleSubmit}
                                 encType="multipart/form-data"
+                                className="space-y-6"
                             >
+                                <input type="hidden" name="_token" value={csrf_token} />
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="mb-4">
                                         <label className="block text-gray-700">
@@ -637,7 +669,7 @@ export default function Profile({ auth, user }) {
                                         </label>
                                         <input
                                             type="text"
-                                            className="mt-1 block w-full border rounded p-2"
+                                            className={`mt-1 block w-full border rounded p-2 ${errors.nameMatch ? 'border-red-500' : ''}`}
                                             value={data.firstname}
                                             onChange={(e) =>
                                                 handleNameChange(
@@ -779,7 +811,6 @@ export default function Profile({ auth, user }) {
                                         </label>
                                         <input
                                             type="text"
-                                            inputMode="numeric"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.phone}
                                             onChange={handlePhoneChange}

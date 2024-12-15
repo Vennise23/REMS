@@ -89,6 +89,7 @@ class AdminController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:10',
             'role' => 'nullable|string|max:255',
+            'gender' => 'nullable|string|in:male,female,other',
             'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -105,6 +106,7 @@ class AdminController extends Controller
             'city' => $request->city,
             'postal_code' => $request->postal_code,
             'role' => $request->role ?? $user->role,
+            'gender' => $request->gender,
         ]);
 
         // Handle profile picture update
