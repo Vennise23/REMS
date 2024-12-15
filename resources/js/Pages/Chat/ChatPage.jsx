@@ -20,17 +20,27 @@ export default function ChatPage({ auth, chatRoom }) {
 
     useEffect(() => {
         if (chatRoom?.id) {
-            loadMessages();
-            markMessagesAsRead();
+            const loadAndMarkMessages = async () => {
+                try {
+                    // 先加载消息
+                    await loadMessages();
+                    // 然后立即标记为已读
+                    await markMessagesAsRead();
+                } catch (error) {
+                    console.error('Error in loadAndMarkMessages:', error);
+                }
+            };
+
+            loadAndMarkMessages();
 
             const channel = window.Echo.private(`chat.${chatRoom.id}`);
             
+            // 3. 监听新消息事件
             channel.listen('.message.sent', (e) => {
                 if (e.message.sender_id !== auth.user.id) {
                     setMessages(prevMessages => {
                         if (!messageIdsRef.current.has(e.message.id)) {
                             messageIdsRef.current.add(e.message.id);
-                            markMessageAsRead(e.message.id);
                             return [...prevMessages, e.message];
                         }
                         return prevMessages;
@@ -38,6 +48,7 @@ export default function ChatPage({ auth, chatRoom }) {
                 }
             });
 
+            // 4. 组件卸载时清理
             return () => {
                 channel.stopListening('.message.sent');
                 window.Echo.leave(`chat.${chatRoom.id}`);
@@ -47,13 +58,7 @@ export default function ChatPage({ auth, chatRoom }) {
 
     const markMessagesAsRead = async () => {
         try {
-            // Mark messages as read in the current chat room
             await axios.post(`/api/chat-rooms/${chatRoom.id}/mark-as-read`);
-            
-            // Trigger the unread counts update in HeaderMenu
-            updateUnreadCounts();
-            
-            // Also dispatch the custom event for compatibility
             window.dispatchEvent(new CustomEvent('updateUnreadCounts'));
         } catch (error) {
             console.error('Error marking messages as read:', error);
@@ -90,16 +95,19 @@ export default function ChatPage({ auth, chatRoom }) {
         try {
             setIsSending(true);
             
+            // 1. 发送消息到服务器
             const response = await axios.post(route('chat.messages.store', { chatRoom: chatRoom.id }), {
                 chat_room_id: chatRoom.id,
                 message: newMessage.trim()
             });
 
+            // 2. 更新本地消息列表
             if (!messageIdsRef.current.has(response.data.id)) {
                 messageIdsRef.current.add(response.data.id);
                 setMessages(prevMessages => [...prevMessages, response.data]);
             }
 
+            // 3. 清空输入框并滚动到底部
             setNewMessage('');
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             

@@ -270,7 +270,7 @@ class ChatController extends Controller
                 throw new \Exception('Unauthorized access to chat room');
             }
 
-            // Permanently mark messages as read
+            // 标记消息为已读
             ChatMessage::where('chat_room_id', $chatRoom->id)
                 ->where('sender_id', '!=', auth()->id())
                 ->whereNull('read_at')

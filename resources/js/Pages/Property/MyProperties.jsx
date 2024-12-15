@@ -73,7 +73,6 @@ const MyProperties = ({ auth, properties }) => {
         { id: 'all', label: 'All Properties' },
         { id: 'sale', label: 'For Sale' },
         { id: 'rent', label: 'For Rent' },
-        { id: 'sold', label: 'Sold/Rented' },
         { id: 'cancelled', label: 'Cancelled' }
     ];
 
