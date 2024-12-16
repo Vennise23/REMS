@@ -20,10 +20,6 @@ class ResetPasswordController extends Controller
         $token = $token ?? $request->token;
         $email = $request->email;
         
-        if (!$token) {
-            abort(404, 'No token provided');
-        }
-
         return Inertia::render('Auth/ResetPassword', [
             'token' => $token,
             'email' => $email
@@ -34,10 +30,12 @@ class ResetPasswordController extends Controller
     {
         $request->validate([
             'token' => 'required|string',
+            'email' => 'required|email'
         ]);
 
         $tokenData = DB::table('password_reset_tokens')
             ->where('token', $request->token)
+            ->where('email', $request->email)
             ->first();
 
         if (!$tokenData) {
@@ -88,7 +86,7 @@ class ResetPasswordController extends Controller
             $tokenData = DB::table('password_reset_tokens')
                 ->where('token', $request->token)
                 ->where('used', false)
-                ->where('created_at', '>', now()->subMinutes(60))
+                ->where('created_at', '>', now()->subMinutes(10))
                 ->first();
 
             if (!$tokenData) {

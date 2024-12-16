@@ -205,8 +205,14 @@ Route::get('/profile', [ProfileController::class, 'show'])->middleware(['auth'])
 
 // Password Reset Routes
 Route::get('/password-reset/{token}', [ResetPasswordController::class, 'showResetForm'])
-    ->middleware(['guest'])
-    ->name('password.reset');
+    ->name('password.reset')
+    ->middleware('web');
+
+Route::get('/forgot-password', function () {
+    return Inertia::render('Auth/ForgotPassword');
+})
+->name('password.request')
+->middleware('web');
 
 Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'validateToken'])
     ->name('password.validate.token');

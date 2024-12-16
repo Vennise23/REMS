@@ -6,6 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Head, useForm } from '@inertiajs/react';
 import axios from 'axios';
+import { Link } from '@inertiajs/react';
 
 axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;
 
@@ -31,7 +32,7 @@ export default function ResetPassword({ token, email }) {
         
         return {
             isValid: password.length >= minLength,
-            message: password.length >= minLength ? 
+            message: password.length >= minLength ?
                 '' : 'Password must be at least 8 characters'
         };
     };
@@ -39,7 +40,8 @@ export default function ResetPassword({ token, email }) {
     const validateToken = async (token) => {
         try {
             const response = await axios.post('/api/validate-reset-token', {
-                token: token
+                token: token,
+                email: data.email
             });
             return response.data;
         } catch (error) {
@@ -51,12 +53,16 @@ export default function ResetPassword({ token, email }) {
     useEffect(() => {
         const validateResetToken = async () => {
             try {
+                if (!token) {
+                    setIsTokenValid(false);
+                    setError('No token provided');
+                    return;
+                }
+                
                 const result = await validateToken(token);
                 if (result.valid) {
-                    // Token is valid
                     setIsTokenValid(true);
                 } else {
-                    // Token is invalid
                     setIsTokenValid(false);
                     setError(result.message);
                 }
@@ -113,10 +119,8 @@ export default function ResetPassword({ token, email }) {
             });
 
             if (response.data.success) {
-                setResetSuccess(true);
-                setTimeout(() => {
-                    window.location.href = '/login';
-                }, 2000);
+                // Redirect directly to login page
+                window.location.href = route('login');
             }
         } catch (error) {
             handleError(error);
@@ -165,9 +169,12 @@ export default function ResetPassword({ token, email }) {
                     <p className="mt-4">
                         Please request a new password reset link.
                     </p>
-                    <a href="/forgot-password" className="mt-4 text-blue-600 hover:underline">
+                    <Link 
+                        href={route('password.request')} 
+                        className="text-red-600 hover:text-red-800 underline"
+                    >
                         Request New Reset Link
-                    </a>
+                    </Link>
                 </div>
             </GuestLayout>
         );
