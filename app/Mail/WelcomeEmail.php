@@ -5,7 +5,6 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\URL;
 
 class WelcomeEmail extends Mailable
 {
@@ -14,25 +13,31 @@ class WelcomeEmail extends Mailable
     public $firstname;
     public $lastname;
     public $email;
-    public $password;
+    public $temporaryPassword;
     public $token;
     public $resetUrl;
 
-    public function __construct($firstname, $lastname, $email, $password, $token)
+    /**
+     * Create a new message instance.
+     */
+    public function __construct($firstname, $lastname, $email, $temporaryPassword, $token)
     {
         $this->firstname = $firstname;
         $this->lastname = $lastname;
         $this->email = $email;
-        $this->password = $password;
-        $this->token = $token;
-        
-        // Update to use password-reset instead of reset-password
-        $this->resetUrl = url("/password-reset/{$this->token}?email=" . urlencode($this->email));
+        $this->temporaryPassword = $temporaryPassword;
+        $this->resetUrl = url(route('password.reset', [
+            'token' => $token,
+            'email' => $email,
+        ], false));
     }
 
+    /**
+     * Build the message.
+     */
     public function build()
     {
-        return $this->view('emails.welcome')
-                    ->subject('Welcome to ' . config('app.name'));
+        return $this->subject('Welcome to ' . config('app.name'))
+                    ->view('emails.welcome');
     }
 }

@@ -69,7 +69,6 @@ class UserController extends Controller
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|unique:users,email',
                 'ic_number' => 'required|unique:users,ic_number',
-                'password' => 'required|min:6',
                 'firstname' => 'required|string|max:255',
                 'lastname' => 'required|string|max:255',
                 'phone' => 'required|string|max:20',
@@ -94,18 +93,21 @@ class UserController extends Controller
 
             DB::beginTransaction();
 
+            // Generate random temporary password
+            $temporaryPassword = Str::random(12);
+
             // Handle profile picture upload
             $profile_picture_path = null;
             if ($request->hasFile('profile_picture')) {
                 $profile_picture_path = $request->file('profile_picture')->store('profile_pictures', 'public');
             }
 
-            // Create the user
+            // Create the user with temporary password
             $user = User::create([
                 'firstname' => $request->firstname,
                 'lastname' => $request->lastname,
                 'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'password' => Hash::make($temporaryPassword), // Use temporary password
                 'phone' => $request->phone,
                 'ic_number' => $request->ic_number,
                 'age' => $request->age,
@@ -119,8 +121,8 @@ class UserController extends Controller
                 'profile_picture' => $profile_picture_path
             ]);
 
-            // Create a password reset token and store it in the database
-            $token = Str::random(64); // Generate a unique token
+            // Create a password reset token
+            $token = Str::random(64);
             DB::table('password_reset_tokens')->insert([
                 'email' => $user->email,
                 'token' => $token,
@@ -128,12 +130,12 @@ class UserController extends Controller
                 'used' => false
             ]);
 
-            // Send the welcome email with the reset token
+            // Send welcome email with temporary password
             Mail::to($user->email)->send(new WelcomeEmail(
                 $user->firstname,
                 $user->lastname,
                 $user->email,
-                $request->password,
+                $temporaryPassword, // Pass temporary password
                 $token
             ));
 

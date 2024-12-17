@@ -64,7 +64,7 @@
         <div class="credentials">
             <h3>Your Login Credentials</h3>
             <p><strong>Email:</strong> {{ $email }}</p>
-            <p><strong>Temporary Password:</strong> {{ $password }}</p>
+            <p><strong>Temporary Password:</strong> {{ $temporaryPassword }}</p>
         </div>
 
         <p>For security reasons, please reset your password immediately after your first login.</p>

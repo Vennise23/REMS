@@ -26,8 +26,6 @@ export default function AdminUserMng({ auth, user }) {
         city: "",
         postal_code: "",
         role: "",
-        password: "",
-        password_confirmation: "",
         profile_picture: null,
         gender: "",
     });
@@ -380,47 +378,6 @@ export default function AdminUserMng({ auth, user }) {
                 }
                 break;
 
-            case 'password':
-                setNewUser(prev => ({ ...prev, password: value }));
-                // Validate password length
-                if (value.length < 8) {
-                    setErrors(prev => ({
-                        ...prev,
-                        password: "Password must be at least 8 characters long"
-                    }));
-                } else {
-                    setErrors(prev => {
-                        const newErrors = { ...prev };
-                        delete newErrors.password;
-                        return newErrors;
-                    });
-                }
-                // Check if confirm password matches
-                if (newUser.confirm_password && value !== newUser.confirm_password) {
-                    setErrors(prev => ({
-                        ...prev,
-                        confirm_password: "Passwords do not match"
-                    }));
-                }
-                break;
-
-            case 'password_confirmation':
-                setNewUser(prev => ({ ...prev, password_confirmation: value }));
-                // Check if passwords match
-                if (value !== newUser.password) {
-                    setErrors(prev => ({
-                        ...prev,
-                        confirm_password: "Passwords do not match"
-                    }));
-                } else {
-                    setErrors(prev => {
-                        const newErrors = { ...prev };
-                        delete newErrors.confirm_password;
-                        return newErrors;
-                    });
-                }
-                break;
-
             case 'born_date':
                 const formattedDate = formatDateString(value);
                 setNewUser(prev => ({
@@ -481,20 +438,6 @@ export default function AdminUserMng({ auth, user }) {
             if (!icRegex.test(newUser.ic_number)) {
                 newErrors.ic_number = 'Please enter a valid IC number format (YYMMDDPBXXXX)';
             }
-        }
-
-        // Password validation
-        if (!newUser.password) {
-            newErrors.password = 'Password is required';
-        } else if (newUser.password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters';
-        }
-
-        // Password confirmation validation
-        if (!newUser.password_confirmation) {
-            newErrors.password_confirmation = 'Please confirm your password';
-        } else if (newUser.password !== newUser.password_confirmation) {
-            newErrors.password_confirmation = 'Passwords do not match';
         }
 
         // Role validation
@@ -786,8 +729,6 @@ export default function AdminUserMng({ auth, user }) {
             city: "",
             postal_code: "",
             role: "",
-            password: "",
-            password_confirmation: "",
             profile_picture: null,
             gender: "",
         });
@@ -894,8 +835,6 @@ export default function AdminUserMng({ auth, user }) {
             formData.append('lastname', newUser.lastname);
             formData.append('email', newUser.email);
             formData.append('phone', newUser.phone);
-            formData.append('password', newUser.password);
-            formData.append('password_confirmation', newUser.password_confirmation);
             formData.append('ic_number', newUser.ic_number);
             formData.append('age', newUser.age);
             formData.append('born_date', newUser.born_date);
@@ -1260,66 +1199,30 @@ export default function AdminUserMng({ auth, user }) {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="form-group">
                                             <input 
-                                                type="password" 
-                                                name="password"
-                                                value={newUser.password}
-                                                onChange={handleInputChange}
-                                                placeholder="Password*"
+                                                type="file"
+                                                name="profile_picture"
+                                                onChange={handleFileChange}
+                                                accept="image/*"
                                                 className={`w-full p-2 border rounded ${
-                                                    errors.password ? 'border-red-500' : 'border-gray-300'
+                                                    errors.profile_picture ? 'border-red-500' : 'border-gray-300'
                                                 }`}
                                             />
-                                            {errors.password && (
-                                                <span className="text-red-500 text-sm">{errors.password}</span>
+                                            {errors.profile_picture && (
+                                                <span className="text-red-500 text-sm">{errors.profile_picture}</span>
                                             )}
+                                            <span className="text-sm text-gray-500">
+                                                Accepted formats: JPEG, PNG, GIF (Max: 2MB)
+                                            </span>
                                         </div>
-
-                                        <div className="form-group">
-                                            <input 
-                                                type="password" 
-                                                name="password_confirmation"
-                                                value={newUser.password_confirmation || ""}
-                                                onChange={handleInputChange}
-                                                placeholder="Confirm Password*"
-                                                className={`w-full p-2 border rounded ${
-                                                    errors.password_confirmation ? 'border-red-500' : 'border-gray-300'
-                                                }`}
-                                            />
-                                            {errors.password_confirmation && (
-                                                <span className="text-red-500 text-sm">{errors.password_confirmation}</span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group col-span-2">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="flex-1">
-                                                <input 
-                                                    type="file"
-                                                    name="profile_picture"
-                                                    onChange={handleFileChange}
-                                                    accept="image/*"
-                                                    className={`w-full p-2 border rounded ${
-                                                        errors.profile_picture ? 'border-red-500' : 'border-gray-300'
-                                                    }`}
+                                        {profilePreview && (
+                                            <div className="flex-shrink-0">
+                                                <img 
+                                                    src={profilePreview} 
+                                                    alt="Profile Preview" 
+                                                    className="w-24 h-24 object-cover rounded-full border"
                                                 />
-                                                {errors.profile_picture && (
-                                                    <span className="text-red-500 text-sm">{errors.profile_picture}</span>
-                                                )}
-                                                <span className="text-sm text-gray-500">
-                                                    Accepted formats: JPEG, PNG, GIF (Max: 2MB)
-                                                </span>
                                             </div>
-                                            {profilePreview && (
-                                                <div className="flex-shrink-0">
-                                                    <img 
-                                                        src={profilePreview} 
-                                                        alt="Profile Preview" 
-                                                        className="w-24 h-24 object-cover rounded-full border"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
