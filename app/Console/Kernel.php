@@ -12,7 +12,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('properties:delete-expired')->daily();
+        $schedule->command('users:cleanup-status')->everyMinute();
     }
 
     /**

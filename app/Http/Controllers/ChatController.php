@@ -270,12 +270,13 @@ class ChatController extends Controller
                 throw new \Exception('Unauthorized access to chat room');
             }
 
-            // 标记消息为已读
+            // 标记所有接收到的消息为已读
             ChatMessage::where('chat_room_id', $chatRoom->id)
                 ->where('sender_id', '!=', auth()->id())
                 ->whereNull('read_at')
                 ->update(['read_at' => now()]);
 
+            // 广播消息计数更新
             broadcast(new MessageCountUpdated(auth()->user()))->toOthers();
 
             return response()->json(['success' => true]);

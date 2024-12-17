@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log; // Import the Log facade
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use App\Events\UserStatusUpdated;
+use App\Models\UserStatus;
 
 class UserController extends Controller
 {
@@ -211,5 +213,88 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully']);
+    }
+
+    public function updateStatus(Request $request)
+    {
+        try {
+            $online = $request->boolean('online');
+            $location = $request->location;
+            
+            // 更新状态
+            $status = UserStatus::updateOrCreate(
+                ['user_id' => auth()->id()],
+                [
+                    'is_online' => $online,
+                    'location' => $online ? $location : null,
+                    'last_activity' => $online ? now() : null
+                ]
+            );
+
+            // 获取所有相关的聊天室
+            $chatRooms = \App\Models\ChatRoom::where('buyer_id', auth()->id())
+                ->orWhere('seller_id', auth()->id())
+                ->get();
+
+            // 广播状态更新给所有相关用户（移除 toOthers）
+            foreach ($chatRooms as $room) {
+                $otherUserId = $room->buyer_id === auth()->id() ? $room->seller_id : $room->buyer_id;
+                broadcast(new UserStatusUpdated($otherUserId, [
+                    'online' => $online,
+                    'location' => $online ? $location : null
+                ])); // 移除 toOthers() 以确保双向通知
+            }
+            
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('Error in updateStatus: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getUserStatus($userId)
+    {
+        try {
+            $status = UserStatus::where('user_id', $userId)->first();
+            
+            // 如果没有状态记录，直接返回离线
+            if (!$status) {
+                return response()->json([
+                    'online' => false,
+                    'location' => null
+                ]);
+            }
+
+            // 如果明确标记为离线，直接返回离线状态
+            if (!$status->is_online || !$status->last_activity) {
+                return response()->json([
+                    'online' => false,
+                    'location' => null
+                ]);
+            }
+
+            // 检查最后活动时间是否在30秒内
+            $isActive = $status->last_activity > now()->subSeconds(30);
+            
+            if (!$isActive) {
+                // 如果不活跃，更新为离线状态
+                $status->update([
+                    'is_online' => false,
+                    'location' => null,
+                    'last_activity' => null
+                ]);
+            }
+
+            return response()->json([
+                'online' => $isActive,
+                'location' => $isActive ? $status->location : null
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting user status: ' . $e->getMessage());
+            return response()->json([
+                'online' => false,
+                'location' => null
+            ]);
+        }
     }
 }

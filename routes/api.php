@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Models\User;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\UserStatusController;
 
 
 
@@ -46,7 +47,7 @@ Route::middleware('api')->group(function () {
     Route::post('/check-email-availability', [ValidationController::class, 'checkEmailAvailability']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::get('/chat-rooms', [ChatController::class, 'getChatRooms']);
     Route::post('/chat-rooms', [ChatController::class, 'createRoom']);
     Route::post('/chat-rooms/{chatRoom}/messages', [ChatController::class, 'store'])
@@ -55,4 +56,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/unread-messages/count', [ChatController::class, 'getUnreadCount']);
     Route::post('/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);
     Route::post('/chat-rooms/create', [ChatController::class, 'createRoom']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/user/status', [UserStatusController::class, 'update']);
+    Route::get('/user-status/{userId}', [UserStatusController::class, 'show']);
 });

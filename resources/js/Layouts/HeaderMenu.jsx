@@ -5,11 +5,19 @@ import axios from "axios";
 import { FaEnvelope } from 'react-icons/fa';
 
 export default function Main({ auth }) {
-    axios.defaults.headers.common["X-CSRF-TOKEN"] = document
-        .querySelector('meta[name="csrf-token"]')
-        .getAttribute("content");
-
-    axios.defaults.headers.common['Accept'] = 'application/json';
+    useEffect(() => {
+        // 设置 CSRF token
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (token) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+        }
+        
+        // 设置接受 JSON 响应
+        axios.defaults.headers.common['Accept'] = 'application/json';
+        
+        // 设置 withCredentials
+        axios.defaults.withCredentials = true;
+    }, []);
 
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
