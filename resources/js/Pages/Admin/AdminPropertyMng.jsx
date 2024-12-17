@@ -4,6 +4,7 @@ import AdminSidebar from "@/Layouts/Admin/AdminSidebar";
 import AdminLayout from "@/Layouts/Admin/AdminLayout";
 import { usePendingCount } from "@/Contexts/PendingCountContext";
 import { Head } from "@inertiajs/react";
+import ViewPropertyModal from "@/Components/Admin/ViewPropertyModal";
 
 export default function AdminPropertyMng({ auth, user }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -16,6 +17,9 @@ export default function AdminPropertyMng({ auth, user }) {
     const [hasNewData, setHasNewData] = useState(false);
     const [lastSnapshot, setLastSnapshot] = useState([]);
     const itemsPerPage = 10;
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedProperty, setSelectedProperty] = useState(null);
+    const [shouldReload, setShouldReload] = useState(false);
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
     const { fetchPendingCount } = usePendingCount();
@@ -194,6 +198,15 @@ export default function AdminPropertyMng({ auth, user }) {
         setCurrentPage(page);
     };
 
+    const handleOpenModal = (propertyDetails) => {
+        setSelectedProperty(propertyDetails);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+    };
+
     useEffect(() => {
         fetchProperties();
         const interval = setInterval(() => {
@@ -201,6 +214,13 @@ export default function AdminPropertyMng({ auth, user }) {
         }, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (shouldReload) {
+            fetchProperties();
+            setShouldReload(false);
+        }
+    }, [shouldReload]);
 
     const totalPages = Math.ceil(sortedProperties.length / itemsPerPage);
 
@@ -366,6 +386,21 @@ export default function AdminPropertyMng({ auth, user }) {
                                                         </td>
                                                         <td className="px-4 py-2 text-center">
                                                             <button
+                                                                className="px-2 py-1 rounded bg-blue-800 text-white"
+                                                                style={{
+                                                                    width: "100px",
+                                                                    textAlign:
+                                                                        "center",
+                                                                }}
+                                                                onClick={() =>
+                                                                    handleOpenModal(
+                                                                        property
+                                                                    )
+                                                                }
+                                                            >
+                                                                View
+                                                            </button>
+                                                            {/* <button
                                                                 className={`px-2 py-1 rounded mr-2 ${
                                                                     isButtonDisabled(
                                                                         property.approval_status,
@@ -416,13 +451,21 @@ export default function AdminPropertyMng({ auth, user }) {
                                                                 )}
                                                             >
                                                                 Reject
-                                                            </button>
+                                                            </button> */}
                                                         </td>
                                                     </tr>
                                                 )
                                             )}
                                         </tbody>
                                     </table>
+                                    {isModalOpen && (
+                                        <ViewPropertyModal
+                                            isOpen={isModalOpen}
+                                            propertyDetails={selectedProperty}
+                                            onClose={handleCloseModal}
+                                            setShouldReload={setShouldReload}
+                                        />
+                                    )}
                                     <div
                                         className="flex justify-between mt-4"
                                         style={{

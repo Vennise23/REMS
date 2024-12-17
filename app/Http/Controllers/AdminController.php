@@ -153,9 +153,16 @@ class AdminController extends Controller
     {
         $property = Property::findOrFail($id);
         $property->approval_status = 'Approved';
+        $property->rejection_reason = null;
         $property->save();
 
         $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+
+        $user = $property->user;
+        if ($user->role != 'seller') {
+            $user->role = 'seller';
+            $user->save();
+        }
 
         return response()->json([
             'status' => 'Property approved successfully',
@@ -163,10 +170,15 @@ class AdminController extends Controller
         ]);
     }
 
-    public function rejectProperty($id)
+    public function rejectProperty(Request $request, $id)
     {
+        $request->validate([
+            'reason' => 'required|string',
+        ]);
+
         $property = Property::findOrFail($id);
         $property->approval_status = 'Rejected';
+        $property->rejection_reason = $request->reason;
         $property->save();
 
         $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
