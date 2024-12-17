@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\PropertyStatusController;
+use App\Http\Controllers\NewLaunchController;
 
 // Main Route
 Route::get('/', function () {
@@ -82,13 +83,11 @@ Route::get('/buy', function () {
         'properties' => \App\Models\Property::all()
     ]);
 })->name('buy');
-Route::get('/buy', function () {
-    return Inertia::render('Buy');
-})->name('buy');
-Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
-Route::get('/api/properties', [PropertyController::class, 'index']);
-Route::get('/properties', [PropertyController::class, 'index']);
-Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
+
+// New Launches Page Route
+Route::get('/new-launches', [NewLaunchController::class, 'index'])
+    ->name('new-launches')
+    ->middleware(['web']);
 
 // Property Route
 Route::post('/apply-property', [PropertyController::class, 'store'])->middleware('auth');

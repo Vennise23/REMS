@@ -124,6 +124,22 @@ class PropertyController extends Controller
                 $query->where('sale_type', $request->saleType);
             }
 
+            if ($request->has('status')) {
+                if ($request->status === 'active') {
+                    // 根据购买类型显示不同的状态
+                    if ($request->purchase === 'For Sale') {
+                        $query->whereIn('status', ['available', 'sold']);
+                    } else if ($request->purchase === 'For Rent') {
+                        $query->whereIn('status', ['available', 'rented']);
+                    }
+                } else {
+                    $query->where('status', $request->status);
+                }
+            } else {
+                // 默认不显示已取消的
+                $query->where('status', '!=', 'cancelled');
+            }
+
             $properties = $query->paginate($request->input('per_page', 6));
 
             return response()->json([

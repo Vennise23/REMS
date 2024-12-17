@@ -139,7 +139,7 @@ export default function Main({ auth }) {
                             Rent
                         </Link>
                         <Link
-                            href="#"
+                            href={route("new-launches")}
                             className="text-gray-600 hover:text-gray-900 font-medium"
                         >
                             New Launches

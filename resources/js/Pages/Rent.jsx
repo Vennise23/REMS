@@ -117,7 +117,6 @@ const Rent = ({ auth }) => {
 
     const fetchProperties = async () => {
         try {
-            // 创建基础查询参数
             const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
@@ -127,10 +126,10 @@ const Rent = ({ auth }) => {
                 sizeMax: filters.sizeMax,
                 amenities: filters.amenities.join(','),
                 citySearch: citySearchQuery,
-                purchase: 'For Rent'
+                purchase: 'For Rent',
+                status: 'active'
             };
 
-            // 只有当不是 'All Property' 时才添加 propertyType 参数
             if (filters.propertyType !== 'All Property') {
                 baseParams.propertyType = filters.propertyType;
             }

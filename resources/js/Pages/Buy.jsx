@@ -147,6 +147,7 @@ const Buy = ({ auth }) => {
                 citySearch: citySearchQuery,
                 purchase: "For Sale",
                 saleType: filters.saleType,
+                status: 'active'
             };
 
             if (filters.propertyType !== "All Property") {

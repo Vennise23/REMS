@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\UserStatusController;
+use App\Http\Controllers\NewLaunchController;
 
 
 
@@ -62,3 +63,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/status', [UserStatusController::class, 'update']);
     Route::get('/user-status/{userId}', [UserStatusController::class, 'show']);
 });
+
+// New Launches API Route
+Route::get('/new-launches', [NewLaunchController::class, 'getNewLaunches']);
