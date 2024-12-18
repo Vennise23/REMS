@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { usePendingCount } from "@/Contexts/PendingCountContext";
 import RejectReasonModal from "./RejectReasonModal";
+import axios from "axios";
+
+// axios.defaults.headers.common["X-CSRF-TOKEN"] = document
+//     .querySelector('meta[name="csrf-token"]')
+//     ?.getAttribute("content");
 
 const ViewPropertyModal = ({
     isOpen,
@@ -206,7 +211,7 @@ const ViewPropertyModal = ({
                                 </p>
                             </div>
 
-                            <div className="space-y-4 border-l pl-6">
+                            <div className="space-y-4">
                                 <p>
                                     <strong>Purchase:</strong>{" "}
                                     {propertyDetails.purchase}
