@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
             'lastname' => 'User',
             'email' => 'admin@example.com',
             'password' => Hash::make('12345678'),
-            'ic_number' => '1234567890',
+            'ic_number' => '123456789012',
             'age' => 35,
             'born_date' => Carbon::parse('1985-01-01'),
             'phone' => '012-3456789',

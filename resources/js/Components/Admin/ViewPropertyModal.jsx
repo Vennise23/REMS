@@ -243,24 +243,28 @@ const ViewPropertyModal = ({
                                 </p>
                             </div>
                         </div>
-                        {propertyDetails.approval_status === "Approved" ? (
-                            <div className="mt-8 mb-8 p-4 bg-green-100 text-green-800 rounded-lg">
-                                <p className="font-semibold">
-                                    This property has been approved.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="mt-8 mb-8 p-4 bg-red-100 text-red-800 rounded-lg">
-                                <p>
-                                    <strong className="text-lg">
-                                        Rejection Reason:
-                                    </strong>
-                                    <span className="font-semibold">{" "}
-                                        {propertyDetails.rejection_reason || "N/A"}. 
-                                    </span>
-                                </p>
-                            </div>
-                        )}
+                        {propertyDetails.approval_status !== "Pending" &&
+                            (propertyDetails.approval_status === "Approved" ? (
+                                <div className="mt-8 mb-8 p-4 bg-green-100 text-green-800 rounded-lg">
+                                    <p className="font-semibold">
+                                        This property has been approved.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="mt-8 mb-8 p-4 bg-red-100 text-red-800 rounded-lg">
+                                    <p>
+                                        <strong className="text-lg">
+                                            Rejection Reason:
+                                        </strong>
+                                        <span className="font-semibold">
+                                            {" "}
+                                            {propertyDetails.rejection_reason ||
+                                                "N/A"}
+                                            .
+                                        </span>
+                                    </p>
+                                </div>
+                            ))}
 
                         <div className="flex justify-end mt-8 space-x-4">
                             <button
