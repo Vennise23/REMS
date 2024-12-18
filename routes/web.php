@@ -115,6 +115,10 @@ Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']
 Route::get('/check-property-name/{name}', [PropertyController::class, 'checkPropertyName']);
 Route::get('/api/search-addresses', [PropertyController::class, 'searchAddresses']);
 
+Route::get('/notifications', [PropertyController::class, 'getNotifications']);
+Route::post('/notifications/{id}/mark-as-read', [PropertyController::class, 'markAsRead']);
+
+
 // GOOGLE API TESTING
 // Route::get('/test-google-maps', function () {
 //     $apiKey = env('GOOGLE_MAPS_API_KEY');

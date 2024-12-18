@@ -351,7 +351,7 @@ class PropertyController extends Controller
                 // Delete the chat room
                 $chatRoom->delete();
             }
-            
+
             // Delete the property
             $property->delete();
 
@@ -359,5 +359,48 @@ class PropertyController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to delete property'], 500);
         }
+    }
+
+    public function getNotifications(Request $request)
+    {
+        $properties = Property::where('user_id', auth()->id())
+            ->latest()
+            ->get();
+
+        $notifications = $properties->map(function ($property) {
+            if ($property->approval_status === 'Approved') {
+                return [
+                    'id' => $property->id,
+                    'property_name' => $property->property_name,
+                    'status' => 'approved',
+                    'isRead' => $property->is_read,
+                    'message' => 'This property has been approved'
+                ];
+            } elseif ($property->approval_status === 'Rejected') {
+                return [
+                    'id' => $property->id,
+                    'property_name' => $property->property_name,
+                    'status' => 'rejected',
+                    'isRead' => $property->is_read,
+                    'rejection_reason' => $property->rejection_reason,
+                    'message' => 'Rejection reason: ' . $property->rejection_reason
+                ];
+            }
+            return null;
+        })->filter();
+
+        return response()->json([
+            'notifications' => $notifications,
+            'totalNotifications' => $notifications->count(),
+        ]);
+    }
+
+    public function markAsRead($id)
+    {
+        $property = Property::findOrFail($id);
+        $property->is_read = true;
+        $property->save();
+
+        return response()->json(['status' => 'success']);
     }
 }
