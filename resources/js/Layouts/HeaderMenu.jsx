@@ -101,10 +101,16 @@ export default function HeaderMenu({ auth }) {
         }
     };
 
-    const handleBlur = () => {
+    const handleBlurMessage = () => {
         setTimeout(() => {
             setShowMessages(false);
-        }, 200);
+        }, 50);
+    };
+
+    const handleBlurNotifications= () => {
+        setTimeout(() => {
+            setShowNotifications(false);
+        }, 50);
     };
 
     const fetchNotifications = async () => {
@@ -197,7 +203,7 @@ export default function HeaderMenu({ auth }) {
                                 onClick={() =>
                                     setShowNotifications(!showNotifications)
                                 }
-                                onBlur={handleBlur}
+                                onBlur={handleBlurNotifications}
                                 className="relative text-gray-600 hover:text-gray-900"
                             >
                                 <IoNotifications className="w-6 h-6" />
@@ -272,7 +278,7 @@ export default function HeaderMenu({ auth }) {
                         <div className="relative">
                             <button
                                 onClick={() => setShowMessages(!showMessages)}
-                                onBlur={handleBlur}
+                                onBlur={handleBlurMessage}
                                 className="relative p-2 text-gray-600 hover:text-gray-900"
                             >
                                 <FaEnvelope className="w-6 h-6" />
