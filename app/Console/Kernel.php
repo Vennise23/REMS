@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Http\Controllers\FileController;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -12,7 +13,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+         // Schedule the delete task to run every 2 minutes
+         $schedule->call(function () {
+            FileController::scheduleDelete();
+        })->everyTwoMinutes();
     }
 
     /**

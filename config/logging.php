@@ -102,6 +102,7 @@ return [
             'with' => [
                 'stream' => 'php://stderr',
             ],
+            'level' => 'debug',
             'processors' => [PsrLogMessageProcessor::class],
         ],
 

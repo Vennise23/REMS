@@ -149,3 +149,62 @@
 .save-button {
     margin-top: 16px;
 }
+
+.transition-darken {
+    transition: background-color 0.3s ease;
+}
+
+.transition-darken:hover {
+    background-color: #3b3b3b16; /* Darker shade */
+}
+
+/* Customizing the slider track */
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 8px;
+    background: linear-gradient(to right, blue 0%, blue var(--value), #dee2e6 var(--value), #dee2e6 100%);
+    border-radius: 5px;
+}
+
+/* Customizing the slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #007bff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Fallback for other browsers */
+input[type="range"]::-moz-range-track {
+    height: 8px;
+    background: linear-gradient(to right, blue 0%, blue var(--value), #dee2e6 var(--value), #dee2e6 100%);
+    border-radius: 5px;
+}
+
+input[type="range"]::-ms-track {
+    height: 8px;
+    background: transparent;
+    border-color: transparent;
+    border-width: 6px 0;
+    color: transparent;
+}
+
+input[type="range"]::-ms-fill-lower {
+    background: blue;
+}
+
+input[type="range"]::-ms-fill-upper {
+    background: #dee2e6;
+}
+
+/* Adjust for thumb */
+input[type="range"]::-ms-thumb {
+    width: 20px;
+    height: 20px;
+    background: #007bff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}

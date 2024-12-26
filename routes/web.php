@@ -107,4 +107,7 @@ Route::post('/three/upload', [ThreeController::class, 'handleUpload'])->name('up
 Route::post('/three/saveUpload', [ThreeController::class, 'saveUploadFiles'])->name('uplaod.save');
 
 //THREE - new :: allow upload multiple files and binarize.
-Route::get('/three/uploadFile',[FileController::class,'uploadFile']);
+Route::get('/three/uploadFile',[FileController::class,'showUploadForm'])->name('upload.show');
+Route::post('/three/uploadFile',[FileController::class,'uploadFile'])->name('upload.handle');
+Route::post('/three/submitUpload',[FileController::class,'submitUploadForm'])->name('upload.submit');
+Route::get('/three/Binarize',[FileController::class,'showBinarizeForm'])->name('binarize.show');
