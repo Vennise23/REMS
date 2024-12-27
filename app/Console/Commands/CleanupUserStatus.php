@@ -19,12 +19,16 @@ class CleanupUserStatus extends Command
                     $query->where('message_sent', false)
                         ->where(function ($q) {
                             $q->whereNull('last_activity')
-                                ->orWhere('last_activity', '<', now()->subSeconds(20));
+                                ->orWhere('last_activity', '<', now()->subSeconds(45));
                         });
                 })
                 ->get();
 
             foreach ($inactiveUsers as $status) {
+                if ($status->last_activity && $status->last_activity > now()->subSeconds(30)) {
+                    continue;
+                }
+
                 $status->update([
                     'is_online' => false,
                     'location' => null,
@@ -43,7 +47,7 @@ class CleanupUserStatus extends Command
                         'online' => false,
                         'location' => null,
                         'message_sent' => false
-                    ]));
+                    ]))->toOthers();
                 }
             }
         } catch (\Exception $e) {

@@ -12,8 +12,9 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        'logout',
-        'api/chat-rooms/*/messages',
-        'api/chat-rooms/*/mark-as-read'
+        'broadcasting/auth',
+        '/api/user/status',
+        '/api/chat-rooms/*/messages',
+        '/api/chat-rooms/*/mark-as-read'
     ];
 }

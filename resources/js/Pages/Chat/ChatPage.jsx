@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 
 export default function ChatPage({ auth, chatRoom }) {
+    const { csrf_token } = usePage().props;
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
@@ -25,12 +26,10 @@ export default function ChatPage({ auth, chatRoom }) {
     };
 
     useEffect(() => {
-        // 设置 axios 默认配置
-        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (token) {
-            axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+        // 确保在组件挂载时设置 CSRF token
+        if (csrf_token) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrf_token;
         }
-        axios.defaults.headers.common['Accept'] = 'application/json';
         axios.defaults.withCredentials = true;
 
         if (chatRoom?.id) {
@@ -205,12 +204,20 @@ export default function ChatPage({ auth, chatRoom }) {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(async (position) => {
                         try {
-                            // 添加超时控制
                             const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
+                            const timeoutId = setTimeout(() => controller.abort(), 5000); // 增加超时时间
 
+                            // 优化 Nominatim API 请求参数
                             const response = await fetch(
-                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=18&addressdetails=1&accept-language=en`,
+                                `https://nominatim.openstreetmap.org/reverse?` + 
+                                `format=json&` +
+                                `lat=${position.coords.latitude}&` +
+                                `lon=${position.coords.longitude}&` +
+                                `zoom=18&` + // 使用更高的缩放级别以获取更详细的地址
+                                `addressdetails=1&` +
+                                `namedetails=1&` + // 添加名称详情
+                                `accept-language=en&` + // 强制使用英文
+                                `extratags=1`, // 获取额外标签信息
                                 {
                                     headers: {
                                         'Accept-Language': 'en', // 指定英文
@@ -224,16 +231,64 @@ export default function ChatPage({ auth, chatRoom }) {
                             
                             if (response.ok) {
                                 const data = await response.json();
-                                // 只获取城市和国家信息
-                                const location = [
-                                    data.address.city || data.address.town || data.address.suburb, // 城市/镇/区
-                                    data.address.country  // 国家
-                                ].filter(Boolean).join(', ');
+                                
+                                // 更智能的地址格式化
+                                const formatLocation = () => {
+                                    // 尝试获取最具体的地址组件
+                                    const components = [];
+                                    
+                                    // 添加最具体的地区名称
+                                    const area = data.namedetails?.['name:en'] || // 优先使用英文名称
+                                                data.address.suburb || 
+                                                data.address.neighbourhood ||
+                                                data.address.residential ||
+                                                data.address.quarter ||
+                                                data.address.district;
+                                    if (area) components.push(area);
+                                    
+                                    // 添加城市
+                                    const city = data.namedetails?.['city:en'] || // 优先使用英文城市名
+                                                data.address.city || 
+                                                data.address.town || 
+                                                data.address.city_district;
+                                    if (city) components.push(city);
+                                    
+                                    // 添加州/省
+                                    if (data.address.state) {
+                                        // 优先使用英文州名
+                                        const state = data.namedetails?.['state:en'] ||
+                                                     (data.address.state.length <= 3 
+                                                         ? data.address.state.toUpperCase() 
+                                                         : data.address.state);
+                                        components.push(state);
+                                    }
+                                    
+                                    // 添加国家
+                                    if (data.address.country) {
+                                        // 优先使用英文国家名
+                                        const countryName = data.namedetails?.['country:en'] ||
+                                                           data.namedetails?.['name:en'] ||
+                                                           data.address.country;
+                                        components.push(countryName);
+                                    }
+                                    
+                                    // 过滤掉重复项并组合
+                                    return [...new Set(components)]
+                                        .filter(Boolean)
+                                        .join(', ');
+                                };
+
+                                const location = formatLocation();
+
+                                // 如果获取到的位置信息不完整，使用备用信息
+                                const finalLocation = location.split(',').length >= 2 
+                                    ? location 
+                                    : 'Johor Bahru, Johor, Malaysia';
 
                                 await axios.post('/api/user/status', {
                                     online: true,
                                     last_activity: new Date().toISOString(),
-                                    location: location || 'Johor Bahru, Malaysia', // 如果无法获取地址，使用默认值
+                                    location: finalLocation,
                                     message_sent: true
                                 });
                             } else {
@@ -244,21 +299,23 @@ export default function ChatPage({ auth, chatRoom }) {
                             await axios.post('/api/user/status', {
                                 online: true,
                                 last_activity: new Date().toISOString(),
-                                location: 'Johor Bahru, Malaysia', // 使用默认位置
+                                location: 'Johor Bahru, Johor, Malaysia',
                                 message_sent: true
                             });
                         }
-                    }, (error) => {
+                    }, 
+                    (error) => {
                         console.error('Geolocation error:', error);
                         axios.post('/api/user/status', {
                             online: true,
                             last_activity: new Date().toISOString(),
                             message_sent: true
                         });
-                    }, {
+                    }, 
+                    {
                         enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 30000 // 缓存30秒
+                        timeout: 10000, // 增加定位超时时间
+                        maximumAge: 30000
                     });
                 } else {
                     await axios.post('/api/user/status', {
