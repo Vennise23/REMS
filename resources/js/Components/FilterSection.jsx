@@ -87,6 +87,20 @@ const FilterSection = ({ filters, setFilters, onCitySearch, theme = 'blue', show
         <div className="space-y-6">
             {/* 主要筛选区域 */}
             <div className={`grid grid-cols-1 ${layout === 'rent' ? 'md:grid-cols-4' : 'md:grid-cols-5'} gap-6`}>
+                {/* 添加时间排序选择器 */}
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Sort By Date</label>
+                    <select
+                        name="sortDirection"
+                        value={filters.sortDirection || 'desc'}
+                        onChange={handleInputChange}
+                        className={`w-full rounded-lg border-gray-300 shadow-sm ${currentTheme.focus}`}
+                    >
+                        <option value="desc">Newest First</option>
+                        <option value="asc">Oldest First</option>
+                    </select>
+                </div>
+
                 {/* Property Type */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Property Type</label>

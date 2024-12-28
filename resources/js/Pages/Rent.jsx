@@ -18,6 +18,7 @@ const Rent = ({ auth }) => {
             sizeMin: '0',
             sizeMax: '100000',
             amenities: [],
+            sortDirection: 'desc',
         };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
@@ -127,7 +128,8 @@ const Rent = ({ auth }) => {
                 amenities: filters.amenities.join(','),
                 citySearch: citySearchQuery,
                 purchase: 'For Rent',
-                status: 'active'
+                status: 'active',
+                sortDirection: filters.sortDirection
             };
 
             if (filters.propertyType !== 'All Property') {

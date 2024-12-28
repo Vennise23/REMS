@@ -93,6 +93,12 @@ class PropertyController extends Controller
             $purchaseType = $request->input('purchase', 'For Sale');
             $query->where('purchase', $purchaseType);
 
+            $sortDirection = in_array($request->input('sortDirection'), ['asc', 'desc']) 
+                ? $request->input('sortDirection') 
+                : 'desc';
+            
+            $query->orderBy('created_at', $sortDirection);
+
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
             }
@@ -139,6 +145,12 @@ class PropertyController extends Controller
                 // 默认不显示已取消的
                 $query->where('status', '!=', 'cancelled');
             }
+
+            \Log::info('Sort Direction:', [
+                'direction' => $request->input('sortDirection'),
+                'query' => $query->toSql(),
+                'bindings' => $query->getBindings()
+            ]);
 
             $properties = $query->paginate($request->input('per_page', 6));
 

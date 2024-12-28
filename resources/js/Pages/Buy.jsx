@@ -21,6 +21,7 @@ const Buy = ({ auth }) => {
                 sizeMin: "0",
                 sizeMax: "100000",
                 amenities: [],
+                sortDirection: "desc",
             };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
@@ -147,7 +148,8 @@ const Buy = ({ auth }) => {
                 citySearch: citySearchQuery,
                 purchase: "For Sale",
                 saleType: filters.saleType,
-                status: 'active'
+                status: 'active',
+                sortDirection: filters.sortDirection
             };
 
             if (filters.propertyType !== "All Property") {
