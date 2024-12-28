@@ -7,6 +7,7 @@ import TextInput from "@/Components/TextInput";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Head } from "@inertiajs/react";
 import loginImage from "/resources/img/hellohouse.gif";
+import { Link } from "@inertiajs/react";
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -106,6 +107,15 @@ export default function Login() {
                             message={errors.password || customErrors.password}
                             className="text-red-500"
                         />
+
+                        <div className="flex items-center justify-between mt-4">
+                            <Link
+                                href={route('password.request')}
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                                Forgot your password?
+                            </Link>
+                        </div>
 
                         <div className="flex items-center justify-end mt-4">
                             <PrimaryButton
