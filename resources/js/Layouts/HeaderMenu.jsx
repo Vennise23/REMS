@@ -138,10 +138,10 @@ export default function HeaderMenu({ auth }) {
                             New Launches
                         </Link>
                         <Link
-                            href="#"
+                            href={route("find-seller")}
                             className="text-gray-600 hover:text-gray-900 font-medium"
                         >
-                            Find Agent
+                            Find Seller
                         </Link>
                     </nav>
 
