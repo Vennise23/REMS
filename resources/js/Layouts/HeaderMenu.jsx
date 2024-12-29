@@ -110,13 +110,13 @@ export default function HeaderMenu({ auth }) {
     const handleBlurNotifications= () => {
         setTimeout(() => {
             setShowNotifications(false);
-        }, 50);
+        }, 1000);
     };
 
     const fetchNotifications = async () => {
         try {
             const response = await axios.get("/notifications");
-            console.log("response", response);
+            // console.log("response", response);
             if (response.data) {
                 const unreadNotifications = response.data.notifications.filter(
                     (notification) => !notification.isRead
@@ -129,7 +129,9 @@ export default function HeaderMenu({ auth }) {
         }
     };
 
-    const handleNotificationClick = (notificationId) => {
+    const handleNotificationClick = (notificationId, e) => {
+        console.log('click')
+        setShowNotifications(false);
         setNotifications((prevNotifications) =>
             prevNotifications.map((notification) =>
                 notification.id === notificationId
@@ -137,19 +139,29 @@ export default function HeaderMenu({ auth }) {
                     : notification
             )
         );
-
+    
         axios
             .post(`/notifications/${notificationId}/mark-as-read`)
-            .then((response) => {
-                console.log("Notification marked as read");
-            })
             .catch((error) => {
                 console.error("Error marking notification as read", error);
+                setNotifications((prevNotifications) =>
+                    prevNotifications.map((notification) =>
+                        notification.id === notificationId
+                            ? { ...notification, isRead: false }
+                            : notification
+                    )
+                );
             });
-
-        setTotalNotifications((prevTotal) => prevTotal - 1);
     };
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchNotifications();
+        }, 5000);
+    
+        return () => clearInterval(interval);
+    }, []);
+    
     return (
         <header className="bg-gray-100 p-6 border-b border-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
             <div className="container mx-auto flex justify-between items-center">
@@ -203,7 +215,7 @@ export default function HeaderMenu({ auth }) {
                                 onClick={() =>
                                     setShowNotifications(!showNotifications)
                                 }
-                                onBlur={handleBlurNotifications}
+                                // onBlur={handleBlurNotifications}
                                 className="relative text-gray-600 hover:text-gray-900"
                             >
                                 <IoNotifications className="w-6 h-6" />
@@ -278,7 +290,7 @@ export default function HeaderMenu({ auth }) {
                         <div className="relative">
                             <button
                                 onClick={() => setShowMessages(!showMessages)}
-                                onBlur={handleBlurMessage}
+                                // onBlur={handleBlurMessage}
                                 className="relative p-2 text-gray-600 hover:text-gray-900"
                             >
                                 <FaEnvelope className="w-6 h-6" />

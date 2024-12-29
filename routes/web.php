@@ -104,6 +104,8 @@ Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'get
 Route::middleware(['auth'])->group(function () {
     Route::post('/apply-property', [PropertyController::class, 'store']);
     Route::get('/api/properties', [PropertyController::class, 'index']);
+    Route::get('/api/user-properties', [PropertyController::class, 'getUserProperties']);
+    Route::get('/property-management', [PropertyController::class, 'propertyManagementBySeller'])->name('manage.property');
 });
 Route::get('/property/{id}', [PropertyController::class, 'showInformationById'])->name('property.show');
 Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
@@ -118,7 +120,7 @@ Route::get('/api/search-addresses', [PropertyController::class, 'searchAddresses
 Route::get('/notifications', [PropertyController::class, 'getNotifications']);
 Route::post('/notifications/{id}/mark-as-read', [PropertyController::class, 'markAsRead']);
 
-
+Route::post('/properties/{id}', [PropertyController::class, 'update'])->name('properties.update');
 // GOOGLE API TESTING
 // Route::get('/test-google-maps', function () {
 //     $apiKey = env('GOOGLE_MAPS_API_KEY');

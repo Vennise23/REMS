@@ -4,7 +4,7 @@ import ShowSuccessModal from "./ShowSuccessModal";
 import ShowConfirmationModal from "./ShowConfirmationModal";
 import "./../../../css/app.css";
 
-const PropertyFormModal = ({ isOpen, onClose }) => {
+const PropertyFormModal = ({ isOpen, onClose, propertyData }) => {
     const [formData, setFormData] = useState({
         property_name: "",
         property_type: "",
@@ -44,7 +44,17 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [propertyNameError, setPropertyNameError] = useState("");
+    const [propertyType, setPropertyType] = useState("");
 
+    // useEffect(() => {
+    //     if (propertyData) {
+    //         setFormData((prevData) => ({
+    //             ...prevData,
+    //             ...propertyData,
+    //         }));
+    //     }
+    // }, [propertyData]);
+    
     useEffect(() => {
         setIsAgentType(formData.agent_type === "Agent" ? "Agent" : "");
     }, [formData.agent_type]);
@@ -353,6 +363,8 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             .querySelector('meta[name="csrf-token"]')
             .getAttribute("content");
 
+        console.log('CSRF Token:', csrfToken);
+
         try {
             const baseURL = `${window.location.origin}/apply-property`;
             console.log("baseURL", baseURL);
@@ -361,6 +373,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                     "Content-Type": "multipart/form-data",
                     "X-CSRF-TOKEN": csrfToken,
                 },
+                withCredentials: true,
             });
             setShowConfirmationModal(false);
             setShowSuccessModal(true);
@@ -405,6 +418,7 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
             amenities: [],
             other_amenities: "",
             additional_info: "",
+            agent_type: "",
         });
         setCertificatePhotoPreview([]);
         setPropertyPhotoPreview([]);
@@ -635,11 +649,12 @@ const PropertyFormModal = ({ isOpen, onClose }) => {
                                     <div className="grid grid-cols-1 gap-4 col-span-2">
                                         <select
                                             name="property_type"
+                                            value={formData.property_type}
                                             onChange={handleChange}
                                             className="p-2 border rounded-md"
                                             required
                                         >
-                                            <option value="" disabled selected>
+                                            <option value="" disabled>
                                                 Select Property Type
                                             </option>
                                             <option value="Conventional Condominium">

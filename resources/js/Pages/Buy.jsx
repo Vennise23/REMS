@@ -3,6 +3,7 @@ import { Head } from "@inertiajs/react";
 import PropertyCard from "@/Components/Property/PropertyCard";
 import FilterSection from "@/Components/FilterSection";
 import Header from "@/Layouts/HeaderMenu";
+import Footer from "@/Layouts/Footer";
 
 const Buy = ({ auth }) => {
     const [properties, setProperties] = useState([]);
@@ -220,88 +221,88 @@ const Buy = ({ auth }) => {
                 <title>Buy Properties</title>
                 <meta name="description" content="Find your dream property" />
             </Head>
-
-            <Header auth={auth} />
-
-            <div className="min-h-screen bg-gray-50 pt-32">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Filter section */}
-                    <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
-                        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                            Find Your Dream Property
-                        </h2>
-                        <FilterSection
-                            filters={filters}
-                            setFilters={handleFilterChange}
-                            onCitySearch={handleCitySearch}
-                            theme="blue"
-                            showSaleType={true}
-                        />
-                    </div>
-
-                    {/* Property list */}
-                    {loading ? (
-                        <div className="text-center mt-8">
-                            <h2 className="text-xl font-semibold text-blue-600">
-                                Loading Properties...
+    
+            <div className="min-h-screen flex flex-col bg-gray-50">
+                <Header auth={auth} />
+    
+                <div className="flex-grow">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+                            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                                Find Your Dream Property
                             </h2>
+                            <FilterSection
+                                filters={filters}
+                                setFilters={handleFilterChange}
+                                onCitySearch={handleCitySearch}
+                                theme="blue"
+                                showSaleType={true}
+                            />
                         </div>
-                    ) : properties.length === 0 ? (
-                        <div className="text-center mt-8">
-                            <h2 className="text-xl font-semibold text-blue-600">
-                                Property Listings With{" "}
-                                {citySearchQuery || "Your Filters"}
-                            </h2>
-                            <p className="text-gray-600 mt-2">
-                                Result not found. Sorry, but nothing matched
-                                your search. Please try again with different
-                                keywords or filters.
-                            </p>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {properties.map((property) => (
-                                    <PropertyCard
-                                        key={property.id}
-                                        property={property}
-                                        photos={
-                                            propertyPhotos[property.id] || []
-                                        }
-                                        theme="blue"
-                                    />
-                                ))}
+    
+                        {loading ? (
+                            <div className="text-center mt-8">
+                                <h2 className="text-xl font-semibold text-blue-600">
+                                    Loading Properties...
+                                </h2>
                             </div>
-
-                            {/* Pagination */}
-                            <div className="flex justify-center mt-12 mb-8 space-x-2">
-                                {currentPage > 1 && (
-                                    <button
-                                        onClick={() =>
-                                            handlePageChange(currentPage - 1)
-                                        }
-                                        className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
-                                    >
-                                        Previous
-                                    </button>
-                                )}
-                                <div className="flex space-x-2">
-                                    {renderPaginationButtons()}
+                        ) : properties.length === 0 ? (
+                            <div className="text-center mt-8">
+                                <h2 className="text-xl font-semibold text-blue-600">
+                                    Property Listings With{" "}
+                                    {citySearchQuery || "Your Filters"}
+                                </h2>
+                                <p className="text-gray-600 mt-2">
+                                    Result not found. Sorry, but nothing matched
+                                    your search. Please try again with different
+                                    keywords or filters.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {properties.map((property) => (
+                                        <PropertyCard
+                                            key={property.id}
+                                            property={property}
+                                            photos={
+                                                propertyPhotos[property.id] || []
+                                            }
+                                            theme="blue"
+                                        />
+                                    ))}
                                 </div>
-                                {currentPage < totalPages && (
-                                    <button
-                                        onClick={() =>
-                                            handlePageChange(currentPage + 1)
-                                        }
-                                        className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
-                                    >
-                                        Next
-                                    </button>
-                                )}
-                            </div>
-                        </>
-                    )}
+    
+                                <div className="flex justify-center mt-12 mb-8 space-x-2">
+                                    {currentPage > 1 && (
+                                        <button
+                                            onClick={() =>
+                                                handlePageChange(currentPage - 1)
+                                            }
+                                            className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
+                                        >
+                                            Previous
+                                        </button>
+                                    )}
+                                    <div className="flex space-x-2">
+                                        {renderPaginationButtons()}
+                                    </div>
+                                    {currentPage < totalPages && (
+                                        <button
+                                            onClick={() =>
+                                                handlePageChange(currentPage + 1)
+                                            }
+                                            className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
+                                        >
+                                            Next
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
+                <Footer />
             </div>
         </>
     );

@@ -15,6 +15,7 @@ class VerifyCsrfToken extends Middleware
         'logout',
         'api/*',
         'api/users/*',
-        'profile'
+        'profile',
+        '/apply-property'
     ];
 }

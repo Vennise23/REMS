@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { usePendingCount } from "@/Contexts/PendingCountContext";
 import RejectReasonModal from "./RejectReasonModal";
 import axios from "axios";
-
+import ApproveConfirmationModal from "./ApproveConfirmationModal";
 // axios.defaults.headers.common["X-CSRF-TOKEN"] = document
 //     .querySelector('meta[name="csrf-token"]')
 //     ?.getAttribute("content");
@@ -18,6 +18,7 @@ const ViewPropertyModal = ({
     const [pendingCount, setPendingCount] = useState(0);
     const { fetchPendingCount } = usePendingCount();
     const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
 
     if (!isOpen) return null;
 
@@ -107,6 +108,19 @@ const ViewPropertyModal = ({
             (status === "Rejected" && action === "reject") ||
             (status === "Approved" && action === "approve")
         );
+    };
+
+    const handleOpenApproveModal = () => {
+        setShowApproveModal(true);
+    };
+
+    const handleConfirmApprove = async () => {
+        await handleApprove(propertyDetails.id);
+        setShowApproveModal(false);
+    };
+
+    const handleCloseApproveModal = () => {
+        setShowApproveModal(false);
     };
 
     return (
@@ -280,9 +294,7 @@ const ViewPropertyModal = ({
                                     width: "100px",
                                     textAlign: "center",
                                 }}
-                                onClick={() =>
-                                    handleApprove(propertyDetails.id)
-                                }
+                                onClick={handleOpenApproveModal}
                                 disabled={isButtonDisabled(
                                     propertyDetails.approval_status,
                                     "approve"
@@ -315,10 +327,11 @@ const ViewPropertyModal = ({
                     </div>
                 </div>
             </div>
-            {showRejectReasonModal && (
-                <RejectReasonModal
-                    onClose={() => setShowRejectReasonModal(false)}
-                    onSubmit={submitRejectReason}
+            {showApproveModal && (
+                <ApproveConfirmationModal
+                    isOpen={showApproveModal}
+                    onClose={handleCloseApproveModal}
+                    onConfirm={handleConfirmApprove}
                 />
             )}
         </>

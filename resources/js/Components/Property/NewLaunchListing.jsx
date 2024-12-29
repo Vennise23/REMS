@@ -9,7 +9,7 @@ const NewLaunchListing = ({ properties }) => {
         .slice(0, 4);
 
     return (
-        <div className="pt-32 mt-12 bg-gray-100 flex flex-col items-center">
+        <div className="pt-32 mt-12 mb-16 bg-gray-100 flex flex-col items-center">
             <div className="flex justify-between items-center w-full">
                 <h2 className="text-2xl font-semibold text-left">
                     New Launch Listings

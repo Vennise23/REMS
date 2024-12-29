@@ -217,13 +217,14 @@ export default function Main({ auth }) {
             try {
                 const baseURL = `${window.location.origin}/property`;
                 const response = await axios.get(baseURL);
-                console.log("response", response);
+                // console.log("response", response);
                 const filteredData = response.data.filter(
                     (property) =>
                         property.approval_status !== "Rejected" &&
                         property.approval_status !== "Pending"
                 );
                 setPropertyList(filteredData);
+                console.log("propertyList:", filteredData);
             } catch (error) {
                 console.error("Error fetching property data:", error);
             } finally {
@@ -658,46 +659,92 @@ export default function Main({ auth }) {
                                 )}
                             </div>
                         </div>
-
-                        <div className="flex justify-center mt-4">
-                            <button
-                                onClick={openModal}
-                                className="bg-red-500 text-white px-6 py-2 rounded-full"
-                            >
-                                Apply for Property
-                            </button>
-                        </div>
                     </div>
                 </div>
 
-                <PropertyFormModal isOpen={isModalOpen} onClose={closeModal} />
+                <div className="flex-1 flex items-center justify-center">
+                    {loading ? (
+                        <div className="flex justify-center items-center ">
+                            <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
+                        </div>
+                    ) : propertyList.length === 0 ? (
+                        <div className="text-center text-lg font-semibold text-gray-600 mt-8">
+                            No listings available at the moment.
+                        </div>
+                    ) : (
+                        <div>
+                            {isBuy ? (
+                                <>
+                                    {/* New Launch Listings */}
+                                    {propertyList.some(
+                                        (property) =>
+                                            property.sale_type === "New Launch"
+                                    ) && (
+                                        <div className="">
+                                            <NewLaunchListing
+                                                properties={propertyList.filter(
+                                                    (property) =>
+                                                        property.sale_type ===
+                                                        "New Launch"
+                                                )}
+                                            />
+                                        </div>
+                                    )}
 
-                {loading ? (
-                    <div className="flex justify-center items-center min-h-screen">
-                        <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
-                    </div>
-                ) : propertyList.length === 0 ? (
-                    <div className="text-center text-lg font-semibold text-gray-600 mt-8">
-                        No listings available at the moment.
-                    </div>
-                ) : (
-                    <div>
-                        {isBuy ? (
-                            <>
-                                <div className="mb-8">
-                                    <NewLaunchListing
-                                        properties={propertyList}
-                                    />
-                                </div>
-                                <div>
-                                    <LatestListings properties={propertyList} />
-                                </div>
-                            </>
-                        ) : (
-                            <RentListings properties={propertyList} />
-                        )}
-                    </div>
-                )}
+                                    {/* Subsale Listings */}
+                                    {propertyList.some(
+                                        (property) =>
+                                            property.sale_type === "Subsale"
+                                    ) && (
+                                        <div>
+                                            <LatestListings
+                                                properties={propertyList.filter(
+                                                    (property) =>
+                                                        property.sale_type ===
+                                                        "Subsale"
+                                                )}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* 如果没有符合条件的数据，显示默认消息 */}
+                                    {!propertyList.some(
+                                        (property) =>
+                                            property.sale_type ===
+                                                "New Launch" ||
+                                            property.sale_type === "Subsale"
+                                    ) && (
+                                        <div className="text-center text-lg font-semibold text-gray-600 mt-8">
+                                            No listings available at the moment.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {/* 检查并显示 Rent Listings */}
+                                    {propertyList.some(
+                                        (property) =>
+                                            property.purchase === "For Rent"
+                                    ) ? (
+                                        <RentListings
+                                            properties={propertyList.filter(
+                                                (property) =>
+                                                    property.purchase ===
+                                                    "For Rent"
+                                            )}
+                                        />
+                                    ) : (
+                                        // 没有 Rent 数据时显示默认消息
+                                        <div className="text-center text-lg font-semibold text-gray-600 mt-8">
+                                            No Rent listings available at the
+                                            moment.
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
             </main>
             <Footer />
         </>

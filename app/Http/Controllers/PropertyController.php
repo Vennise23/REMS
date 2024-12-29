@@ -81,6 +81,10 @@ class PropertyController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+        // dd([
+        //     'request_data' => $request->all(),
+        //     'csrf_token' => csrf_token(), // Laravel 生成的 CSRF Token
+        // ]);
     }
 
     public function GetPropertyList()
@@ -338,7 +342,7 @@ class PropertyController extends Controller
     public function destroy(Property $property)
     {
         // Check authorization
-        if ($property->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
+        if ($property->user_id !== auth()->id() && !auth()->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -402,5 +406,63 @@ class PropertyController extends Controller
         $property->save();
 
         return response()->json(['status' => 'success']);
+    }
+
+    public function propertyManagementBySeller()
+    {
+        return Inertia::render('Property/PropertyManagement', [
+            'properties' => Property::all(),
+        ]);
+    }
+
+    public function getUserProperties(Request $request)
+    {
+        $user = $request->user();
+        $properties = Property::where('user_id', $user->id)->paginate(10);
+
+        return response()->json([
+            'data' => $properties->items(),
+            'totalPages' => $properties->lastPage(),
+            'total' => $properties->total(),
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            // Validate the incoming data
+            $validatedData = $request->validate([
+                'property_name' => 'required|string|max:255',
+                'property_type' => 'required|string|in:Conventional Condominium,Bare Land Condominium,Commercial',
+                'property_address_line_1' => 'required|string|max:255',
+                'property_address_line_2' => 'nullable|string|max:255',
+                'city' => 'required|string|max:255',
+                'postal_code' => 'nullable|string|max:255',
+                'purchase' => 'required|string|in:For Sale,For Rent',
+                'number_of_units' => 'required|integer',
+                'square_feet' => 'nullable|integer|min:1',
+                'price' => 'required|numeric|min:0',
+            ]);
+
+            // Find the property by its ID
+            $property = Property::findOrFail($id);
+
+            // Check if the user is authorized to update this property
+            if ($property->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Update the property
+            $property->update($validatedData);
+
+            return response()->json([
+                'message' => 'Property updated successfully',
+                'data' => $property,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->validator->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }
