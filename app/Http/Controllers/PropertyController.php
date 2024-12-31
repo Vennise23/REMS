@@ -81,10 +81,6 @@ class PropertyController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
-        // dd([
-        //     'request_data' => $request->all(),
-        //     'csrf_token' => csrf_token(), // Laravel 生成的 CSRF Token
-        // ]);
     }
 
     public function GetPropertyList()
@@ -430,7 +426,6 @@ class PropertyController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // Validate the incoming data
             $validatedData = $request->validate([
                 'property_name' => 'required|string|max:255',
                 'property_type' => 'required|string|in:Conventional Condominium,Bare Land Condominium,Commercial',
@@ -439,20 +434,50 @@ class PropertyController extends Controller
                 'city' => 'required|string|max:255',
                 'postal_code' => 'nullable|string|max:255',
                 'purchase' => 'required|string|in:For Sale,For Rent',
+                'sale_type' => 'nullable|string|in:New Launch,Subsale',
                 'number_of_units' => 'required|integer',
                 'square_feet' => 'nullable|integer|min:1',
                 'price' => 'required|numeric|min:0',
+                'certificate_photos' => 'nullable|array',
+                'property_photos' => 'nullable|array',
+                'each_unit_has_furnace' => 'nullable|boolean',
+                'each_unit_has_electrical_meter' => 'nullable|boolean',
+                'has_onsite_caretaker' => 'nullable|boolean',
+                'parking' => 'nullable|string|in:Above ground,Underground,Both',
+                'amenities' => 'nullable|array',
+                'other_amenities' => 'nullable|string|max:255',
+                'additional_info' => 'nullable|string',
             ]);
 
-            // Find the property by its ID
             $property = Property::findOrFail($id);
 
-            // Check if the user is authorized to update this property
             if ($property->user_id !== Auth::id()) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
-            // Update the property
+            if (isset($validatedData['amenities'])) {
+                $validatedData['amenities'] = array_map(function ($amenity) {
+                    return trim($amenity);
+                }, $validatedData['amenities']);
+            }
+
+            if ($request->hasFile('certificate_photos')) {
+                $certificatePhotos = $property->certificate_photos ?: [];
+                foreach ($request->file('certificate_photos') as $photo) {
+                    $certificatePhotos[] = $photo->store('certificate_photos', 'public');
+                }
+                $validatedData['certificate_photos'] = $certificatePhotos;
+            }
+
+            if ($request->hasFile('property_photos')) {
+                $propertyPhotos = $property->property_photos ?: [];
+                foreach ($request->file('property_photos') as $photo) {
+                    $propertyPhotos[] = $photo->store('property_photos', 'public');
+                }
+                $validatedData['property_photos'] = $propertyPhotos;
+            }
+
+            $validatedData['approval_status'] = 'Pending';
             $property->update($validatedData);
 
             return response()->json([
@@ -464,5 +489,14 @@ class PropertyController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+
+    public function deletePropertyBySeller(Request $request, $id)
+    {
+        $property = Property::findOrFail($id);
+        $property->delete();
+
+        return redirect()->back()->with('success', 'Property deleted successfully!');
     }
 }

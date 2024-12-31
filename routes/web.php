@@ -121,6 +121,7 @@ Route::get('/notifications', [PropertyController::class, 'getNotifications']);
 Route::post('/notifications/{id}/mark-as-read', [PropertyController::class, 'markAsRead']);
 
 Route::post('/properties/{id}', [PropertyController::class, 'update'])->name('properties.update');
+Route::delete('/api/properties/{id}', [PropertyController::class, 'deletePropertyBySeller']);
 // GOOGLE API TESTING
 // Route::get('/test-google-maps', function () {
 //     $apiKey = env('GOOGLE_MAPS_API_KEY');

@@ -36,7 +36,8 @@ class Property extends Model
         'additional_info',
         'status',
         'buyer_id',
-        'transaction_date'
+        'transaction_date',
+        'approval_status',
     ];
 
     protected $casts = [

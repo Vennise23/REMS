@@ -6,7 +6,7 @@ import HeaderMenu from "@/Layouts/HeaderMenu";
 import PropertyManageSidebar from "@/Components/Property/PropertyManageSideBar";
 import PropertyEditModal from "@/Components/Property/PropertyEditModal";
 import PropertyFormModal from "@/Components/Property/PropertyFormModal";
-import Footer from "@/Layouts/Footer";
+import ShowDeleteConfirmationModal from "@/Components/Property/ShowDeleteConfirmationModal";
 
 export default function PropertyManagement({ auth }) {
     const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +20,8 @@ export default function PropertyManagement({ auth }) {
     const [isPropertyFormModalOpen, setIsPropertyFormModalOpen] =
         useState(false);
     const [selectedProperty, setSelectedProperty] = useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [propertyToDelete, setPropertyToDelete] = useState(null);
 
     // Fetch properties from server
     const fetchProperties = async () => {
@@ -60,6 +62,36 @@ export default function PropertyManagement({ auth }) {
         console.log("check ", property);
         setSelectedProperty(property);
         setIsModalOpen(true);
+    };
+
+    const handleDeleteProperty = (property) => {
+        setPropertyToDelete(property);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteProperty = () => {
+        if (propertyToDelete) {
+            setLoading(true);
+            axios
+                .delete(`/api/properties/${propertyToDelete.id}`)
+                .then(() => {
+                    setProperties((prev) =>
+                        prev.filter((p) => p.id !== propertyToDelete.id)
+                    );
+                    setFilteredProperties((prev) =>
+                        prev.filter((p) => p.id !== propertyToDelete.id)
+                    );
+                })
+                .catch((error) => {
+                    console.error("Error deleting property:", error);
+                    alert("Failed to delete the property. Please try again.");
+                })
+                .finally(() => {
+                    setLoading(false);
+                    setIsDeleteModalOpen(false);
+                    setPropertyToDelete(null);
+                });
+        }
     };
 
     const openModal = () => {
@@ -163,9 +195,9 @@ export default function PropertyManagement({ auth }) {
                                                     <span
                                                         className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
                                                             property.purchase ===
-                                                            "Paid"
-                                                                ? "bg-green-200"
-                                                                : "bg-blue-200"
+                                                            "For Sale"
+                                                                ? "bg-blue-100"
+                                                                : "bg-green-100"
                                                         }`}
                                                         style={{
                                                             width: "100px",
@@ -217,6 +249,11 @@ export default function PropertyManagement({ auth }) {
                                                             width: "100px",
                                                             textAlign: "center",
                                                         }}
+                                                        onClick={() =>
+                                                            handleDeleteProperty(
+                                                                property
+                                                            )
+                                                        }
                                                     >
                                                         Delete
                                                     </button>
@@ -279,6 +316,13 @@ export default function PropertyManagement({ auth }) {
                                     );
                                 }}
                                 property={selectedProperty}
+                            />
+
+                            <ShowDeleteConfirmationModal
+                                isOpen={isDeleteModalOpen}
+                                onClose={() => setIsDeleteModalOpen(false)}
+                                onConfirm={confirmDeleteProperty}
+                                message={`Are you sure you want to delete the property "${propertyToDelete?.property_name}"?`}
                             />
                         </main>
                     </div>
