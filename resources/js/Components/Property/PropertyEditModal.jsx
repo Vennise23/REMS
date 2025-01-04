@@ -108,10 +108,8 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
         }));
 
         if (name === "property_name") {
-            // 清除之前的校验定时器
             if (debounceTimeout) clearTimeout(debounceTimeout);
     
-            // 设置延迟校验（例如：500ms）
             debounceTimeout = setTimeout(async () => {
                 try {
                     const response = await fetch(`/check-property-name/${value}`);
@@ -121,7 +119,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                             `This property name already exists. Please choose a different one.`
                         );
                     } else {
-                        setPropertyNameError(""); // 没有错误
+                        setPropertyNameError("");
                     }
                 } catch (error) {
                     console.error("Error checking property name:", error);

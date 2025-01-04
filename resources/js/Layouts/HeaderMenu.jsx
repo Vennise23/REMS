@@ -116,13 +116,23 @@ export default function HeaderMenu({ auth }) {
     const fetchNotifications = async () => {
         try {
             const response = await axios.get("/notifications");
-            // console.log("response", response);
-            if (response.data) {
-                const unreadNotifications = response.data.notifications.filter(
+            console.log("API Response:", response.data);
+            
+            if (response.data && typeof response.data.notifications === "object") {
+                // Convert object to array
+                const notificationsArray = Object.values(response.data.notifications);
+    
+                // Filter unread notifications
+                const unreadNotifications = notificationsArray.filter(
                     (notification) => !notification.isRead
                 );
+    
                 setNotifications(unreadNotifications);
                 setTotalNotifications(unreadNotifications.length);
+            } else {
+                console.error("Invalid notifications data structure:", response.data.notifications);
+                setNotifications([]);
+                setTotalNotifications(0);
             }
         } catch (error) {
             console.error("Error fetching notifications:", error);
