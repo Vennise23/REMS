@@ -505,6 +505,7 @@ class PropertyController extends Controller
             }
 
             $validatedData['approval_status'] = 'Pending';
+            $validatedData['is_read'] = '0';
             $property->update($validatedData);
 
             return response()->json([
