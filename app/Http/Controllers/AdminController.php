@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Property;
 use Inertia\Inertia;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -89,6 +91,7 @@ class AdminController extends Controller
             'city' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:10',
             'role' => 'nullable|string|max:255',
+            'gender' => 'nullable|string|in:male,female,other',
             'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -105,6 +108,7 @@ class AdminController extends Controller
             'city' => $request->city,
             'postal_code' => $request->postal_code,
             'role' => $request->role ?? $user->role,
+            'gender' => $request->gender,
         ]);
 
         // Handle profile picture update
@@ -134,5 +138,66 @@ class AdminController extends Controller
         $user->delete();
 
         return response()->json(['status' => 'User deleted successfully']);
+    }
+
+    public function manageProperties()
+    {
+        return Inertia::render('Admin/AdminPropertyMng');
+    }
+
+    public function propertyTable()
+    {
+        $properties = Property::all();
+        return response()->json($properties);
+    }
+
+    public function approveProperty($id)
+    {
+        $property = Property::findOrFail($id);
+        $property->approval_status = 'Approved';
+        $property->rejection_reason = null;
+        $property->save();
+
+        $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+
+        $user = $property->user;
+        if ($user->role != 'seller') {
+            $user->role = 'seller';
+            $user->save();
+        }
+
+        return response()->json([
+            'status' => 'Property approved successfully',
+            'pendingCount' => $pendingCount,
+        ]);
+    }
+
+    public function rejectProperty(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string',
+        ]);
+
+        $property = Property::findOrFail($id);
+        $property->approval_status = 'Rejected';
+        $property->rejection_reason = $request->reason;
+        $property->save();
+
+        $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
+
+        return response()->json([
+            'status' => 'Property rejected successfully',
+            'pendingCount' => $pendingCount,
+        ]);
+    }
+
+    public function getPendingCount()
+    {
+        try {
+            $pendingCount = Property::where('approval_status', 'pending')->count();
+            return response()->json(['pendingCount' => $pendingCount]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Internal Server Error'], 500);
+        }
     }
 }

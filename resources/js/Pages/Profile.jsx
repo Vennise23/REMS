@@ -1,139 +1,145 @@
-import React, { useState } from "react";
-import { useForm, Head } from "@inertiajs/react";
-import Header from "@/Components/HeaderMenu";
+import React, { useState, useEffect } from "react";
+import { useForm, Head, usePage } from "@inertiajs/react";
+import Header from "@/layouts/HeaderMenu";
 import UserSidebar from "@/Components/UserSidebar";
 import axios from "axios";
-import { debounce } from 'lodash';
+import { debounce } from "lodash";
+
 
 export default function Profile({ auth, user }) {
+    const { csrf_token } = usePage().props;
+
     const originalEmail = user.email; // Define the original email here
-    const { 
-        data, 
-        setData, 
-        processing, 
-        errors, 
-        setError,
-        clearErrors 
-    } = useForm({
-        firstname: user.firstname || "",
-        lastname: user.lastname || "",
-        email: user.email || "",
-        ic_number: user.ic_number || "",
-        age: user.age || "",
-        born_date: user.born_date || "",
-        phone: user.phone || "",
-        address_line_1: user.address_line_1 || "",
-        address_line_2: user.address_line_2 || "",
-        city: user.city || "",
-        postal_code: user.postal_code || "",
-        profile_picture: null,
-    });
+    const { data, setData, processing, errors, setError, clearErrors, post } =
+        useForm({
+            firstname: user.firstname || "",
+            lastname: user.lastname || "",
+            email: user.email || "",
+            ic_number: user.ic_number || "",
+            age: user.age || "",
+            born_date: user.born_date || "",
+            phone: user.phone || "",
+            gender: user.gender || "",
+            address_line_1: user.address_line_1 || "",
+            address_line_2: user.address_line_2 || "",
+            city: user.city || "",
+            postal_code: user.postal_code || "",
+            profile_picture: null,
+        });
 
-     // Define formErrors state
-     const [formErrors, setFormErrors] = useState({});
-     const [isIC, setIsIC] = useState(false);
- 
-     const validateFields = (field, value) => {
-         let errors = { ...formErrors };
- 
-         if (field === "firstname" || field === "lastname") {
-             if (data.firstname === data.lastname) {
-                 errors["nameMatch"] = "First name and last name cannot be the same.";
-             } else {
-                 delete errors["nameMatch"];
-             }
-         }
- 
-         if (field === "age") {
-             const age = parseInt(value);
-             if (age < 1 || age > 100) {
-                 errors["age"] = "Age must be between 1 and 100.";
-             } else {
-                 delete errors["age"];
-             }
-         }
- 
-         if (field === "phone" && /\D/.test(value)) {
-             errors["phone"] = "Phone number can only contain digits.";
-         } else {
-             delete errors["phone"];
-         }
- 
-         setFormErrors(errors);
-     };
- 
-     const validateIC = (value) => {
-         const icRegex = /^\d{6}\d{6}$/; // Example: YYMMDDXXXXXX
-         if (icRegex.test(value)) {
-             const year = parseInt(value.substring(0, 2), 10);
-             const month = parseInt(value.substring(2, 4), 10);
-             const day = parseInt(value.substring(4, 6), 10);
- 
-             if (month < 1 || month > 12 || day < 1 || day > 31) {
-                 return false; // Invalid date in IC
-             }
- 
-             const currentYear = new Date().getFullYear();
-             const fullYear = year > parseInt(String(currentYear).substring(2)) ? 1900 + year : 2000 + year;
- 
-             return { fullYear, month, day };
-         }
-         return false;
-     };
- 
-     const handleChange = (field, inputValue) => {
-         setData(field, inputValue);
- 
-         if (field === "email" && inputValue !== originalEmail) {
-             checkEmailUniqueness(inputValue);
-         } else if (field === "email" && inputValue === originalEmail) {
-             setFormErrors((prevErrors) => {
-                 const { email, ...rest } = prevErrors;
-                 return rest;
-             });
-         }
- 
-         if (field === "ic_number") {
-             const icValidation = validateIC(inputValue);
-             if (icValidation) {
-                 const { fullYear, month, day } = icValidation;
-                 const birthDate = new Date(fullYear, month - 1, day);
- 
-                 setData("born_date", birthDate.toISOString().split("T")[0]);
-                 setData("age", new Date().getFullYear() - fullYear);
-                 setIsIC(true);
-             } else {
-                 setIsIC(false);
-                 setData("born_date", "");
-                 setData("age", "");
-             }
-         }
-     };
- 
-     const handleManualInput = (field, inputValue) => {
-         setData(field, inputValue);
-         if (field === "born_date") {
-             const birthYear = new Date(inputValue).getFullYear();
-             setData("age", new Date().getFullYear() - birthYear);
-         }
-     };
+    // Define formErrors state
+    const [formErrors, setFormErrors] = useState({});
+    const [isIC, setIsIC] = useState(false);
+    const [documentType, setDocumentType] = useState('ic');
+    const [icError, setIcError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [suggestions, setSuggestions] = useState([]);
+    const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
 
-    const checkEmailUniqueness = async (email) => {
+    
+
+    const validateIC = (value) => {
+        if (!/^\d{12}$/.test(value)) {
+            return false;
+        }
+
+        const year = value.substring(0, 2);
+        const month = parseInt(value.substring(2, 4));
+        const day = parseInt(value.substring(4, 6));
+        const gender = parseInt(value.substring(11, 12)) % 2 === 0 ? 'female' : 'male';
+
+        // Validate month and day
+        if (month < 1 || month > 12 || day < 1 || day > 31) {
+            return false;
+        }
+
+        const fullYear = parseInt(year) > 23 ? `19${year}` : `20${year}`;
+        const bornDate = `${fullYear}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        
+        return {
+            isValid: true,
+            bornDate,
+            gender,
+            age: calculateAge(bornDate)
+        };
+    };
+
+    const validatePassport = (value) => {
+        return /^[A-Za-z0-9]+$/.test(value);
+    };
+
+    const handleChange = (field, inputValue) => {
+        setData(field, inputValue);
+
+        if (field === "email" && inputValue !== originalEmail) {
+            checkEmailUniqueness(inputValue);
+        } else if (field === "email" && inputValue === originalEmail) {
+            setFormErrors((prevErrors) => {
+                const { email, ...rest } = prevErrors;
+                return rest;
+            });
+        }
+
+        if (field === "ic_number") {
+            const icValidation = validateIC(inputValue);
+            if (icValidation) {
+                const { fullYear, month, day } = icValidation;
+                const birthDate = new Date(fullYear, month - 1, day);
+
+                setData("born_date", birthDate.toISOString().split("T")[0]);
+                setData("age", new Date().getFullYear() - fullYear);
+                setIsIC(true);
+            } else {
+                setIsIC(false);
+                setData("born_date", "");
+                setData("age", "");
+            }
+        }
+    };
+
+    const handleManualInput = (field, inputValue) => {
+        setData(field, inputValue);
+        if (field === "born_date") {
+            const birthYear = new Date(inputValue).getFullYear();
+            setData("age", new Date().getFullYear() - birthYear);
+        }
+    };
+
+    const checkEmailUniqueness = debounce(async (email) => {
+        if (email === originalEmail) {
+            setEmailError('');
+            return;
+        }
+        
         try {
             const response = await axios.post(route("profile.checkEmail"), { email });
             if (response.data.exists) {
-                setFormErrors((prevErrors) => ({
-                    ...prevErrors,
-                    email: "This email is already registered. Please use a different email.",
-                }));
+                setEmailError("This email is already registered. Please try to login or use a different email.");
+                setError('email', 'Email already in use');
             } else {
-                setFormErrors((prevErrors) => {
-                    const { email, ...rest } = prevErrors;
-                    return rest;
-                });
+                setEmailError('');
+                clearErrors('email');
             }
         } catch (error) {
-            console.error("Error checking email uniqueness:", error);
+            console.error("Error checking email:", error);
+        }
+    }, 500);
+
+    const checkICUniqueness = async (icNumber) => {
+        try {
+            const response = await axios.post(route("profile.checkIC"), { ic_number: icNumber });
+            if (response.data.exists) {
+                setIcError("This IC number is already registered in our system.");
+                setError('ic_number', 'IC already registered');
+                return false;
+            } else {
+                setIcError('');
+                clearErrors('ic_number');
+                return true;
+            }
+        } catch (error) {
+            console.error("Error checking IC:", error);
+            return false;
         }
     };
 
@@ -150,49 +156,62 @@ export default function Profile({ auth, user }) {
         return age;
     };
 
-    const handleICorPassport = (e) => {
+    const handleICChange = async (e) => {
         const value = e.target.value;
-        console.log("Function called with value:", value);
-
-        // Update the IC number field directly without any conditions to allow user input
-        setData("ic_number", value);
-
-        // Remove hyphens for validation
-        const cleanedValue = value.replace(/-/g, '');
-
-        // Check if the input resembles an IC or passport number
-        const isICFormat = /^\d{12}$/.test(cleanedValue); // 12 digits, no hyphens
-        const isPassportFormat = /^[A-Z]\d{7,8}$/.test(value); // Alphanumeric passport
-
-        if (isICFormat || isPassportFormat) {
-            console.log(isICFormat ? "Detected IC format" : "Detected Passport format");
-            setIsIC(isICFormat);
-
-            // Check if the input resembles an IC format (12 numeric characters)
-            if (isICFormat) {
-                // Parse IC format to extract birth year, month, and day
-                const year = parseInt(value.slice(0, 2), 10);
-                const month = parseInt(value.slice(2, 4), 10);
-                const day = parseInt(value.slice(4, 6), 10);
-
-                const currYear = new Date().getFullYear();
-                const currYear_cutoff = currYear % 100; // get the last two digit of current year.
-                const birthYear = year > currYear_cutoff ? 1900 + year : 2000 + year;
-                const birthDate = new Date(birthYear, month - 1, day + 1);
-                const formattedDate = birthDate.toISOString().split("T")[0]; // YYYY-MM-DD format
-
-                console.log("Birth Date Calculated:", formattedDate);
-    
-                // Update state
-                setData((prevData) => ({
-                    ...prevData,
-                    born_date: formattedDate,
-                    age: currYear - birthYear,
-                }));
+        
+        if (documentType === 'ic') {
+            // Only allow numbers
+            const numbersOnly = value.replace(/[^\d]/g, '');
+            setData('ic_number', numbersOnly);
+            
+            if (numbersOnly.length === 12) {
+                const icData = validateIC(numbersOnly);
+                if (icData.isValid) {
+                    // Check IC uniqueness before setting the data
+                    const isUnique = await checkICUniqueness(numbersOnly);
+                    if (isUnique) {
+                        setData(data => ({
+                            ...data,
+                            born_date: icData.bornDate,
+                            age: icData.age,
+                            gender: icData.gender
+                        }));
+                        setIcError('');
+                    }
+                } else {
+                    setIcError('Invalid IC format');
+                    clearDependentFields();
+                }
+            } else if (numbersOnly.length > 0) {
+                setIcError('IC must be 12 digits');
+                clearDependentFields();
             }
         } else {
-            console.log("Invalid format. Not an IC or Passport number.");
+            // Passport: allow alphanumeric, no special characters
+            const alphanumeric = value.replace(/[^A-Za-z0-9]/g, '');
+            if (validatePassport(alphanumeric)) {
+                setData('ic_number', alphanumeric);
+                setIcError('');
+            } else {
+                setIcError('Only letters and numbers are allowed');
+            }
         }
+    };
+
+    const clearDependentFields = () => {
+        setData(data => ({
+            ...data,
+            born_date: '',
+            age: '',
+            gender: ''
+        }));
+    };
+
+    const handleDocumentTypeChange = (type) => {
+        setDocumentType(type);
+        setData('ic_number', '');
+        clearDependentFields();
+        setIcError('');
     };
 
     const handleDateChange = (e) => {
@@ -207,17 +226,49 @@ export default function Profile({ auth, user }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (data.firstname === data.lastname) {
-            alert("First name and last name cannot be the same.");
-            return;
+        // Validate email before submission
+        const emailError = validateEmail(data.email);
+        if (emailError) {
+            setError("email", emailError);
+            alert('Please fix the email format before submitting.');
+            return; // Prevent form submission
         }
 
-        post(route("profile.update"), {
-            onSuccess: () => {
-                window.location.reload();
-            },
-        });
+        // Create FormData object
+        const formData = new FormData();
         
+        // Add method spoofing for Laravel
+        formData.append('_method', 'PUT');
+        
+        // Add all form fields to FormData
+        Object.keys(data).forEach(key => {
+            if (data[key] != null) {
+                if (key === 'profile_picture' && data[key] instanceof File) {
+                    formData.append(key, data[key]);
+                } else {
+                    formData.append(key, data[key]);
+                }
+            }
+        });
+
+        try {
+            // Submit using Inertia
+            post(route('profile.update'), formData, {
+                forceFormData: true,
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    alert('Profile updated successfully!');
+                },
+                onError: (errors) => {
+                    console.error('Form submission errors:', errors);
+                    alert(Object.values(errors).flat()[0] || 'An error occurred while saving your profile');
+                },
+            });
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('An error occurred while saving your profile');
+        }
     };
 
     const userImage = data.profile_picture
@@ -234,73 +285,327 @@ export default function Profile({ auth, user }) {
     };
 
     const validateEmail = (email) => {
+        // Basic email format check
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return "Please enter a valid email address";
         }
-        if (!email.toLowerCase().endsWith('.com')) {
-            return "Email must end with .com";
+        
+        // Check for valid domain extensions (.com, .my, etc.)
+        const domainExtensionRegex = /\.[a-z]{2,}$/i;
+        if (!domainExtensionRegex.test(email)) {
+            return "Email must end with a valid domain (e.g., .com, .my)";
         }
+        
         return null;
     };
 
     const validatePhone = (phone) => {
-        // Adjust regex based on your country's phone format
-        const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
-        if (!phoneRegex.test(phone)) {
-            return "Please enter a valid phone number format";
+        // Remove all spaces and special characters for validation
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+
+        // Malaysian phone number patterns:
+        // 1. Starting with 0: 01xxxxxxxx (10-11 digits total)
+        // 2. Starting with +60: +60xxxxxxxxx (11-12 digits total)
+        const malaysianPattern = /^(?:0|(\+?60))(?:1[0-46-9]\d{7,8}|[3-9]\d{7})$/;
+
+        // International phone number pattern (for other countries)
+        const internationalPattern = /^\+(?:[0-9] ?){6,14}[0-9]$/;
+
+        if (malaysianPattern.test(cleanPhone)) {
+            return null; // Valid Malaysian number
+        } else if (internationalPattern.test(cleanPhone)) {
+            return null; // Valid international number
         }
-        return null;
+        return "Please enter a valid phone number";
     };
 
     const handleNameChange = (field, value) => {
         setData(field, value);
-        
+
         // Clear existing name error
         if (errors.nameMatch) {
-            clearErrors('nameMatch');
+            clearErrors("nameMatch");
         }
-        
+
         // Validate names when either first name or last name changes
-        const firstName = field === 'firstname' ? value : data.firstname;
-        const lastName = field === 'lastname' ? value : data.lastname;
-        
+        const firstName = field === "firstname" ? value : data.firstname;
+        const lastName = field === "lastname" ? value : data.lastname;
+
         if (firstName && lastName) {
             const nameError = validateName(firstName, lastName);
             if (nameError) {
-                setError('nameMatch', nameError);
+                setError("nameMatch", nameError);
             }
         }
     };
 
     const handleEmailChange = (e) => {
         const value = e.target.value;
-        setData('email', value);
-        
+        setData("email", value);
+
         // Clear existing email error
-        if (errors.email) {
-            clearErrors('email');
-        }
-        
-        const emailError = validateEmail(value);
-        if (emailError) {
-            setError('email', emailError);
+        clearErrors("email");
+
+        if (value) {
+            const emailError = validateEmail(value);
+            if (emailError) {
+                setError("email", emailError);
+            } else if (value !== originalEmail) {
+                // Only check uniqueness if email is valid and different from original
+                checkEmailUniqueness(value);
+            }
+        } else {
+            setError("email", "Email is required");
         }
     };
 
     const handlePhoneChange = (e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        setData('phone', value);
-        
+        let value = e.target.value;
+
+        // Allow digits, +, spaces, hyphens
+        value = value.replace(/[^\d\+\-\s]/g, "");
+
+        // Format the value
+        value = formatPhoneNumber(value);
+
+        setData("phone", value);
+
         // Clear existing phone error
         if (errors.phone) {
-            clearErrors('phone');
+            clearErrors("phone");
         }
-        
+
         const phoneError = validatePhone(value);
         if (phoneError) {
-            setError('phone', phoneError);
+            setError("phone", phoneError);
         }
+    };
+
+    const formatPhoneNumber = (value) => {
+        // Remove all non-digit characters except + 
+        let digits = value.replace(/[^\d+]/g, "");
+
+        // Handle Malaysian numbers
+        if (digits.startsWith('0')) {
+            // Convert 01x format to +601x format
+            digits = '+6' + digits;
+        } else if (!digits.startsWith('+')) {
+            // If no + or 0 prefix, assume it's a Malaysian number without prefix
+            digits = '+60' + digits;
+        }
+
+        // Format based on country code
+        if (digits.startsWith('+60')) {
+            // Malaysian format: +60 12-3456789
+            if (digits.length >= 12) {
+                return digits.slice(0, 3) + " " + 
+                       digits.slice(3, 5) + "-" + 
+                       digits.slice(5);
+            }
+        } else {
+            // Simple international format: +XX XXX-XXXXXXX
+            if (digits.length >= 8) {
+                const countryCode = digits.slice(0, 3);
+                const areaCode = digits.slice(3, 6);
+                const number = digits.slice(6);
+                return `${countryCode} ${areaCode}-${number}`;
+            }
+        }
+
+        return digits; // Return unformatted if no specific format matches
+    };
+
+    const handleAddressChange = (e) => {
+        const { value } = e.target;
+        setData({ ...data, address_line_1: value });
+        if (value.length > 2) {
+            fetchSuggestions(value, "address");
+        } else {
+            setSuggestions([]);
+        }
+    };
+
+    const fetchSuggestions = async (query, type) => {
+        try {
+            const url = `/api/place-autocomplete?query=${query}&type=${type}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            // console.log("data suggestion: ", data);
+
+            if (data.predictions && Array.isArray(data.predictions)) {
+                if (type === "address") {
+                    const suggestions = data.predictions.map((prediction) => ({
+                        description: prediction.description,
+                        placeId: prediction.place_id,
+                        geometry: prediction.geometry,
+                    }));
+                    setSuggestions(suggestions);
+                } else {
+                    setSuggestionsPostalCode(
+                        data.predictions.map(
+                            (prediction) => prediction.description
+                        )
+                    );
+                }
+            } else {
+                if (type === "address") {
+                    setSuggestions([]);
+                } else {
+                    setSuggestionsPostalCode([]);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching address suggestions:", error);
+        }
+    };
+
+    const fetchPostalCode = async (placeId) => {
+        try {
+            const url = `/api/geocode?place_id=${placeId}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log("data postal code: ", data);
+
+            if (data.status === "OK" && data.results.length > 0) {
+                const addressComponents = data.results[0].address_components;
+
+                const streetNumber = addressComponents.find((component) =>
+                    component.types.includes("street_number")
+                );
+                const streetAddress_1 = addressComponents.find((component) =>
+                    component.types.includes("route")
+                );
+                const streetAddress_2 = addressComponents.find((component) =>
+                    component.types.includes("sublocality")
+                );
+                const city = addressComponents.find((component) =>
+                    component.types.includes("locality")
+                );
+                const country = addressComponents.find((component) =>
+                    component.types.includes("country")
+                );
+                const postalCodeComponent = addressComponents.find(
+                    (component) => component.types.includes("postal_code")
+                );
+
+                const { lat, lng } = data.results[0].geometry.location;
+                const address_line_1 = streetNumber
+                    ? `${streetNumber.long_name}, ${
+                          streetAddress_1 ? streetAddress_1.long_name : ""
+                      }`
+                    : streetAddress_1
+                    ? streetAddress_1.long_name
+                    : "";
+
+                return {
+                    address_line_1,
+                    address_line_2: streetAddress_2
+                        ? streetAddress_2.long_name
+                        : "",
+                    city: city ? city.long_name : "",
+                    country: country ? country.long_name : "",
+                    postalCode: postalCodeComponent
+                        ? postalCodeComponent.long_name
+                        : null,
+                    lat,
+                    lng,
+                };
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Error fetching postal code:", error);
+            return null;
+        }
+    };
+
+    const fetchPostalCodeFromGeonames = async (lat, lng) => {
+        try {
+            const username = "rems.com";
+            const url = `http://api.geonames.org/findNearbyPostalCodesJSON?lat=${lat}&lng=${lng}&username=${username}`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+            // console.log("checking geonames")
+
+            if (data.postalCodes && data.postalCodes.length > 0) {
+                const postalInfo = data.postalCodes[0];
+                return {
+                    postalCode: postalInfo.postalCode,
+                    placeName: postalInfo.placeName,
+                    adminName1: postalInfo.adminName1,
+                };
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Error fetching postal code from Geonames:", error);
+            return null;
+        }
+    };
+
+    const onAddressSelect = async (suggestion) => {
+        try {
+            const googleResult = await fetchPostalCode(suggestion.placeId);
+
+            if (googleResult) {
+                const {
+                    lat,
+                    lng,
+                    postalCode,
+                    address_line_1,
+                    address_line_2,
+                    city,
+                    country,
+                } = googleResult;
+
+                let postalInfo = postalCode
+                    ? { postalCode }
+                    : await fetchPostalCodeFromGeonames(lat, lng);
+
+                setData({
+                    ...data,
+                    address_line_1,
+                    address_line_2,
+                    city,
+                    country,
+                    postal_code: postalInfo?.postalCode || postalCode || "",
+                });
+            }
+        } catch (error) {
+            console.error("Error selecting address:", error);
+        }
+
+        setSuggestions([]);
+    };
+
+    useEffect(() => {
+        if (data.profile_picture instanceof File) {
+            const objectUrl = URL.createObjectURL(data.profile_picture);
+            return () => URL.revokeObjectURL(objectUrl);
+        }
+    }, [data.profile_picture]);
+
+    // Add this function to validate file type and size
+    const validateProfilePicture = (file) => {
+        // Allowed file types
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+        
+        // Max file size (2MB)
+        const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only image files (JPG, PNG, GIF) are allowed');
+            return false;
+        }
+
+        if (file.size > maxSize) {
+            alert('File size must be less than 2MB');
+            return false;
+        }
+
+        return true;
     };
 
     return (
@@ -316,14 +621,30 @@ export default function Profile({ auth, user }) {
                         <div className="col-span-1 text-center">
                             <div
                                 className="w-32 h-32 rounded-full mx-auto bg-cover bg-center"
-                                style={{ backgroundImage: `url(${userImage})` }}
+                              
+                                style={{ 
+                                    backgroundImage: `url(${userImage})`,
+                                    backgroundPosition: 'center',
+                                    backgroundSize: 'cover',
+                                }}
                             ></div>
                             <label className="block mt-2 text-sm text-gray-600 cursor-pointer">
                                 Edit Picture
                                 <input
                                     type="file"
                                     className="hidden"
-                                    onChange={(e) => setData("profile_picture", e.target.files[0])}
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            if (validateProfilePicture(file)) {
+                                                setData("profile_picture", file);
+                                            } else {
+                                                // Reset the input
+                                                e.target.value = '';
+                                            }
+                                        }
+                                    }}
                                 />
                             </label>
                             <p className="text-lg font-semibold mt-4">{`${data.firstname} ${data.lastname}`}</p>
@@ -332,32 +653,57 @@ export default function Profile({ auth, user }) {
                         </div>
 
                         <div className="col-span-2">
-                            <h2 className="text-2xl font-semibold mb-6">My Profile</h2>
-                            <form onSubmit={handleSubmit} encType="multipart/form-data">
+                            <h2 className="text-2xl font-semibold mb-6">
+                                My Profile
+                            </h2>
+                            <form
+                                onSubmit={handleSubmit}
+                                encType="multipart/form-data"
+                                className="space-y-6"
+                            >
+                                <input type="hidden" name="_token" value={csrf_token} />
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">First Name</label>
+                                        <label className="block text-gray-700">
+                                            First Name
+                                        </label>
                                         <input
                                             type="text"
-                                            className="mt-1 block w-full border rounded p-2"
+                                            className={`mt-1 block w-full border rounded p-2 ${errors.nameMatch ? 'border-red-500' : ''}`}
                                             value={data.firstname}
-                                            onChange={(e) => handleNameChange("firstname", e.target.value)}
+                                            onChange={(e) =>
+                                                handleNameChange(
+                                                    "firstname",
+                                                    e.target.value
+                                                )
+                                            }
                                         />
                                         {errors.nameMatch && (
-                                            <div className="text-red-500 text-sm">{errors.nameMatch}</div>
+                                            <div className="text-red-500 text-sm">
+                                                {errors.nameMatch}
+                                            </div>
                                         )}
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Last Name</label>
+                                        <label className="block text-gray-700">
+                                            Last Name
+                                        </label>
                                         <input
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.lastname}
-                                            onChange={(e) => handleNameChange("lastname", e.target.value)}
+                                            onChange={(e) =>
+                                                handleNameChange(
+                                                    "lastname",
+                                                    e.target.value
+                                                )
+                                            }
                                         />
                                         {errors.nameMatch && (
-                                            <div className="text-red-500 text-sm">{errors.nameMatch}</div>
+                                            <div className="text-red-500 text-sm">
+                                                {errors.nameMatch}
+                                            </div>
                                         )}
                                     </div>
 
@@ -365,108 +711,215 @@ export default function Profile({ auth, user }) {
                                         <label className="block text-gray-700">Email</label>
                                         <input
                                             type="email"
-                                            className="mt-1 block w-full border rounded p-2"
+                                            className={`mt-1 block w-full border rounded p-2 ${emailError ? 'border-red-500' : ''}`}
                                             value={data.email}
                                             onChange={handleEmailChange}
                                         />
-                                        {errors.email && (
-                                            <div className="text-red-500 text-sm">{errors.email}</div>
+                                        {emailError && (
+                                            <p className="text-red-500 text-sm mt-1">{emailError}</p>
                                         )}
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">IC Number / Passport</label>
+                                        <label className="block text-gray-700 mb-2">Document Type</label>
+                                        <div className="flex gap-4 mb-2">
+                                            <label className="inline-flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    className="form-radio"
+                                                    name="document_type"
+                                                    value="ic"
+                                                    checked={documentType === 'ic'}
+                                                    onChange={() => handleDocumentTypeChange('ic')}
+                                                />
+                                                <span className="ml-2">IC Number</span>
+                                            </label>
+                                            <label className="inline-flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    className="form-radio"
+                                                    name="document_type"
+                                                    value="passport"
+                                                    checked={documentType === 'passport'}
+                                                    onChange={() => handleDocumentTypeChange('passport')}
+                                                />
+                                                <span className="ml-2">Passport</span>
+                                            </label>
+                                        </div>
                                         <input
                                             type="text"
-                                            className="mt-1 block w-full border rounded p-2"
+                                            className={`mt-1 block w-full border rounded p-2 ${icError ? 'border-red-500' : ''}`}
                                             value={data.ic_number || ''}
-                                            onChange={handleICorPassport}
+                                            onChange={handleICChange}
+                                            placeholder={documentType === 'ic' ? 'Enter 12 digit IC number' : 'Enter passport number'}
+                                            maxLength={documentType === 'ic' ? 12 : undefined}
                                         />
+                                        {icError && (
+                                            <p className="text-red-500 text-sm mt-1">{icError}</p>
+                                        )}
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Age</label>
+                                        <label className="block text-gray-700">
+                                            Age
+                                        </label>
                                         <input
                                             type="number"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.age || ''}
-                                            onChange={(e) => setData("age", e.target.value)}
-                                            disabled={isIC}
+                                            value={data.age || ""}
+                                            onChange={(e) =>
+                                                setData("age", e.target.value)
+                                            }
+                                            disabled={documentType === 'ic' && isIC}
                                         />
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Born Date</label>
+                                        <label className="block text-gray-700">
+                                            Born Date
+                                        </label>
                                         <input
                                             type="date"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.born_date || ''}
                                             onChange={handleDateChange}
-                                            disabled={isIC}
+                                            disabled={documentType === 'ic' && isIC}
                                         />
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Phone Number</label>
+                                        <label className="block text-gray-700">Gender</label>
+                                        <select
+                                            className={`mt-1 block w-full border rounded p-2 ${errors.gender ? 'border-red-500' : ''}`}
+                                            value={data.gender}
+                                            onChange={(e) => setData("gender", e.target.value)}
+                                            disabled={documentType === 'ic' && isIC}
+                                        >
+                                            <option value="">Select Gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        {errors.gender && (
+                                            <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">
+                                            Phone Number
+                                        </label>
                                         <input
                                             type="text"
-                                            inputMode="numeric"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.phone}
                                             onChange={handlePhoneChange}
                                         />
                                         {errors.phone && (
-                                            <div className="text-red-500 text-sm">{errors.phone}</div>
+                                            <div className="text-red-500 text-sm">
+                                                {errors.phone}
+                                            </div>
                                         )}
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Address Line 1</label>
+                                        <label className="block text-gray-700">
+                                            Address Line 1
+                                        </label>
                                         <input
                                             type="text"
+                                            name="address_line_1"
+                                            placeholder="Address Line 1*"
                                             className="mt-1 block w-full border rounded p-2"
                                             value={data.address_line_1}
-                                            onChange={(e) => setData("address_line_1", e.target.value)}
+                                            onChange={handleAddressChange}
+                                        />
+                                        {/* Display address suggestions */}
+                                        {suggestions.length > 0 && (
+                                                <ul className="suggestions-list absolute bg-white border border-gray-300 w-full max-h-40 overflow-auto z-10">
+                                                    {suggestions.map(
+                                                        (suggestion, index) => (
+                                                            <li
+                                                                key={index}
+                                                                onClick={() =>
+                                                                    onAddressSelect(
+                                                                        suggestion
+                                                                    )
+                                                                }
+                                                                className="p-2 hover:bg-gray-200 cursor-pointer"
+                                                            >
+                                                                <div className="font-bold">
+                                                                    {suggestion.description ||
+                                                                        "Unknown Address"}
+                                                                </div>
+                                                                {/* <div className="text-sm text-gray-500">
+                                                                    {suggestion.city ||
+                                                                        "Unknown City"}{" "}
+                                                                    ,{" "}
+                                                                    {suggestion.country ||
+                                                                        "Unknown Region"}
+                                                                </div> */}
+                                                            </li>
+                                                        )
+                                                    )}
+                                                </ul>
+                                            )}
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="block text-gray-700">
+                                            Address Line 2
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border rounded p-2"
+                                            name="address_line_2"
+                                            placeholder="Address Line 2"
+                                            
+                                            value={
+                                                data.address_line_2
+                                            }
+                                            onChange={handleChange}
                                         />
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Address Line 2</label>
+                                        <label className="block text-gray-700">
+                                            City
+                                        </label>
                                         <input
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
-                                            value={data.address_line_2}
-                                            onChange={(e) => setData("address_line_2", e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <label className="block text-gray-700">City</label>
-                                        <input
-                                            type="text"
-                                            className="mt-1 block w-full border rounded p-2"
+                                            name="city"
+                                            placeholder="City*"
                                             value={data.city}
-                                            onChange={(e) => setData("city", e.target.value)}
+                                            onChange={handleChange}
                                         />
                                     </div>
 
                                     <div className="mb-4">
-                                        <label className="block text-gray-700">Postal Code</label>
+                                        <label className="block text-gray-700">
+                                            Postal Code
+                                        </label>
                                         <input
                                             type="text"
                                             className="mt-1 block w-full border rounded p-2"
+                                            name="postal_code"
+                                            placeholder="Postal Code*"
                                             value={data.postal_code}
-                                            onChange={(e) => setData("postal_code", e.target.value)}
+                                            onChange={handleChange}
                                         />
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-end mt-6">
                                     <button
                                         type="submit"
-                                        className="bg-orange-500 text-white px-6 py-2 rounded-full"
+                                        className="bg-red-500 text-white px-6 py-2 rounded-full"
                                         disabled={processing}
                                     >
-                                        {processing ? "Saving..." : "Save Changes"}
+                                        {processing
+                                            ? "Saving..."
+                                            : "Save Changes"}
                                     </button>
                                 </div>
                             </form>

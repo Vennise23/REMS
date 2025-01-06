@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useForm, Link, Head, router } from "@inertiajs/react";
 
-import Header from "@/Components/HeaderMenu";
+import Header from "@/Layouts/HeaderMenu";
 
 export default function UploadResult({ originalImagePath, binarizedImagePath, originalThreShold, binarizedThreShold, auth }) {
     const [currentImage, setCurrentImage] = useState(binarizedImagePath);

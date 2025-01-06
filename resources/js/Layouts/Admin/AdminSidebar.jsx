@@ -1,11 +1,13 @@
 // resources/js/Layouts/AdminSidebar.jsx
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, usePage } from "@inertiajs/react";
 import axios from "axios";
+import { usePendingCount } from "@/Contexts/PendingCountContext";
 
 export default function AdminSidebar({ isOpen, toggleSidebar }) {
     const { csrf_token } = usePage().props;
+    const { pendingCount, fetchPendingCount } = usePendingCount();
 
     const handleLogout = async (e) => {
         e.preventDefault();
@@ -46,12 +48,19 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                 >
                     Manage Users
                 </Link>
-                <Link
-                    href="/admin/settings"
-                    className="hover:bg-blue-700 p-2 rounded"
-                >
-                    Manage Property
-                </Link>
+                <div className="relative">
+                    <Link
+                        href={route("admin.properties")}
+                        className="hover:bg-blue-700 p-2 rounded flex items-center justify-between"
+                    >
+                        <span>Manage Property</span>
+                        {pendingCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md">
+                                {pendingCount}
+                            </span>
+                        )}
+                    </Link>
+                </div>
                 <Link
                     href="/admin/reports"
                     className="hover:bg-blue-700 p-2 rounded"
@@ -81,5 +90,5 @@ export default function AdminSidebar({ isOpen, toggleSidebar }) {
                 &times;
             </button>
         </aside>
-    );
+    );
 }

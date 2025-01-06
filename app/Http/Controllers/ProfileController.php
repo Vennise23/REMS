@@ -2,134 +2,160 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-
-
-
-use Inertia\Response;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit()
+    public function edit(Request $request)
     {
-        // Get the authenticated user's data
-        $user = Auth::user();
+        try {
+            $user = User::findOrFail(auth()->id());
+            
+            $rules = [
+                'firstname' => 'nullable|string|min:2',
+                'lastname' => 'nullable|string|min:2',
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'ic_number' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'phone' => 'nullable|string',
+                'password' => 'nullable|min:8',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'role' => 'nullable|string',
+                'age' => 'nullable|integer',
+                'born_date' => 'nullable|date',
+                'address_line_1' => 'nullable|string',
+                'address_line_2' => 'nullable|string',
+                'city' => 'nullable|string',
+                'postal_code' => 'nullable|string',
+                'gender' => 'nullable|string'
+            ];
 
-        // Render the profile view with user data
-        return Inertia::render('Profile', [
-            'user' => $user
-        ]);
-    }
+            $validator = Validator::make($request->all(), $rules);
+            $data = $validator->validated();
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(Request $request)
-    {
-        $user = Auth::user();
-
-        $request->validate([
-            'firstname' => 'string|max:255',
-            'lastname' => 'string|max:255',
-            'email' => 'email|unique:users,email,' . $user->id,
-            'ic_number' => 'nullable|string',
-            'age' => 'nullable|integer',
-            'born_date' => 'nullable|date',
-            'phone' => 'nullable|string',
-            'address_line_1' => 'nullable|string|max:255',
-            'address_line_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'password' => 'nullable|min:8|confirmed'
-        ]);
-
-        if ($request->hasFile('profile_picture')) {
-            if ($user->profile_picture) {
-                Storage::disk('public')->delete($user->profile_picture);
+            if ($request->hasFile('profile_picture')) {
+                if ($user->profile_picture) {
+                    Storage::disk('public')->delete($user->profile_picture);
+                }
+                $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+                $data['profile_picture'] = $path;
             }
 
-            $filePath = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $user->profile_picture = $filePath;
+            $data = array_filter($data, function ($value) {
+                return $value !== null;
+            });
+
+            $user->fill($data)->save();
+
+            return redirect()->back()->with('success', 'Profile updated successfully');
+
+        } catch (\Exception $e) {
+            Log::error('Profile update error: ' . $e->getMessage());
+            return back()->with('error', 'Error updating profile');
         }
-
-        $user->firstname = $request->firstname ?? $user->firstname;
-        $user->lastname = $request->lastname ?? $user->lastname;
-        $user->email = $request->email ?? $user->email;
-        $user->ic_number = $request->ic_number ?? $user->ic_number;
-        $user->age = $request->age ?? $user->age;
-        $user->born_date = $request->born_date ?? $user->born_date;
-        $user->phone = $request->phone ?? $user->phone;
-        $user->address_line_1 = $request->address_line_1 ?? $user->address_line_1;
-        $user->address_line_2 = $request->address_line_2 ?? $user->address_line_2;
-        $user->city = $request->city ?? $user->city;
-        $user->postal_code = $request->postal_code ?? $user->postal_code;
-
-        $user->save();
-
-        return redirect()->route('profile')->with('status', 'Profile updated successfully!');
     }
 
-
-    /**
-     *
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
+        try {
+            $user = User::findOrFail(auth()->id());
+            
+            $rules = [
+                'firstname' => 'nullable|string|min:2',
+                'lastname' => 'nullable|string|min:2',
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'ic_number' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'phone' => 'nullable|string',
+                'password' => 'nullable|min:8',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'role' => 'nullable|string',
+                'age' => 'nullable|integer',
+                'born_date' => 'nullable|date',
+                'address_line_1' => 'nullable|string',
+                'address_line_2' => 'nullable|string',
+                'city' => 'nullable|string',
+                'postal_code' => 'nullable|string',
+                'gender' => 'nullable|string'
+            ];
 
-        $user = $request->user();
+            $validator = Validator::make($request->all(), $rules);
+            $data = $validator->validated();
 
-        Auth::logout();
+            if ($request->hasFile('profile_picture')) {
+                if ($user->profile_picture) {
+                    Storage::disk('public')->delete($user->profile_picture);
+                }
+                $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+                $data['profile_picture'] = $path;
+            }
 
-        $user->delete();
+            $data = array_filter($data, function ($value) {
+                return $value !== null;
+            });
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+            $user->fill($data)->save();
 
-        return Redirect::to('/');
+            return redirect()->back()->with('success', 'Profile updated successfully');
+
+        } catch (\Exception $e) {
+            Log::error('Profile update error: ' . $e->getMessage());
+            return back()->with('error', 'Error updating profile');
+        }
     }
 
     public function checkName(Request $request)
     {
-        $firstname = $request->input('firstname');
-        $lastname = $request->input('lastname');
+        $exists = User::where('firstname', $request->firstname)
+                     ->where('lastname', $request->lastname)
+                     ->where('id', '!=', auth()->id())
+                     ->exists();
 
-        // Check if firstname and lastname already exist in the database
-        $exists = User::where('firstname', $firstname)
-            ->where('lastname', $lastname)
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'errors' => [
-                    'nameExists' => 'The combination of first name and last name is already registered. Please use a different name.',
-                ]
-            ], 422);
-        }
-
-        return response()->json(['success' => true]);
+        return response()->json(['exists' => $exists]);
     }
 
     public function checkEmail(Request $request)
     {
-        $emailExists = User::where('email', $request->input('email'))->exists();
+        $exists = User::where('email', $request->email)
+                     ->where('id', '!=', auth()->id())
+                     ->exists();
 
-        return response()->json(['exists' => $emailExists]);
+        return response()->json(['exists' => $exists]);
+    }
+
+    public function checkIC(Request $request)
+    {
+        $exists = User::where('ic_number', $request->ic_number)
+                     ->where('id', '!=', auth()->id())
+                     ->exists();
+
+        return response()->json(['exists' => $exists]);
+    }
+
+    public function show()
+    {
+        return Inertia::render('Profile', [
+            'user' => auth()->user()
+        ]);
     }
 }

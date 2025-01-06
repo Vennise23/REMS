@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Property;
+use App\Notifications\ResetPasswordNotification;
 
 class User extends Authenticatable
 {
@@ -33,6 +35,7 @@ class User extends Authenticatable
         'city',
         'postal_code',
         'role',
+        'gender',
     ];
 
     /**
@@ -68,4 +71,13 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function properties()
+    {
+        return $this->hasMany(Property::class, 'user_id');
+    }
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
 }

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Property;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use App\Models\ChatRoom;
 
 class PropertyController extends Controller
 {
@@ -20,7 +22,8 @@ class PropertyController extends Controller
                 'property_address_line_1' => 'required|string|max:255',
                 'property_address_line_2' => 'nullable|string|max:255',
                 'city' => 'required|string|max:255',
-                'postal_code' => 'required|string|max:10',
+                'postal_code' => 'nullable|string|max:255',
+                'state' => 'required|string|max:255',
                 'purchase' => 'required|string|in:For Sale,For Rent',
                 'sale_type' => 'nullable|string|in:New Launch,Subsale',
                 'number_of_units' => 'required|integer',
@@ -36,6 +39,22 @@ class PropertyController extends Controller
                 'additional_info' => 'nullable|string',
             ]);
 
+            $user = auth()->user();
+
+            if (!$user) {
+                return response()->json(['error' => 'User is not authenticated'], 401);
+            }
+
+            $validatedData['username'] = $user->firstname . ' ' . $user->lastname;
+
+            $validatedData['user_id'] = $user->id;
+
+            if (isset($validatedData['amenities'])) {
+                $validatedData['amenities'] = array_map(function ($amenity) {
+                    return trim($amenity);
+                }, $validatedData['amenities']);
+            }
+
             if ($request->hasFile('certificate_photos')) {
                 $certificatePhotos = [];
                 foreach ($request->file('certificate_photos') as $photo) {
@@ -47,8 +66,9 @@ class PropertyController extends Controller
             if ($request->hasFile('property_photos')) {
                 $propertyPhotos = [];
                 foreach ($request->file('property_photos') as $photo) {
-                    $path = $photo->store('property_photos', 'public');
-                    $propertyPhotos[] = asset('storage/' . $path);
+                    $propertyPhotos[] = $photo->store('property_photos', 'public');
+                    // $path = $photo->store('property_photos', 'public');
+                    // $propertyPhotos[] = asset('storage/' . $path);
                 }
                 $validatedData['property_photos'] = $propertyPhotos;
             }
@@ -63,66 +83,92 @@ class PropertyController extends Controller
         }
     }
 
+    public function GetPropertyList()
+    {
+        $properties = Property::all();
+        return response()->json($properties);
+    }
+
     public function index(Request $request)
     {
         try {
-            // \Log::info('Received request params:', $request->all());
-            
-            $perPage = $request->query('per_page', 6);
             $query = Property::query();
+            $query->where('approval_status', 'Approved');
+            $purchaseType = $request->input('purchase', 'For Sale');
+            $query->where('purchase', $purchaseType);
 
-            // 处理属性类型筛选
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
             }
 
-            // 处理价格范围筛选
-            if ($request->has('priceMin') && $request->priceMin !== '0') {
+            if ($request->has('priceMin')) {
                 $query->where('price', '>=', $request->priceMin);
             }
-            if ($request->has('priceMax') && $request->priceMax !== '0') {
+            if ($request->has('priceMax')) {
                 $query->where('price', '<=', $request->priceMax);
             }
-
-            // 处理面积范围筛选
-            if ($request->has('sizeMin') && $request->sizeMin !== '0') {
+            if ($request->has('sizeMin')) {
                 $query->where('square_feet', '>=', $request->sizeMin);
             }
-            if ($request->has('sizeMax') && $request->sizeMax !== '0') {
+            if ($request->has('sizeMax')) {
                 $query->where('square_feet', '<=', $request->sizeMax);
             }
+            if ($request->has('citySearch') && !empty($request->citySearch)) {
+                $citySearch = $request->citySearch;
+                $query->where(function ($subQuery) use ($citySearch) {
+                    $subQuery->where('property_address_line_1', 'like', '%' . $citySearch . '%')
+                        ->orWhere('city', 'like', '%' . $citySearch . '%')
+                        ->orWhereRaw("
+                            CONCAT_WS(', ', 
+                                property_address_line_1, 
+                                IFNULL(property_address_line_2, ''), 
+                                city
+                            ) LIKE ?
+                            ", ['%' . $citySearch . '%'])
+                        ->orWhereRaw("
+                            CONCAT(property_address_line_1, ', ', city) LIKE ?
+                            ", ['%' . $citySearch . '%'])
+                        ->orWhere('property_name', 'like', '%' . $citySearch . '%');
+                });
+            }
+            if ($request->has('amenities') && !empty($request->amenities)) {
+                $amenities = explode(',', $request->amenities);
+                foreach ($amenities as $amenity) {
+                    if (!empty(trim($amenity))) {
+                        $query->whereJsonContains('amenities', trim($amenity));
+                    }
+                }
+            }
+            if ($request->has('saleType') && $request->saleType !== 'All') {
+                $query->where('sale_type', $request->saleType);
+            }
 
-            $properties = $query->paginate($perPage);
-            
-            // \Log::info('Returning properties:', [
-            //     'total' => $properties->total(),
-            //     'per_page' => $properties->perPage(),
-            //     'current_page' => $properties->currentPage(),
-            //     'count' => $properties->count()
-            // ]);
-            
-            return response()->json($properties);
+            $properties = $query->paginate($request->input('per_page', 6));
+
+            return response()->json([
+                'data' => $properties->items(),
+                'total' => $properties->total(),
+                'per_page' => $properties->perPage(),
+                'current_page' => $properties->currentPage(),
+                'last_page' => $properties->lastPage()
+            ]);
         } catch (\Exception $e) {
-            // \Log::error('Error in index method: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     public function showBuyPage()
     {
-        try {
-            // 每页显示6个属性
-            $properties = Property::paginate(6);
-            
-            return Inertia::render('Buy', [
-                'auth' => [
-                    'user' => auth()->user()
-                ],
-                'properties' => $properties
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return Inertia::render('Buy', [
+            'auth' => ['user' => auth()->user()]
+        ]);
+    }
+
+    public function showRentPage()
+    {
+        return Inertia::render('Rent', [
+            'auth' => ['user' => auth()->user()]
+        ]);
     }
 
     public function getPropertyPhotos($propertyId)
@@ -130,50 +176,55 @@ class PropertyController extends Controller
         try {
             $property = Property::findOrFail($propertyId);
             $photos = [];
-            
+
             if ($property->certificate_photos) {
-                $certificatePhotos = is_string($property->certificate_photos) 
-                    ? json_decode($property->certificate_photos, true) 
+                $certificatePhotos = is_string($property->certificate_photos)
+                    ? json_decode($property->certificate_photos, true)
                     : $property->certificate_photos;
 
                 if (is_array($certificatePhotos)) {
                     foreach ($certificatePhotos as $photo) {
-                        // \Log::info('Photo path: ' . $photo);
-                        // \Log::info('Full storage path: ' . storage_path('app/public/' . $photo));
-                        // \Log::info('File exists: ' . (Storage::disk('public')->exists($photo) ? 'yes' : 'no'));
-                        
                         if (Storage::disk('public')->exists($photo)) {
                             $photos[] = url('storage/' . $photo);
                         }
                     }
                 }
             }
-            
-            // \Log::info('Returning photos:', $photos);
+            if ($property->property_photos) {
+                $propertyPhotos = is_string($property->property_photos)
+                    ? json_decode($property->property_photos, true)
+                    : $property->property_photos;
+
+                if (is_array($propertyPhotos)) {
+                    foreach ($propertyPhotos as $photo) {
+                        if (Storage::disk('public')->exists($photo)) {
+                            $photos[] = url('storage/' . $photo);
+                        }
+                    }
+                }
+            }
+
             return response()->json($photos);
         } catch (\Exception $e) {
-            // \Log::error('Error in getPropertyPhotos: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    public function show($id)
+    public function showInformationById($id)
     {
         try {
-            $property = Property::findOrFail($id);
-            
-            // 处理照片 URL，确保数据格式正确
+            $property = Property::with('user')->findOrFail($id);
+
             $propertyArray = array_merge($property->toArray(), [
-                'certificate_photos' => is_array($property->certificate_photos) 
+                'certificate_photos' => is_array($property->certificate_photos)
                     ? array_map(fn($photo) => url('storage/' . $photo), $property->certificate_photos)
                     : [],
                 'property_photos' => is_array($property->property_photos)
-                    ? $property->property_photos
+                    ? array_map(fn($photo) => url('storage/' . $photo), $property->property_photos)
                     : [],
                 'amenities' => is_array($property->amenities) ? $property->amenities : [],
             ]);
 
-            // 确保所有必要的字段都有默认值
             $propertyArray = array_merge([
                 'username' => 'Anonymous',
                 'additional_info' => '',
@@ -181,13 +232,271 @@ class PropertyController extends Controller
                 'other_amenities' => '',
             ], $propertyArray);
 
+            $user = $property->user;
+
+            $response = [
+                'property' => $propertyArray,
+                'user_phone' => $user ? $this->formatPhoneNumber($user->phone) : null,
+                'user_email' => $user ? $user->email : null,
+            ];
+
+            if (request()->expectsJson()) {
+                return response()->json($response);
+            }
+
             return Inertia::render('PropertyDetail', [
                 'property' => $propertyArray,
-                'auth' => ['user' => auth()->user()]
+                'auth' => ['user' => auth()->user()],
             ]);
         } catch (\Exception $e) {
-            // \Log::error('Error in show method: ' . $e->getMessage());
             return redirect()->route('buy')->with('error', 'Property not found');
         }
+    }
+
+    private function formatPhoneNumber($phone)
+    {
+        if (empty($phone) || strlen($phone) < 10) {
+            return null;
+        }
+
+        $phone = ltrim($phone, '0');
+
+        $formatted = '+60 ' . substr($phone, 0, 2) . '-' . substr($phone, 2, 3) . ' ' . substr($phone, 5);
+
+        return $formatted;
+    }
+
+    public function searchNearby(Request $request)
+    {
+        try {
+            $latitude = $request->input('latitude');
+            $longitude = $request->input('longitude');
+            $radius = $request->input('radius', 10);
+            $perPage = $request->input('per_page', 6);
+
+            $query = Property::select('*')
+                ->selectRaw(
+                    '
+                    (6371 * acos(
+                        cos(radians(?)) * 
+                        cos(radians(CAST(latitude AS DOUBLE PRECISION))) * 
+                        cos(radians(CAST(longitude AS DOUBLE PRECISION)) - radians(?)) + 
+                        sin(radians(?)) * 
+                        sin(radians(CAST(latitude AS DOUBLE PRECISION)))
+                    )) AS distance',
+                    [$latitude, $longitude, $latitude]
+                )
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->having('distance', '<=', $radius)
+                ->orderBy('distance');
+
+            if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
+                $query->where('property_type', $request->propertyType);
+            }
+
+            if ($request->has('amenities') && !empty($request->amenities)) {
+                $amenities = explode(',', $request->amenities);
+                foreach ($amenities as $amenity) {
+                    $query->whereJsonContains('amenities', trim($amenity));
+                }
+            }
+
+            $properties = $query->paginate($perPage);
+
+            return response()->json($properties);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function checkPropertyName($name)
+    {
+        $property = Property::where('property_name', $name)->first();
+        return response()->json(['exists' => $property ? true : false]);
+    }
+
+    public function searchAddresses(Request $request)
+    {
+        $query = $request->input('query', '');
+        if (empty($query)) {
+            return response()->json([]);
+        }
+
+        $addresses = Property::select('property_address_line_1', 'property_address_line_2', 'city', 'property_name', 'property_type', 'purchase', 'state')
+            ->where('property_address_line_1', 'like', '%' . $query . '%')
+            ->orWhere('property_address_line_2', 'like', '%' . $query . '%')
+            ->orWhere('city', 'like', '%' . $query . '%')
+            ->orWhere('property_name', 'like', '%' . $query . '%')
+            ->orWhere('state', 'like', '%' . $query . '%')
+            ->limit(10)
+            ->get();
+
+        return response()->json($addresses);
+    }
+
+    public function destroy(Property $property)
+    {
+        // Check authorization
+        if ($property->user_id !== auth()->id() && !auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            // Delete all related chat rooms and messages
+            $chatRooms = ChatRoom::where('property_id', $property->id)->get();
+            foreach ($chatRooms as $chatRoom) {
+                // Delete all messages in the chat room
+                $chatRoom->messages()->delete();
+                // Delete the chat room
+                $chatRoom->delete();
+            }
+
+            // Delete the property
+            $property->delete();
+
+            return response()->json(['message' => 'Property deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to delete property'], 500);
+        }
+    }
+
+    public function getNotifications(Request $request)
+    {
+        $properties = Property::where('user_id', auth()->id())
+            ->latest()
+            ->get();
+
+        $notifications = $properties->map(function ($property) {
+            if ($property->approval_status === 'Approved') {
+                return [
+                    'id' => $property->id,
+                    'property_name' => $property->property_name,
+                    'status' => 'approved',
+                    'isRead' => $property->is_read,
+                    'message' => 'This property has been approved'
+                ];
+            } elseif ($property->approval_status === 'Rejected') {
+                return [
+                    'id' => $property->id,
+                    'property_name' => $property->property_name,
+                    'status' => 'rejected',
+                    'isRead' => $property->is_read,
+                    'rejection_reason' => $property->rejection_reason,
+                    'message' => 'Rejection reason: ' . $property->rejection_reason
+                ];
+            }
+            return null;
+        })->filter();
+
+        return response()->json([
+            'notifications' => $notifications,
+            'totalNotifications' => $notifications->count(),
+        ]);
+    }
+
+    public function markAsRead($id)
+    {
+        $property = Property::findOrFail($id);
+        $property->is_read = true;
+        $property->save();
+
+        return response()->json(['status' => 'success']);
+    }
+
+    public function propertyManagementBySeller()
+    {
+        return Inertia::render('Property/PropertyManagement', [
+            'properties' => Property::all(),
+        ]);
+    }
+
+    public function getUserProperties(Request $request)
+    {
+        $user = $request->user();
+        $properties = Property::where('user_id', $user->id)->paginate(10);
+
+        return response()->json([
+            'data' => $properties->items(),
+            'totalPages' => $properties->lastPage(),
+            'total' => $properties->total(),
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            $validatedData = $request->validate([
+                'property_name' => 'required|string|max:255',
+                'property_type' => 'required|string|in:Conventional Condominium,Bare Land Condominium,Commercial',
+                'property_address_line_1' => 'required|string|max:255',
+                'property_address_line_2' => 'nullable|string|max:255',
+                'city' => 'required|string|max:255',
+                'postal_code' => 'nullable|string|max:255',
+                'purchase' => 'required|string|in:For Sale,For Rent',
+                'sale_type' => 'nullable|string|in:New Launch,Subsale',
+                'number_of_units' => 'required|integer',
+                'square_feet' => 'nullable|integer|min:1',
+                'price' => 'required|numeric|min:0',
+                'certificate_photos' => 'nullable|array',
+                'property_photos' => 'nullable|array',
+                'each_unit_has_furnace' => 'nullable|boolean',
+                'each_unit_has_electrical_meter' => 'nullable|boolean',
+                'has_onsite_caretaker' => 'nullable|boolean',
+                'parking' => 'nullable|string|in:Above ground,Underground,Both',
+                'amenities' => 'nullable|array',
+                'other_amenities' => 'nullable|string|max:255',
+                'additional_info' => 'nullable|string',
+            ]);
+
+            $property = Property::findOrFail($id);
+
+            if ($property->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            if (isset($validatedData['amenities'])) {
+                $validatedData['amenities'] = array_map(function ($amenity) {
+                    return trim($amenity);
+                }, $validatedData['amenities']);
+            }
+
+            if ($request->hasFile('certificate_photos')) {
+                $certificatePhotos = $property->certificate_photos ?: [];
+                foreach ($request->file('certificate_photos') as $photo) {
+                    $certificatePhotos[] = $photo->store('certificate_photos', 'public');
+                }
+                $validatedData['certificate_photos'] = $certificatePhotos;
+            }
+
+            if ($request->hasFile('property_photos')) {
+                $propertyPhotos = $property->property_photos ?: [];
+                foreach ($request->file('property_photos') as $photo) {
+                    $propertyPhotos[] = $photo->store('property_photos', 'public');
+                }
+                $validatedData['property_photos'] = $propertyPhotos;
+            }
+
+            $validatedData['approval_status'] = 'Pending';
+            $property->update($validatedData);
+
+            return response()->json([
+                'message' => 'Property updated successfully',
+                'data' => $property,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->validator->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function deletePropertyBySeller(Request $request, $id)
+    {
+        $property = Property::findOrFail($id);
+        $property->delete();
+
+        return redirect()->back()->with('success', 'Property deleted successfully!');
     }
 }

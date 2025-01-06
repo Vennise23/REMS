@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('property_address_line_2')->nullable();
             $table->string('city');
             $table->string('postal_code');
+            $table->string('state')->nullable();
             $table->enum('purchase', ['For Sale', 'For Rent']);
             $table->enum('sale_type', ['New Launch', 'Subsale'])->nullable();
             $table->enum('property_type', ['Conventional Condominium', 'Bare Land Condominium', 'Commercial']);
@@ -38,6 +39,9 @@ return new class extends Migration
             $table->json('amenities')->nullable();
             $table->string('other_amenities')->nullable();
             $table->text('additional_info')->nullable();
+
+            // Status
+            $table->enum('approval_status', ['Pending', 'Approved', 'Rejected'])->default('Pending');
 
             $table->timestamps();
         });

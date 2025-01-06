@@ -5,7 +5,7 @@ import { Modal, Button } from 'react-bootstrap';
 import $ from "jquery";
 import { useForm, Link, Head, router } from '@inertiajs/react';
 
-import Header from "@/Components/HeaderMenu";
+import Header from "@/Layouts/HeaderMenu";
 
 export default function UploadImage({ bImages, auth }) {
     //Set initial value

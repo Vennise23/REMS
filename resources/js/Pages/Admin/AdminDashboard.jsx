@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import AdminLayout from '@/Layouts/AdminLayout';
-import AdminSidebar from '@/Layouts/AdminSidebar';
+import AdminLayout from '@/Layouts/Admin/AdminLayout';
+import AdminSidebar from '@/Layouts/Admin/AdminSidebar';
 
 export default function AdminDashboard() {
     const [isSidebarOpen, setSidebarOpen] = useState(false);

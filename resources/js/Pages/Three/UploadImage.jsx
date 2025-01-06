@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useForm, Link, Head, router } from '@inertiajs/react';
 
-import Header from "@/Components/HeaderMenu";
+import Header from "@/Layouts/HeaderMenu";
 
 export default function UploadImage({ auth }) {
     const { data, setData, post, processing, errors } = useForm({

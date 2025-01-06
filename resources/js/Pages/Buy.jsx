@@ -1,121 +1,195 @@
-import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
-import PropertyCard from '@/Components/PropertyCard';
-import FilterSection from '@/Components/FilterSection';
-import Header from '@/Components/HeaderMenu';
+import React, { useState, useEffect } from "react";
+import { Head } from "@inertiajs/react";
+import PropertyCard from "@/Components/Property/PropertyCard";
+import FilterSection from "@/Components/FilterSection";
+import Header from "@/Layouts/HeaderMenu";
+import Footer from "@/Layouts/Footer";
 
 const Buy = ({ auth }) => {
     const [properties, setProperties] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const propertiesPerPage = 6;
-    const [filters, setFilters] = useState({
-        propertyType: 'All Property',
-        priceMin: 0,
-        priceMax: 100000000000,
-        sizeMin: 0,
-        sizeMax: 100000,
-        bedrooms: 0,
+    const [filters, setFilters] = useState(() => {
+        const savedFilters = localStorage.getItem("propertyFilters");
+        return savedFilters
+            ? JSON.parse(savedFilters)
+            : {
+                  propertyType: "All Property",
+                  saleType: "All",
+                  priceMin: "0",
+                  priceMax: "1000000000",
+                  sizeMin: "0",
+                  sizeMax: "100000",
+                  amenities: [],
+              };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
+    const [citySearchQuery, setCitySearchQuery] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    // 在获取到属性列表后，获取每个属性的照片
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const saleTypeFromUrl = urlParams.get("saleType");
+        const propertyTypeFromUrl = urlParams.get("propertyType");
+        const priceMinFromUrl = urlParams.get("priceMin");
+        const priceMaxFromUrl = urlParams.get("priceMax");
+        const citySearchFromUrl = urlParams.get("searchQuery");
+
+        if (!saleTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                saleType: "All",
+            }));
+        } else {
+            setFilters((prev) => ({
+                ...prev,
+                saleType: saleTypeFromUrl,
+            }));
+        }
+
+        if (!propertyTypeFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: "All Property",
+            }));
+        } else {
+            setFilters((prev) => ({
+                ...prev,
+                propertyType: propertyTypeFromUrl,
+            }));
+        }
+
+        if (priceMinFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                priceMin: priceMinFromUrl,
+            }));
+        }
+
+        if (priceMaxFromUrl) {
+            setFilters((prev) => ({
+                ...prev,
+                priceMax: priceMaxFromUrl,
+            }));
+        }
+
+        if (citySearchFromUrl) {
+            setCitySearchQuery(citySearchFromUrl);
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem("propertyFilters", JSON.stringify(filters));
+
+        fetchProperties();
+    }, [filters, citySearchQuery, currentPage]);
+
     const fetchPropertyPhotos = async (propertyId) => {
         try {
             const response = await fetch(`/api/property/${propertyId}/photos`);
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to fetch photos for property ${propertyId}`
+                );
+            }
+
             const photos = await response.json();
-            setPropertyPhotos(prev => ({
-                ...prev,
-                [propertyId]: photos
-            }));
+            if (photos && Array.isArray(photos)) {
+                const photoUrls = photos
+                    .filter(
+                        (photo) =>
+                            typeof photo === "string" &&
+                            !photo.includes("certificate_photos")
+                    )
+                    .map((photo) => {
+                        if (typeof photo === "string") {
+                            const imageUrl = photo.startsWith("http")
+                                ? photo
+                                : `${window.location.origin}/storage/property_photos/${photo}`;
+                            return imageUrl;
+                        } else {
+                            console.warn("Invalid photo value:", photo);
+                            return null;
+                        }
+                    })
+                    .filter((url) => url !== null);
+
+                setPropertyPhotos((prev) => ({
+                    ...prev,
+                    [propertyId]: photoUrls,
+                }));
+            }
         } catch (error) {
-            console.error('Error fetching property photos:', error);
+            console.error("Error fetching property photos:", error);
         }
     };
 
-    // 添加筛选处理函数
     const handleFilterChange = (newFilters) => {
-        setFilters(newFilters);
-        setCurrentPage(1); // 重置到第一页
-        fetchProperties(newFilters);
+        setFilters((prev) => ({
+            ...prev,
+            ...newFilters,
+        }));
+        setCurrentPage(1);
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (newFilters.saleType) {
+            params.set("saleType", newFilters.saleType);
+        }
+        if (newFilters.propertyType) {
+            params.set("propertyType", newFilters.propertyType);
+        }
+
+        window.history.pushState(null, "", `/buy?${params.toString()}`);
     };
 
-    // 将获取属性的逻辑抽取为独立函数
-    const fetchProperties = async (currentFilters = filters) => {
+    const fetchProperties = async () => {
         try {
-            const queryParams = new URLSearchParams({
+            setLoading(true);
+            const baseParams = {
                 page: currentPage,
                 per_page: propertiesPerPage,
-                propertyType: currentFilters.propertyType,
-                priceMin: currentFilters.priceMin,
-                priceMax: currentFilters.priceMax,
-                sizeMin: currentFilters.sizeMin,
-                sizeMax: currentFilters.sizeMax,
-            });
+                priceMin: filters.priceMin,
+                priceMax: filters.priceMax,
+                sizeMin: filters.sizeMin,
+                sizeMax: filters.sizeMax,
+                amenities: filters.amenities.join(","),
+                citySearch: citySearchQuery,
+                purchase: "For Sale",
+                saleType: filters.saleType,
+            };
+
+            if (filters.propertyType !== "All Property") {
+                baseParams.propertyType = filters.propertyType;
+            }
+
+            const queryParams = new URLSearchParams(baseParams);
 
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
-            setProperties(data.data);
-            setTotalPages(Math.ceil(data.total / propertiesPerPage));
-            
-            // 获取每个属性的照片
-            data.data.forEach(property => {
-                fetchPropertyPhotos(property.id);
-            });
+
+            if (data.data) {
+                setProperties(data.data);
+                setTotalPages(Math.ceil(data.total / propertiesPerPage));
+
+                data.data.forEach((property) => {
+                    fetchPropertyPhotos(property.id);
+                });
+            }
         } catch (error) {
-            console.error('Error fetching properties:', error);
+            console.error("Error fetching properties:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    // 修改 useEffect 使用新的 fetchProperties 函数
-    useEffect(() => {
-        const initializeData = async () => {
-            try {
-                const queryParams = new URLSearchParams({
-                    page: currentPage,
-                    per_page: propertiesPerPage,
-                    propertyType: filters.propertyType,
-                    priceMin: filters.priceMin,
-                    priceMax: filters.priceMax,
-                    sizeMin: filters.sizeMin,
-                    sizeMax: filters.sizeMax,
-                });
-
-                console.log('Fetching properties with params:', queryParams.toString());
-                const response = await fetch(`/api/properties?${queryParams}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('Received data:', data);
-                
-                if (data.data && Array.isArray(data.data)) {
-                    setProperties(data.data);
-                    setTotalPages(Math.ceil(data.total / propertiesPerPage));
-                    
-                    // 获取每个属性的照片
-                    data.data.forEach(property => {
-                        fetchPropertyPhotos(property.id);
-                    });
-                } else {
-                    console.error('Invalid data format:', data);
-                }
-            } catch (error) {
-                console.error('Error fetching properties:', error);
-            }
-        };
-
-        initializeData();
-    }, [currentPage, filters]); // 添加 filters 作为依赖项
-
-    // 分页按钮处理函数
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
     };
 
-    // 生成分页按钮
     const renderPaginationButtons = () => {
         const buttons = [];
         for (let i = 1; i <= totalPages; i++) {
@@ -125,8 +199,8 @@ const Buy = ({ auth }) => {
                     onClick={() => handlePageChange(i)}
                     className={`px-4 py-2 mx-1 rounded ${
                         currentPage === i
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 hover:bg-gray-300'
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 hover:bg-gray-300"
                     }`}
                 >
                     {i}
@@ -136,60 +210,99 @@ const Buy = ({ auth }) => {
         return buttons;
     };
 
-    const defaultAuth = {
-        user: null,
-        ...auth
+    const handleCitySearch = (value) => {
+        setCitySearchQuery(value);
+        setCurrentPage(1);
     };
 
     return (
         <>
             <Head>
-                <title>Buy Properties - StarProperty Clone</title>
+                <title>Buy Properties</title>
                 <meta name="description" content="Find your dream property" />
             </Head>
-
-            <Header auth={defaultAuth} />
-
-            <div className="pt-24">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
-                        <FilterSection 
-                            filters={filters} 
-                            setFilters={handleFilterChange}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {properties.map((property) => (
-                            <PropertyCard 
-                                key={property.id} 
-                                property={property} 
-                                photos={propertyPhotos[property.id] || []}
+    
+            <div className="min-h-screen flex flex-col bg-gray-50">
+                <Header auth={auth} />
+    
+                <div className="flex-grow">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
+                            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                                Find Your Dream Property
+                            </h2>
+                            <FilterSection
+                                filters={filters}
+                                setFilters={handleFilterChange}
+                                onCitySearch={handleCitySearch}
+                                theme="blue"
+                                showSaleType={true}
                             />
-                        ))}
-                    </div>
-
-                    {/* 分页控件 */}
-                    <div className="flex justify-center mt-8 mb-8">
-                        {currentPage > 1 && (
-                            <button
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                className="px-4 py-2 mx-1 rounded bg-gray-200 hover:bg-gray-300"
-                            >
-                                Previous
-                            </button>
-                        )}
-                        {renderPaginationButtons()}
-                        {currentPage < totalPages && (
-                            <button
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                className="px-4 py-2 mx-1 rounded bg-gray-200 hover:bg-gray-300"
-                            >
-                                Next
-                            </button>
+                        </div>
+    
+                        {loading ? (
+                            <div className="text-center mt-8">
+                                <h2 className="text-xl font-semibold text-blue-600">
+                                    Loading Properties...
+                                </h2>
+                            </div>
+                        ) : properties.length === 0 ? (
+                            <div className="text-center mt-8">
+                                <h2 className="text-xl font-semibold text-blue-600">
+                                    Property Listings With{" "}
+                                    {citySearchQuery || "Your Filters"}
+                                </h2>
+                                <p className="text-gray-600 mt-2">
+                                    Result not found. Sorry, but nothing matched
+                                    your search. Please try again with different
+                                    keywords or filters.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {properties.map((property) => (
+                                        <PropertyCard
+                                            key={property.id}
+                                            property={property}
+                                            photos={
+                                                propertyPhotos[property.id] || []
+                                            }
+                                            theme="blue"
+                                        />
+                                    ))}
+                                </div>
+    
+                                <div className="flex justify-center mt-12 mb-8 space-x-2">
+                                    {currentPage > 1 && (
+                                        <button
+                                            onClick={() =>
+                                                handlePageChange(currentPage - 1)
+                                            }
+                                            className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
+                                        >
+                                            Previous
+                                        </button>
+                                    )}
+                                    <div className="flex space-x-2">
+                                        {renderPaginationButtons()}
+                                    </div>
+                                    {currentPage < totalPages && (
+                                        <button
+                                            onClick={() =>
+                                                handlePageChange(currentPage + 1)
+                                            }
+                                            className="px-4 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 shadow-sm transition duration-150 ease-in-out"
+                                        >
+                                            Next
+                                        </button>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
+                <Footer />
             </div>
         </>
     );
