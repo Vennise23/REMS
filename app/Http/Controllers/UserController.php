@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log; // Import the Log facade
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use App\Events\UserStatusUpdated;
+use App\Models\UserStatus;
 use App\Http\Controllers\Controller;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;  // Add this at the top with other imports
@@ -268,181 +270,86 @@ class UserController extends Controller
 
         return response()->json(['message' => 'User deleted successfully']);
     }
-
-    public function checkIcAvailability(Request $request)
+    public function updateStatus(Request $request)
     {
         try {
-            $icNumber = $request->input('ic_number');
-            $userId = $request->input('user_id');
-
-            $exists = User::where('ic_number', $icNumber)
-                         ->when($userId, function($query) use ($userId) {
-                             return $query->where('id', '!=', $userId);
-                         })
-                         ->exists();
-
-            return response()->json([
-                'available' => !$exists,
-                'message' => $exists ? 'IC number is already registered' : 'IC number is available'
-            ]);
-        } catch (\Exception $e) {
-            Log::error('IC check error: ' . $e->getMessage());
-            return response()->json([
-                'available' => false,
-                'message' => 'Error checking IC availability'
-            ], 500);
-        }
-    }
-
-    public function checkNameUniqueness(Request $request)
-    {
-        try {
-            $request->validate([
-                'firstname' => 'required|string|min:2',
-                'lastname' => 'required|string|min:2',
-                'user_id' => 'nullable|integer'
-            ]);
-
-            $query = User::where('firstname', $request->firstname)
-                        ->where('lastname', $request->lastname);
-
-            if ($request->user_id) {
-                $query->where('id', '!=', $request->user_id);
-            }
-
-            $exists = $query->exists();
-
-            return response()->json([
-                'available' => !$exists
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Name check error: ' . $e->getMessage());
-            return response()->json([
-                'available' => false,
-                'error' => 'Error checking name availability'
-            ], 200); // Return 200 to avoid CORS issues
-        }
-    }
-
-    public function checkEmailUniqueness(Request $request)
-    {
-        $query = User::where('email', $request->email);
-        if ($request->user_id) {
-            $query->where('id', '!=', $request->user_id);
-        }
-        return response()->json([
-            'available' => !$query->exists()
-        ]);
-    }
-
-    public function checkEmailAvailability(Request $request)
-    {
-        $email = $request->input('email');
-        $userId = $request->input('user_id');
-
-        $exists = User::where('email', $email)
-                      ->when($userId, function($query) use ($userId) {
-                          return $query->where('id', '!=', $userId);
-                      })
-                      ->exists();
-
-        return response()->json([
-            'available' => !$exists
-        ]);
-    }
-
-    public function sendWelcomeEmail(Request $request)
-    {
-        try {
-            Log::info('Received email request', [
-                'email' => $request->email,
-                'firstname' => $request->firstname
-            ]);
-
-            // Validate the incoming request
-            $request->validate([
-                'email' => 'required|email',
-                'firstname' => 'required',
-                'lastname' => 'required',
-                'password' => 'required'
-            ]);
-
-            // Attempt to send email
-            Mail::to($request->email)->send(new WelcomeEmail(
-                $request->firstname,
-                $request->lastname,
-                $request->email,
-                $request->password,
-                $request->resetLink
-            ));
-
-            Log::info('Welcome email sent successfully to: ' . $request->email);
+            $online = $request->boolean('online');
+            $location = $request->location;
             
-            return response()->json([
-                'message' => 'Welcome email sent successfully',
-                'status' => 'success'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Failed to send welcome email: ' . $e->getMessage(), [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'message' => 'Failed to send welcome email',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function sendResetLinkEmail(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        try {
-            $user = User::where('email', $request->email)->first();
-
-            if (!$user) {
-                return Inertia::render('Auth/ForgotPassword', [
-                    'status' => 'User not found'
-                ])->withViewData(['error' => 'User not found']);
-            }
-
-            // Generate new token
-            $token = Str::random(64);
-
-            // Update or insert new token
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $request->email],
+            // 更新状态
+            $status = UserStatus::updateOrCreate(
+                ['user_id' => auth()->id()],
                 [
-                    'email' => $request->email,
-                    'token' => $token,
-                    'created_at' => Carbon::now(),
-                    'used' => false
+                    'is_online' => $online,
+                    'location' => $online ? $location : null,
+                    'last_activity' => $online ? now() : null
                 ]
             );
 
-            // Send notification with new token
-            $user->notify(new ResetPasswordNotification($token));
+            // 获取所有相关的聊天室
+            $chatRooms = \App\Models\ChatRoom::where('buyer_id', auth()->id())
+                ->orWhere('seller_id', auth()->id())
+                ->get();
 
-            // Return to the forgot password page with a success message
-            return Inertia::render('Auth/ForgotPassword', [
-                'status' => 'Password reset link sent successfully'
-            ]);
-
+            // 广播状态更新给所有相关用户（移除 toOthers）
+            foreach ($chatRooms as $room) {
+                $otherUserId = $room->buyer_id === auth()->id() ? $room->seller_id : $room->buyer_id;
+                broadcast(new UserStatusUpdated($otherUserId, [
+                    'online' => $online,
+                    'location' => $online ? $location : null
+                ])); // 移除 toOthers() 以确保双向通知
+            }
+            
+            return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            Log::error('Reset link error: ' . $e->getMessage());
-            return Inertia::render('Auth/ForgotPassword', [
-                'status' => 'Error sending reset link'
-            ])->withViewData(['error' => $e->getMessage()]);
+            \Log::error('Error in updateStatus: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    
+    public function getUserStatus($userId)
+    {
+        try {
+            $status = UserStatus::where('user_id', $userId)->first();
+            
+            // 如果没有状态记录，直接返回离线
+            if (!$status) {
+                return response()->json([
+                    'online' => false,
+                    'location' => null
+                ]);
+            }
+
+            // 如果明确标记为离线，直接返回离线状态
+            if (!$status->is_online || !$status->last_activity) {
+                return response()->json([
+                    'online' => false,
+                    'location' => null
+                ]);
+            }
+
+            // 检查最后活动时间是否在30秒内
+            $isActive = $status->last_activity > now()->subSeconds(30);
+            
+            if (!$isActive) {
+                // 如果不活跃，更新为离线状态
+                $status->update([
+                    'is_online' => false,
+                    'location' => null,
+                    'last_activity' => null
+                ]);
+            }
+
+            return response()->json([
+                'online' => $isActive,
+                'location' => $isActive ? $status->location : null
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting user status: ' . $e->getMessage());
+            return response()->json([
+                'online' => false,
+                'location' => null
+            ]);
+        }
+    }
 }
-
-

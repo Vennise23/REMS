@@ -18,6 +18,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatMessageController;
 use App\Http\Controllers\PropertyStatusController;
+use App\Http\Controllers\NewLaunchController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -98,10 +99,15 @@ Route::get('/buy', function () {
         'properties' => \App\Models\Property::all()
     ]);
 })->name('buy');
+// New Launches Page Route
+Route::get('/new-launches', [NewLaunchController::class, 'index'])
+    ->name('new-launches')
+    ->middleware(['web']);
 Route::get('/buy', function () {
     return Inertia::render('Buy');
 })->name('buy');
 Route::get('/property/{id}', [PropertyController::class, 'show'])->name('property.show');
+Route::get('/api/properties', [PropertyController::class, 'index']);
 Route::get('/properties', [PropertyController::class, 'index']);
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 

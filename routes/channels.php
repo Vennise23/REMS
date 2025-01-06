@@ -21,3 +21,7 @@ Broadcast::channel('chat.{roomId}', function ($user, $roomId) {
     $chatRoom = \App\Models\ChatRoom::find($roomId);
     return $chatRoom && ($user->id === $chatRoom->buyer_id || $user->id === $chatRoom->seller_id);
 });
+
+Broadcast::channel('user-status.{userId}', function ($user, $userId) {
+    return true; // 允许所有认证用户订阅
+});

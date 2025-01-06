@@ -15,14 +15,15 @@ const Buy = ({ auth }) => {
         return savedFilters
             ? JSON.parse(savedFilters)
             : {
-                  propertyType: "All Property",
-                  saleType: "All",
-                  priceMin: "0",
-                  priceMax: "1000000000",
-                  sizeMin: "0",
-                  sizeMax: "100000",
-                  amenities: [],
-              };
+                propertyType: "All Property",
+                saleType: "All",
+                priceMin: "0",
+                priceMax: "1000000000",
+                sizeMin: "0",
+                sizeMax: "100000",
+                amenities: [],
+                sortDirection: "desc",
+            };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [citySearchQuery, setCitySearchQuery] = useState("");
@@ -160,6 +161,8 @@ const Buy = ({ auth }) => {
                 citySearch: citySearchQuery,
                 purchase: "For Sale",
                 saleType: filters.saleType,
+                status: 'active',
+                sortDirection: filters.sortDirection
             };
 
             if (filters.propertyType !== "All Property") {

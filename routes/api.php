@@ -7,6 +7,8 @@ use App\Http\Controllers\UserController;
 use App\Models\User;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\UserStatusController;
+use App\Http\Controllers\NewLaunchController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\FindSellerController;
@@ -50,7 +52,7 @@ Route::middleware('api')->group(function () {
 Route::post('/users/{id}', [UserController::class, 'update']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::get('/chat-rooms', [ChatController::class, 'getChatRooms']);
     Route::post('/chat-rooms', [ChatController::class, 'createRoom']);
     Route::post('/chat-rooms/{chatRoom}/messages', [ChatController::class, 'store'])
@@ -60,6 +62,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chat-rooms/{chatRoom}/mark-as-read', [ChatController::class, 'markAsRead']);
     Route::post('/chat-rooms/create', [ChatController::class, 'createRoom']);
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/user/status', [UserStatusController::class, 'update']);
+    Route::get('/user-status/{userId}', [UserStatusController::class, 'show']);
+});
+
+// New Launches API Route
+Route::get('/new-launches', [NewLaunchController::class, 'getNewLaunches']);
 
 Route::post('/check-name-availability', function (Request $request) {
     $exists = User::where('firstname', $request->firstname)

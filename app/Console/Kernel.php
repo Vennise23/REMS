@@ -13,10 +13,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Schedule the delete task to run every 2 minutes
-        $schedule->call(function () {
-            FileController::scheduleDelete();
-        })->everyTwoMinutes();
+       // Schedule the delete task to run every 2 minutes
+       $schedule->call(function () {
+        FileController::scheduleDelete();
+    })->everyTwoMinutes();
         $schedule->command('properties:delete-expired')->daily();
     }
 

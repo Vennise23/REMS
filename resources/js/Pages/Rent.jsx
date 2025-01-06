@@ -11,17 +11,16 @@ const Rent = ({ auth }) => {
     const [totalPages, setTotalPages] = useState(1);
     const propertiesPerPage = 6;
     const [filters, setFilters] = useState(() => {
-        const savedFilters = localStorage.getItem("propertyRentFilters");
-        return savedFilters
-            ? JSON.parse(savedFilters)
-            : {
-                  propertyType: "All Property",
-                  priceMin: "0",
-                  priceMax: "1000000000",
-                  sizeMin: "0",
-                  sizeMax: "100000",
-                  amenities: [],
-              };
+        const savedFilters = localStorage.getItem('propertyRentFilters');
+        return savedFilters ? JSON.parse(savedFilters) : {
+            propertyType: 'All Property',
+            priceMin: '0',
+            priceMax: '1000000000',
+            sizeMin: '0',
+            sizeMax: '100000',
+            amenities: [],
+            sortDirection: 'desc',
+        };
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [citySearchQuery, setCitySearchQuery] = useState("");
@@ -151,10 +150,12 @@ const Rent = ({ auth }) => {
                 sizeMax: filters.sizeMax,
                 amenities: filters.amenities.join(","),
                 citySearch: citySearchQuery,
-                purchase: "For Rent",
+                purchase: 'For Rent',
+                status: 'active',
+                sortDirection: filters.sortDirection
             };
 
-            if (filters.propertyType !== "All Property") {
+            if (filters.propertyType !== 'All Property') {
                 baseParams.propertyType = filters.propertyType;
             }
 

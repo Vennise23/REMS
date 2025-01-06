@@ -67,8 +67,6 @@ class PropertyController extends Controller
                 $propertyPhotos = [];
                 foreach ($request->file('property_photos') as $photo) {
                     $propertyPhotos[] = $photo->store('property_photos', 'public');
-                    // $path = $photo->store('property_photos', 'public');
-                    // $propertyPhotos[] = asset('storage/' . $path);
                 }
                 $validatedData['property_photos'] = $propertyPhotos;
             }
@@ -85,7 +83,7 @@ class PropertyController extends Controller
 
     public function GetPropertyList()
     {
-        $properties = Property::all();
+        $properties = Property::all();// == sql select * from properties
         return response()->json($properties);
     }
 
@@ -96,6 +94,12 @@ class PropertyController extends Controller
             $query->where('approval_status', 'Approved');
             $purchaseType = $request->input('purchase', 'For Sale');
             $query->where('purchase', $purchaseType);
+
+            $sortDirection = in_array($request->input('sortDirection'), ['asc', 'desc']) 
+                ? $request->input('sortDirection') 
+                : 'desc';
+            
+            $query->orderBy('created_at', $sortDirection);
 
             if ($request->has('propertyType') && $request->propertyType !== 'All Property') {
                 $query->where('property_type', $request->propertyType);
@@ -143,6 +147,28 @@ class PropertyController extends Controller
                 $query->where('sale_type', $request->saleType);
             }
 
+            if ($request->has('status')) {
+                if ($request->status === 'active') {
+                    // 根据购买类型显示不同的状态
+                    if ($request->purchase === 'For Sale') {
+                        $query->whereIn('status', ['available', 'sold']);
+                    } else if ($request->purchase === 'For Rent') {
+                        $query->whereIn('status', ['available', 'rented']);
+                    }
+                } else {
+                    $query->where('status', $request->status);
+                }
+            } else {
+                // 默认不显示已取消的
+                $query->where('status', '!=', 'cancelled');
+            }
+
+            \Log::info('Sort Direction:', [
+                'direction' => $request->input('sortDirection'),
+                'query' => $query->toSql(),
+                'bindings' => $query->getBindings()
+            ]);
+
             $properties = $query->paginate($request->input('per_page', 6));
 
             return response()->json([
@@ -166,6 +192,7 @@ class PropertyController extends Controller
 
     public function showRentPage()
     {
+        // create a new page for rent and with user
         return Inertia::render('Rent', [
             'auth' => ['user' => auth()->user()]
         ]);
