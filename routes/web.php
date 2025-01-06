@@ -33,9 +33,8 @@ Route::get('/', function () {
 
 // User Profile and Logout routes
 Route::middleware('auth')->group(function () {
-    Route::get('/profile'
-    , [ProfileController::class, 'edit'])->name('profile');
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
 
