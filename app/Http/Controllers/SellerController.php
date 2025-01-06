@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Property;
+use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -74,5 +76,25 @@ class SellerController extends Controller
         });
 
         return response()->json($formattedSellers);
+    }
+
+    public function profile($id)
+    {
+        $seller = User::findOrFail($id);
+        $sellerProperties = Property::where('user_id', $id)
+            ->latest()
+            ->get()
+            ->map(function ($property) {
+                // Transform the property_photos array into full URLs
+                $property->images = collect($property->property_photos)->map(function ($photo) {
+                    return asset('storage/property_photos/' . $photo);
+                })->toArray();
+                return $property;
+            });
+
+        return Inertia::render('SellerProfile', [
+            'seller' => $seller,
+            'sellerProperties' => $sellerProperties
+        ]);
     }
 } 

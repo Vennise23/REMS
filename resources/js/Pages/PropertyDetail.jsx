@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Head } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 import Header from "@/Layouts/HeaderMenu";
 import Map from "@/Components/Map";
 import PropertyModal from "@/Components/Property/PropertyModal";
@@ -428,7 +428,9 @@ const PropertyDetail = ({ property, auth }) => {
                                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                                         />
                                     </svg>
-                                    Posted by: {property?.username}
+                                    Posted by: <Link href={route('seller.profile', property?.user_id)} className="text-blue-600 hover:underline">
+                                        {property?.username}
+                                    </Link>
                                 </p>
                             </div>
                         </div>

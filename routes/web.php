@@ -24,6 +24,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\FindSellerController;
 use App\Models\User;
+use App\Http\Controllers\SellerController;
 
 // Main Route
 Route::get('/', function () {
@@ -282,6 +283,8 @@ Route::get('/seller/{seller}/properties', function (User $seller) {
 })->name('seller.properties');
 
 Route::get('/seller-properties', [FindSellerController::class, 'getSellerProperties'])->name('seller.properties');
+
+Route::get('/seller/{id}', [SellerController::class, 'profile'])->name('seller.profile');
 
 //find sellers
 Route::get('/find-seller', function () {
