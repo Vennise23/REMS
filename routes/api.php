@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\SellerController;
+use App\Http\Controllers\FindSellerController;
 
 
 
@@ -79,4 +81,11 @@ Route::post('/send-welcome-email', [UserController::class, 'sendWelcomeEmail']);
 
 Route::post('/validate-reset-token', [ResetPasswordController::class, 'validateToken']);
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
+
+Route::get('/search-sellers', [SellerController::class, 'search']);
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/seller-properties', [FindSellerController::class, 'getSellerProperties'])
+        ->name('seller.properties.api');
+});
 

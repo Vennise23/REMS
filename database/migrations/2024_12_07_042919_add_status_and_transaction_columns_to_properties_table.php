@@ -13,10 +13,9 @@ return new class extends Migration
     {
         Schema::table('properties', function (Blueprint $table) {
             $table->enum('status', ['available', 'sold', 'rented', 'cancelled'])
-                ->default('available')
-                ->after('approval_status');
-            $table->unsignedBigInteger('buyer_id')->nullable()->after('status');
-            $table->timestamp('transaction_date')->nullable()->after('buyer_id');
+                ->default('available');
+            $table->unsignedBigInteger('buyer_id')->nullable();
+            $table->timestamp('transaction_date')->nullable();
         });
     }
 
