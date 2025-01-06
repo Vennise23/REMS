@@ -39,7 +39,7 @@ export default function HeaderMenu({ auth }) {
 
         fetchNotifications();
         // Initial load
-        //updateUnreadCounts();
+        updateUnreadCounts();
 
         const channel = window.Echo.private(`App.Models.User.${auth.user.id}`);
 
@@ -114,19 +114,19 @@ export default function HeaderMenu({ auth }) {
     };
 
     const fetchNotifications = async () => {
-        // try {
-        //     const response = await axios.get("/notifications");
-        //     // console.log("response", response);
-        //     if (response.data) {
-        //         const unreadNotifications = response.data.notifications.filter(
-        //             (notification) => !notification.isRead
-        //         );
-        //         setNotifications(unreadNotifications);
-        //         setTotalNotifications(unreadNotifications.length);
-        //     }
-        // } catch (error) {
-        //     console.error("Error fetching notifications:", error);
-        // }
+        try {
+            const response = await axios.get("/notifications");
+            // console.log("response", response);
+            if (response.data) {
+                const unreadNotifications = response.data.notifications.filter(
+                    (notification) => !notification.isRead
+                );
+                setNotifications(unreadNotifications);
+                setTotalNotifications(unreadNotifications.length);
+            }
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+        }
     };
 
     const handleNotificationClick = (notificationId, e) => {
@@ -155,9 +155,9 @@ export default function HeaderMenu({ auth }) {
     };
 
     useEffect(() => {
-        // const interval = setInterval(() => {
-        //     fetchNotifications();
-        // }, 5000);
+        const interval = setInterval(() => {
+            fetchNotifications();
+        }, 5000);
     
         return () => clearInterval(interval);
     }, []);

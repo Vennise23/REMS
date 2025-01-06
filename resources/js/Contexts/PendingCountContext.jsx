@@ -11,12 +11,12 @@ export const PendingCountProvider = ({ children }) => {
     const [pendingCount, setPendingCount] = useState(0);
 
     const fetchPendingCount = async () => {
-        // try {
-        //     const response = await axios.get(route("admin.pendingCount"));
-        //     setPendingCount(response.data.pendingCount);
-        // } catch (error) {
-        //     // console.error("Failed t52222222222223o fetch pending count:", error);
-        // }
+        try {
+            const response = await axios.get(route("admin.pendingCount"));
+            setPendingCount(response.data.pendingCount);
+        } catch (error) {
+            // console.error("Failed t52222222222223o fetch pending count:", error);
+        }
     };
 
     useEffect(() => {
