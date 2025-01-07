@@ -68,10 +68,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 price: property.price || "",
                 certificate_photos: property.certificate_photos || [],
                 property_photos: property.property_photos || [],
-                each_unit_has_furnace: property.each_unit_has_furnace || false,
+                each_unit_has_furnace: property.each_unit_has_furnace || "",
                 each_unit_has_electrical_meter:
-                    property.each_unit_has_electrical_meter || false,
-                has_onsite_caretaker: property.has_onsite_caretaker || false,
+                    property.each_unit_has_electrical_meter || "",
+                has_onsite_caretaker: property.has_onsite_caretaker || "",
                 parking: property.parking || "",
                 amenities: property.amenities || [],
                 other_amenities: property.other_amenities || "",
@@ -101,12 +101,12 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
 
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
-
+    
         setFormData((prev) => ({
             ...prev,
             [name]: value,
         }));
-
+    
         if (name === "property_name") {
             if (debounceTimeout) clearTimeout(debounceTimeout);
     
@@ -124,12 +124,12 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 } catch (error) {
                     console.error("Error checking property name:", error);
                 }
-            }, 500); // 延迟500毫秒后校验
+            }, 500);
         }
-
+    
         const validImageTypes = ["image/jpeg", "image/png", "image/jpg"];
         const MAX_CERTIFICATE_PHOTOS = 2;
-
+    
         if (name === "agent_type") {
             setFormData({ ...formData, agent_type: value });
         } else if (name === "property_type") {
@@ -140,15 +140,19 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
         } else if (type === "radio" && name === "sale_type") {
             setFormData({ ...formData, sale_type: value });
         } else if (name === "certificate_photos") {
-            if (files.length > MAX_CERTIFICATE_PHOTOS) {
+            const currentPreviews = [...certificatePhotoPreview];
+            const currentFiles = [...formData.certificate_photos];
+            const newFiles = Array.from(files);
+    
+            if (currentFiles.length + newFiles.length > MAX_CERTIFICATE_PHOTOS) {
                 setCertificateError(
                     `Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`
                 );
                 e.target.value = null;
                 return;
             }
-            const certificatePreviews = [];
-            for (const file of files) {
+    
+            for (const file of newFiles) {
                 if (!validImageTypes.includes(file.type)) {
                     setCertificateError(
                         "Only JPG and PNG files are allowed for certificate photo."
@@ -156,14 +160,19 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                     e.target.value = null;
                     return;
                 }
-                certificatePreviews.push(URL.createObjectURL(file));
+                currentPreviews.push(URL.createObjectURL(file));
+                currentFiles.push(file);
             }
-            setCertificatePhotoPreview(certificatePreviews);
-            setFormData({ ...formData, [name]: files });
+    
+            setCertificatePhotoPreview(currentPreviews);
+            setFormData({ ...formData, certificate_photos: currentFiles });
             setCertificateError("");
         } else if (name === "property_photos") {
-            const propertyPreviews = [];
-            for (const file of files) {
+            const currentPreviews = [...propertyPhotoPreview];
+            const currentFiles = [...formData.property_photos];
+            const newFiles = Array.from(files);
+    
+            for (const file of newFiles) {
                 if (!validImageTypes.includes(file.type)) {
                     setPropertyError(
                         "Only JPG and PNG files are allowed for property photos."
@@ -171,10 +180,12 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                     e.target.value = null;
                     return;
                 }
-                propertyPreviews.push(URL.createObjectURL(file));
+                currentPreviews.push(URL.createObjectURL(file));
+                currentFiles.push(file);
             }
-            setPropertyPhotoPreview(propertyPreviews);
-            setFormData({ ...formData, [name]: files });
+    
+            setPropertyPhotoPreview(currentPreviews);
+            setFormData({ ...formData, property_photos: currentFiles });
             setPropertyError("");
         } else if (
             type === "checkbox" &&
@@ -197,6 +208,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             setFormData({ ...formData, [name]: value });
         }
     };
+    
 
     const handleAddressChange = (e) => {
         const { value } = e.target;
@@ -421,7 +433,11 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
         try {
             const response = await axios.post(
                 `/properties/${property.id}`,
-                formData
+                formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
             );
             setShowConfirmationModal(false);
             setShowSuccessModal(true);
