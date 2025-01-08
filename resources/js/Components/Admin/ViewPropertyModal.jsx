@@ -123,6 +123,10 @@ const ViewPropertyModal = ({
         setShowApproveModal(false);
     };
 
+    const handleCloseRejectModal = () => {
+        setShowRejectReasonModal(false);
+    };
+
     return (
         <>
             <div
@@ -332,6 +336,13 @@ const ViewPropertyModal = ({
                     isOpen={showApproveModal}
                     onClose={handleCloseApproveModal}
                     onConfirm={handleConfirmApprove}
+                />
+            )}
+            {showRejectReasonModal && (
+                <RejectReasonModal 
+                    isOpen={showRejectReasonModal}
+                    onClose={handleCloseRejectModal}
+                    onSubmit={submitRejectReason}
                 />
             )}
         </>

@@ -101,18 +101,20 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
 
     const handleChange = async (e) => {
         const { name, value, type, files, checked } = e.target;
-    
+
         setFormData((prev) => ({
             ...prev,
             [name]: value,
         }));
-    
+
         if (name === "property_name") {
             if (debounceTimeout) clearTimeout(debounceTimeout);
-    
+
             debounceTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`/check-property-name/${value}`);
+                    const response = await fetch(
+                        `/check-property-name/${value}`
+                    );
                     const data = await response.json();
                     if (data.exists) {
                         setPropertyNameError(
@@ -126,10 +128,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 }
             }, 500);
         }
-    
+
         const validImageTypes = ["image/jpeg", "image/png", "image/jpg"];
         const MAX_CERTIFICATE_PHOTOS = 2;
-    
+
         if (name === "agent_type") {
             setFormData({ ...formData, agent_type: value });
         } else if (name === "property_type") {
@@ -143,15 +145,18 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             const currentPreviews = [...certificatePhotoPreview];
             const currentFiles = [...formData.certificate_photos];
             const newFiles = Array.from(files);
-    
-            if (currentFiles.length + newFiles.length > MAX_CERTIFICATE_PHOTOS) {
+
+            if (
+                currentFiles.length + newFiles.length >
+                MAX_CERTIFICATE_PHOTOS
+            ) {
                 setCertificateError(
                     `Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`
                 );
                 e.target.value = null;
                 return;
             }
-    
+
             for (const file of newFiles) {
                 if (!validImageTypes.includes(file.type)) {
                     setCertificateError(
@@ -163,7 +168,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 currentPreviews.push(URL.createObjectURL(file));
                 currentFiles.push(file);
             }
-    
+
             setCertificatePhotoPreview(currentPreviews);
             setFormData({ ...formData, certificate_photos: currentFiles });
             setCertificateError("");
@@ -171,7 +176,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             const currentPreviews = [...propertyPhotoPreview];
             const currentFiles = [...formData.property_photos];
             const newFiles = Array.from(files);
-    
+
             for (const file of newFiles) {
                 if (!validImageTypes.includes(file.type)) {
                     setPropertyError(
@@ -183,7 +188,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 currentPreviews.push(URL.createObjectURL(file));
                 currentFiles.push(file);
             }
-    
+
             setPropertyPhotoPreview(currentPreviews);
             setFormData({ ...formData, property_photos: currentFiles });
             setPropertyError("");
@@ -208,7 +213,6 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             setFormData({ ...formData, [name]: value });
         }
     };
-    
 
     const handleAddressChange = (e) => {
         const { value } = e.target;
@@ -394,12 +398,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
     };
 
     const handleConfirmSubmit = async (e) => {
-        // e.preventDefault();
-
         setLoading(true);
         const data = new FormData();
         console.log("Form submitted:", formData);
-        // console.log("data : ", data);
+    
         Object.keys(formData).forEach((key) => {
             if (key === "certificate_photos" || key === "property_photos") {
                 if (formData[key]) {
@@ -414,28 +416,31 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 key === "each_unit_has_electrical_meter" ||
                 key === "has_onsite_caretaker"
             ) {
-                data.append(key, formData[key] ? 1 : 0);
+                const booleanValue = formData[key] ? 1 : 0;
+                data.append(key, booleanValue);
             } else {
                 data.append(key, formData[key]);
             }
         });
-
+    
         if (formData.state) {
             data.append("state", formData.state);
         }
-
+    
         const csrfToken = document
             .querySelector('meta[name="csrf-token"]')
             .getAttribute("content");
-
+    
         console.log("CSRF Token:", csrfToken);
-
+    
         try {
             const response = await axios.post(
                 `/properties/${property.id}`,
-                formData, {
+                data,
+                {
                     headers: {
                         "Content-Type": "multipart/form-data",
+                        "X-CSRF-Token": csrfToken,
                     },
                 }
             );
@@ -445,7 +450,6 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             if (error.response && error.response.data.errors) {
                 const validationErrors = error.response.data.errors;
                 console.error("Validation Errors:", validationErrors);
-                alert("Error: Please check the form for validation errors.");
             } else {
                 console.log("Submission Error:", error);
                 alert("Error submitting the form");
