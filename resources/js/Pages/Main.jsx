@@ -264,21 +264,19 @@ export default function Main({ auth }) {
                         <div className="flex justify-center mb-4">
                             <button
                                 onClick={() => setIsBuy(true)}
-                                className={`px-6 py-2 font-bold rounded-l-full ${
-                                    isBuy
-                                        ? "bg-red-500 text-white"
-                                        : "bg-gray-200 text-gray-600"
-                                }`}
+                                className={`px-6 py-2 font-bold rounded-l-full ${isBuy
+                                    ? "bg-red-500 text-white"
+                                    : "bg-gray-200 text-gray-600"
+                                    }`}
                             >
                                 Buy
                             </button>
                             <button
                                 onClick={() => setIsBuy(false)}
-                                className={`px-6 py-2 font-bold rounded-r-full ${
-                                    !isBuy
-                                        ? "bg-red-500 text-white"
-                                        : "bg-gray-200 text-gray-600"
-                                }`}
+                                className={`px-6 py-2 font-bold rounded-r-full ${!isBuy
+                                    ? "bg-red-500 text-white"
+                                    : "bg-gray-200 text-gray-600"
+                                    }`}
                             >
                                 Rent
                             </button>
@@ -622,8 +620,11 @@ export default function Main({ auth }) {
                                     </span>
                                 </button>
                                 {activeDropdown === "price" && (
-                                    <div className="absolute bg-white border rounded shadow-lg mt-2 w-48">
-                                        <div className="px-4 py-2">
+                                    <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-60 p-4 overflow-y-auto z-10">
+                                        <div
+                                            className="py-2"
+                                            style={{ padding: "0px !important" }}
+                                        >
                                             <label className="block text-sm">
                                                 Min Price
                                             </label>
@@ -635,7 +636,10 @@ export default function Main({ auth }) {
                                                 placeholder="Enter Min Price"
                                             />
                                         </div>
-                                        <div className="px-4 py-2">
+                                        <div
+                                            className="py-2"
+                                            style={{ padding: "0px !important" }}
+                                            >
                                             <label className="block text-sm">
                                                 Max Price
                                             </label>
@@ -647,7 +651,7 @@ export default function Main({ auth }) {
                                                 placeholder="Enter Max Price"
                                             />
                                         </div>
-                                        <div className="px-4 py-2 text-center">
+                                        <div className="py-2 text-center">
                                             <button
                                                 onClick={handleApplyFilters}
                                                 className="bg-red-500 text-white px-4 py-2 rounded-full w-full"
@@ -680,44 +684,44 @@ export default function Main({ auth }) {
                                         (property) =>
                                             property.sale_type === "New Launch"
                                     ) && (
-                                        <div className="">
-                                            <NewLaunchListing
-                                                properties={propertyList.filter(
-                                                    (property) =>
-                                                        property.sale_type ===
-                                                        "New Launch"
-                                                )}
-                                            />
-                                        </div>
-                                    )}
+                                            <div className="">
+                                                <NewLaunchListing
+                                                    properties={propertyList.filter(
+                                                        (property) =>
+                                                            property.sale_type ===
+                                                            "New Launch"
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
 
                                     {/* Subsale Listings */}
                                     {propertyList.some(
                                         (property) =>
                                             property.sale_type === "Subsale"
                                     ) && (
-                                        <div>
-                                            <LatestListings
-                                                properties={propertyList.filter(
-                                                    (property) =>
-                                                        property.sale_type ===
-                                                        "Subsale"
-                                                )}
-                                            />
-                                        </div>
-                                    )}
+                                            <div>
+                                                <LatestListings
+                                                    properties={propertyList.filter(
+                                                        (property) =>
+                                                            property.sale_type ===
+                                                            "Subsale"
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
 
                                     {/* 如果没有符合条件的数据，显示默认消息 */}
                                     {!propertyList.some(
                                         (property) =>
                                             property.sale_type ===
-                                                "New Launch" ||
+                                            "New Launch" ||
                                             property.sale_type === "Subsale"
                                     ) && (
-                                        <div className="text-center text-lg font-semibold text-gray-600 mt-8">
-                                            No listings available at the moment.
-                                        </div>
-                                    )}
+                                            <div className="text-center text-lg font-semibold text-gray-600 mt-8">
+                                                No listings available at the moment.
+                                            </div>
+                                        )}
                                 </>
                             ) : (
                                 <>

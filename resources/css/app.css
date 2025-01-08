@@ -208,3 +208,13 @@ input[type="range"]::-ms-thumb {
     border: 2px solid #fff;
     border-radius: 50%;
 }
+
+/* Image black cannot show fix */
+.bg-black{
+    background-color: rgb(0 0 0 / 14%) !important;
+}
+
+/* Resolve Main page button not formal */
+.px-4.py-2.text-center{
+    padding:0px !important
+}
