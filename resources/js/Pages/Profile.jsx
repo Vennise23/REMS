@@ -228,6 +228,7 @@ export default function Profile({ auth, user }) {
 
         // Validate email before submission
         const emailError = validateEmail(data.email);
+        console.log("Email Error:", emailError);
         if (emailError) {
             setError("email", emailError);
             alert('Please fix the email format before submitting.');
@@ -257,12 +258,17 @@ export default function Profile({ auth, user }) {
                 forceFormData: true,
                 preserveScroll: true,
                 preserveState: true,
-                onSuccess: () => {
+                onSuccess: (page) => {
                     alert('Profile updated successfully!');
+                    // Update the form data with the latest user data
+                    setData(page.props.user);
                 },
                 onError: (errors) => {
                     console.error('Form submission errors:', errors);
-                    alert(Object.values(errors).flat()[0] || 'An error occurred while saving your profile');
+                    if (errors) {
+                        const errorMessage = Object.values(errors).flat()[0] || 'An error occurred while saving your profile';
+                        alert(errorMessage);
+                    }
                 },
             });
         } catch (error) {
@@ -301,23 +307,21 @@ export default function Profile({ auth, user }) {
     };
 
     const validatePhone = (phone) => {
-        // Remove all spaces and special characters for validation
-        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-
-        // Malaysian phone number patterns:
-        // 1. Starting with 0: 01xxxxxxxx (10-11 digits total)
-        // 2. Starting with +60: +60xxxxxxxxx (11-12 digits total)
-        const malaysianPattern = /^(?:0|(\+?60))(?:1[0-46-9]\d{7,8}|[3-9]\d{7})$/;
-
-        // International phone number pattern (for other countries)
-        const internationalPattern = /^\+(?:[0-9] ?){6,14}[0-9]$/;
-
-        if (malaysianPattern.test(cleanPhone)) {
-            return null; // Valid Malaysian number
-        } else if (internationalPattern.test(cleanPhone)) {
-            return null; // Valid international number
+        // Remove any non-digits
+        const cleanPhone = phone.replace(/\D/g, '');
+        
+        // Malaysian phone format: 01xxxxxxxx (10-11 digits)
+        const myPhoneRegex = /^0[1][0-9]{8,9}$/;  // Starts with 01, followed by 8-9 digits
+        
+        // International format (if starts with '+')
+        const intlPhoneRegex = /^\+(\d{1,3})(\d{4,14})$/;
+        
+        // If starts with '+', use international format, otherwise use Malaysian format
+        if (phone.startsWith('+')) {
+            return intlPhoneRegex.test(phone);
         }
-        return "Please enter a valid phone number";
+        
+        return myPhoneRegex.test(cleanPhone);
     };
 
     const handleNameChange = (field, value) => {
@@ -360,25 +364,32 @@ export default function Profile({ auth, user }) {
         }
     };
 
-    const handlePhoneChange = (e) => {
-        let value = e.target.value;
-
-        // Allow digits, +, spaces, hyphens
-        value = value.replace(/[^\d\+\-\s]/g, "");
-
-        // Format the value
-        value = formatPhoneNumber(value);
-
-        setData("phone", value);
-
-        // Clear existing phone error
-        if (errors.phone) {
-            clearErrors("phone");
+    const handlePhoneChange = (event) => {
+        let phoneValue = event.target.value.replace(/\D/g, '');
+        
+        // Limit the phone number length to 11 digits for Malaysian numbers
+        if (phoneValue.length > 11) {
+            phoneValue = phoneValue.slice(0, 11);
         }
 
-        const phoneError = validatePhone(value);
-        if (phoneError) {
-            setError("phone", phoneError);
+        // If it starts with '+', keep the '+'
+        if (event.target.value.startsWith('+')) {
+            phoneValue = '+' + phoneValue;
+        }
+        
+        setData({ ...data, phone: phoneValue });
+        
+        if (phoneValue.length > 0 && !validatePhone(phoneValue)) {
+            setErrors(prev => ({
+                ...prev,
+                phone: "Please enter a valid phone number"
+            }));
+        } else {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors.phone;
+                return newErrors;
+            });
         }
     };
 
@@ -621,7 +632,6 @@ export default function Profile({ auth, user }) {
                         <div className="col-span-1 text-center">
                             <div
                                 className="w-32 h-32 rounded-full mx-auto bg-cover bg-center"
-                              
                                 style={{ 
                                     backgroundImage: `url(${userImage})`,
                                     backgroundPosition: 'center',
@@ -640,14 +650,13 @@ export default function Profile({ auth, user }) {
                                             if (validateProfilePicture(file)) {
                                                 setData("profile_picture", file);
                                             } else {
-                                                // Reset the input
                                                 e.target.value = '';
                                             }
                                         }
                                     }}
                                 />
                             </label>
-                            <p className="text-lg font-semibold mt-4">{`${data.firstname} ${data.lastname}`}</p>
+                            <p className="text-lg font-semibold mt-4">{`${data.firstname || ''} ${data.lastname || ''}`}</p>
                             <p className="text-gray-600">{data.phone}</p>
                             <p className="text-gray-600">{data.email}</p>
                         </div>
