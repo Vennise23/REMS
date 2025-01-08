@@ -52,9 +52,9 @@ export default function FindSeller({ auth }) {
     return (
         <>
             <Head title="Find Seller" />
-            
+
             <HeaderMenu auth={auth} />
-            
+
             {/* Main content area with padding for fixed header */}
             <main className="min-h-screen pt-24 pb-16">
                 {/* Search Section */}
@@ -62,7 +62,7 @@ export default function FindSeller({ auth }) {
                     <div className="container mx-auto px-4">
                         <h1 className="text-3xl font-bold mb-6 text-center">Find A Seller</h1>
                         <div className="flex justify-center gap-2">
-                            <select 
+                            <select
                                 className="p-2 border rounded-md w-40"
                                 value={region}
                                 onChange={(e) => setRegion(e.target.value)}
@@ -72,8 +72,8 @@ export default function FindSeller({ auth }) {
                                     <option key={r.name} value={r.name}>{r.name}</option>
                                 ))}
                             </select>
-                            
-                            <select 
+
+                            <select
                                 className="p-2 border rounded-md w-40"
                                 value={propertyType}
                                 onChange={(e) => setPropertyType(e.target.value)}
@@ -84,8 +84,8 @@ export default function FindSeller({ auth }) {
                                 <option value="bare-land">Bare Land Condominium</option>
                                 <option value="commercial">Commercial</option>
                             </select>
-                            
-                            <input 
+
+                            <input
                                 type="text"
                                 placeholder="Search by Seller or Region"
                                 className="p-2 border rounded-md flex-grow"
@@ -93,8 +93,8 @@ export default function FindSeller({ auth }) {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyPress={handleKeyPress}
                             />
-                            
-                            <button 
+
+                            <button
                                 className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600"
                                 onClick={handleSearch}
                             >
@@ -109,20 +109,20 @@ export default function FindSeller({ auth }) {
                     <h2 className="text-2xl font-bold mb-8">Browse By Region</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {displayedRegions.map((region) => (
-                            <div 
+                            <div
                                 key={region.name}
                                 className="relative h-64 rounded-lg overflow-hidden cursor-pointer group"
                                 onClick={() => {
                                     // Redirect to SellerList with the selected region
-                                    router.get('/seller-list', { 
+                                    router.get('/seller-list', {
                                         region: region.name,
                                         propertyType: '', // default empty
                                         searchTerm: ''    // default empty
                                     });
                                 }}
                             >
-                                <img 
-                                    src={region.image} 
+                                <img
+                                    src={region.image}
                                     alt={region.name}
                                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                 />
@@ -133,15 +133,15 @@ export default function FindSeller({ auth }) {
                         ))}
                     </div>
                     <div className="text-center mt-8">
-                        <button 
+                        <button
                             onClick={() => setShowAllRegions(!showAllRegions)}
                             className="text-red-500 hover:text-red-600 flex items-center mx-auto"
                         >
                             <span>{showAllRegions ? 'Show Less' : 'Show More (8)'}</span>
-                            <svg 
-                                className={`w-4 h-4 ml-1 transform ${showAllRegions ? 'rotate-180' : ''}`} 
-                                fill="none" 
-                                stroke="currentColor" 
+                            <svg
+                                className={`w-4 h-4 ml-1 transform ${showAllRegions ? 'rotate-180' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

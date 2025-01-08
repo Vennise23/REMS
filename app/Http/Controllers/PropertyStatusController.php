@@ -14,6 +14,7 @@ class PropertyStatusController extends Controller
     {
         $user = Auth::user();
         $properties = Property::where('user_id', $user->id)
+            ->where('approval_status','Approved')
             ->with(['buyer'])
             ->orderBy('created_at', 'desc')
             ->get();

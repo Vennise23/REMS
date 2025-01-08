@@ -6,7 +6,7 @@ import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Head } from "@inertiajs/react";
-import loginImage from "/resources/img/hellohouse.gif";
+import loginImage from "/resources/img/image.png";
 import { Link } from "@inertiajs/react";
 
 export default function Login() {

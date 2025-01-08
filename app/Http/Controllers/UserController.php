@@ -49,8 +49,8 @@ class UserController extends Controller
             $users = $users->map(function ($user) {
                 return [
                     ...$user->toArray(),
-                    'profile_picture_url' => $user->profile_picture 
-                        ? asset('storage/' . $user->profile_picture) 
+                    'profile_picture_url' => $user->profile_picture
+                        ? asset('storage/' . $user->profile_picture)
                         : null
                 ];
             });
@@ -148,7 +148,6 @@ class UserController extends Controller
                 'message' => 'User created successfully',
                 'user' => $user
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('User creation failed', [
@@ -170,7 +169,7 @@ class UserController extends Controller
         try {
             // Find the specific user by ID instead of using auth()->id()
             $user = User::findOrFail($id);
-            
+
             // Log the update attempt
             Log::info('Attempting to update user:', [
                 'user_id' => $id,
@@ -242,18 +241,187 @@ class UserController extends Controller
                 'message' => 'Profile updated successfully',
                 'user' => $user
             ]);
-
         } catch (\Exception $e) {
             Log::error('User update error:', [
                 'user_id' => $id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating profile',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function checkIcAvailability(Request $request)
+    {
+        try {
+            $icNumber = $request->input('ic_number');
+            $userId = $request->input('user_id');
+
+            $exists = User::where('ic_number', $icNumber)
+                ->when($userId, function ($query) use ($userId) {
+                    return $query->where('id', '!=', $userId);
+                })
+                ->exists();
+
+            return response()->json([
+                'available' => !$exists,
+                'message' => $exists ? 'IC number is already registered' : 'IC number is available'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('IC check error: ' . $e->getMessage());
+            return response()->json([
+                'available' => false,
+                'message' => 'Error checking IC availability'
+            ], 500);
+        }
+    }
+
+    public function checkNameUniqueness(Request $request)
+    {
+        try {
+            $request->validate([
+                'firstname' => 'required|string|min:2',
+                'lastname' => 'required|string|min:2',
+                'user_id' => 'nullable|integer'
+            ]);
+
+            $query = User::where('firstname', $request->firstname)
+                ->where('lastname', $request->lastname);
+
+            if ($request->user_id) {
+                $query->where('id', '!=', $request->user_id);
+            }
+
+            $exists = $query->exists();
+
+            return response()->json([
+                'available' => !$exists
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Name check error: ' . $e->getMessage());
+            return response()->json([
+                'available' => false,
+                'error' => 'Error checking name availability'
+            ], 200); // Return 200 to avoid CORS issues
+        }
+    }
+
+    public function checkEmailUniqueness(Request $request)
+    {
+        $query = User::where('email', $request->email);
+        if ($request->user_id) {
+            $query->where('id', '!=', $request->user_id);
+        }
+        return response()->json([
+            'available' => !$query->exists()
+        ]);
+    }
+
+    public function checkEmailAvailability(Request $request)
+    {
+        $email = $request->input('email');
+        $userId = $request->input('user_id');
+
+        $exists = User::where('email', $email)
+            ->when($userId, function ($query) use ($userId) {
+                return $query->where('id', '!=', $userId);
+            })
+            ->exists();
+
+        return response()->json([
+            'available' => !$exists
+        ]);
+    }
+
+    public function sendWelcomeEmail(Request $request)
+    {
+        try {
+            Log::info('Received email request', [
+                'email' => $request->email,
+                'firstname' => $request->firstname
+            ]);
+
+            // Validate the incoming request
+            $request->validate([
+                'email' => 'required|email',
+                'firstname' => 'required',
+                'lastname' => 'required',
+                'password' => 'required'
+            ]);
+
+            // Attempt to send email
+            Mail::to($request->email)->send(new WelcomeEmail(
+                $request->firstname,
+                $request->lastname,
+                $request->email,
+                $request->password,
+                $request->resetLink
+            ));
+
+            Log::info('Welcome email sent successfully to: ' . $request->email);
+
+            return response()->json([
+                'message' => 'Welcome email sent successfully',
+                'status' => 'success'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send welcome email: ' . $e->getMessage(), [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to send welcome email',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function sendResetLinkEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return Inertia::render('Auth/ForgotPassword', [
+                    'status' => 'User not found'
+                ])->withViewData(['error' => 'User not found']);
+            }
+
+            // Generate new token
+            $token = Str::random(64);
+
+            // Update or insert new token
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $request->email],
+                [
+                    'email' => $request->email,
+                    'token' => $token,
+                    'created_at' => Carbon::now(),
+                    'used' => false
+                ]
+            );
+
+            // Send notification with new token
+            $user->notify(new ResetPasswordNotification($token));
+
+            // Return to the forgot password page with a success message
+            return Inertia::render('Auth/ForgotPassword', [
+                'status' => 'Password reset link sent successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Reset link error: ' . $e->getMessage());
+            return Inertia::render('Auth/ForgotPassword', [
+                'status' => 'Error sending reset link'
+            ])->withViewData(['error' => $e->getMessage()]);
         }
     }
 
@@ -275,7 +443,7 @@ class UserController extends Controller
         try {
             $online = $request->boolean('online');
             $location = $request->location;
-            
+
             // 更新状态
             $status = UserStatus::updateOrCreate(
                 ['user_id' => auth()->id()],
@@ -299,7 +467,7 @@ class UserController extends Controller
                     'location' => $online ? $location : null
                 ])); // 移除 toOthers() 以确保双向通知
             }
-            
+
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             \Log::error('Error in updateStatus: ' . $e->getMessage());
@@ -311,7 +479,7 @@ class UserController extends Controller
     {
         try {
             $status = UserStatus::where('user_id', $userId)->first();
-            
+
             // 如果没有状态记录，直接返回离线
             if (!$status) {
                 return response()->json([
@@ -330,7 +498,7 @@ class UserController extends Controller
 
             // 检查最后活动时间是否在30秒内
             $isActive = $status->last_activity > now()->subSeconds(30);
-            
+
             if (!$isActive) {
                 // 如果不活跃，更新为离线状态
                 $status->update([

@@ -23,7 +23,7 @@ export default function Binarize({ bImages, auth }) {
             detectText();
         }
         setTimeout(() => setLoading(false), 1000);
-    }, [currentIndex, bImages]);
+    }, [currentIndex]);    
 
     useEffect(() => {
         if (drawing && currentShowcaseImage) {
@@ -196,7 +196,7 @@ export default function Binarize({ bImages, auth }) {
     
         originalImage.onload = () => {
             // If bImages['texts'] is already populated, this is not the first time detection
-            if (!bImages['texts'] || isSliderChange) {
+            // if (!bImages['texts'] || isSliderChange) {
                 // Perform first-time detection of the entire image or when slider changes
                 canvas.width = originalImage.width;
                 canvas.height = originalImage.height;
@@ -240,43 +240,43 @@ export default function Binarize({ bImages, auth }) {
                         setLoading(false);
                         setTextLoading(false);
                     });
-            } else {
-                // If bImages['texts'] already exists, detect text inside the given rectangle
-                if (rect) {
-                    const rectTexts = [];
-                    bImages['texts'].forEach((wordData) => {
-                        const { bbox, text } = wordData;
+            // } else {
+            //     // If bImages['texts'] already exists, detect text inside the given rectangle
+            //     if (rect) {
+            //         const rectTexts = [];
+            //         bImages['texts'].forEach((wordData) => {
+            //             const { bbox, text } = wordData;
     
-                        // Check if the word's bounding box intersects with the rectangle
-                        const isIntersecting =
-                            bbox.x0 < rect.startX + rect.width &&
-                            bbox.x1 > rect.startX &&
-                            bbox.y0 < rect.startY + rect.height &&
-                            bbox.y1 > rect.startY;
+            //             // Check if the word's bounding box intersects with the rectangle
+            //             const isIntersecting =
+            //                 bbox.x0 < rect.startX + rect.width &&
+            //                 bbox.x1 > rect.startX &&
+            //                 bbox.y0 < rect.startY + rect.height &&
+            //                 bbox.y1 > rect.startY;
     
-                        if (isIntersecting) {
-                            rectTexts.push({ text, bbox });
-                        }
-                    });
+            //             if (isIntersecting) {
+            //                 rectTexts.push({ text, bbox });
+            //             }
+            //         });
     
-                    setDetectedText(rectTexts.map((item) => item.text).join(" "));
+            //         setDetectedText(rectTexts.map((item) => item.text).join(" "));
     
-                    // Highlight the bounding boxes for the intersecting words
-                    ctx.strokeStyle = "red";
-                    ctx.lineWidth = 2;
-                    rectTexts.forEach((item) => {
-                        const { x0, y0, x1, y1 } = item.bbox;
-                        ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-                    });
+            //         // Highlight the bounding boxes for the intersecting words
+            //         ctx.strokeStyle = "red";
+            //         ctx.lineWidth = 2;
+            //         rectTexts.forEach((item) => {
+            //             const { x0, y0, x1, y1 } = item.bbox;
+            //             ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+            //         });
     
-                    // Update currentShowcaseImage with the highlighted rectangles
-                    setCurrentShowcaseImage(canvas.toDataURL());
-                } else {
-                    console.error("Rectangle is required for subsequent detections.");
-                    setLoading(false);
-                    setTextLoading(false);
-                }
-            }
+            //         // Update currentShowcaseImage with the highlighted rectangles
+            //         setCurrentShowcaseImage(canvas.toDataURL());
+            //     } else {
+            //         console.error("Rectangle is required for subsequent detections.");
+            //         setLoading(false);
+            //         setTextLoading(false);
+            //     }
+            // }
         };
     
         originalImage.onerror = () => {
@@ -285,6 +285,7 @@ export default function Binarize({ bImages, auth }) {
             setTextLoading(false);
         };
     };
+    
     
 
     // Function to handle mouse click event on the canvas
@@ -403,7 +404,7 @@ export default function Binarize({ bImages, auth }) {
 
     const handleMouseUp = () => {
         if (drawing && rect.width && rect.height) {
-            detectText(rect);
+            //detectText(rect);
             setDrawing(false); // Exit drawing mode after text detection
         }
     };
@@ -507,7 +508,6 @@ export default function Binarize({ bImages, auth }) {
                                                             step="1"
                                                             value={currentThreshold}
                                                             onInput={handleSliderChange}
-                                                            onChange={detectText(null, true)}
                                                             className="form-range w-100"
                                                             disabled={drawing} // Disable slider in drawing mode
                                                         />

@@ -11,6 +11,9 @@ class NewLaunchController extends Controller
 {
     public function index()
     {
+        $query = Property::query();
+        $query->where('approval_status','Approved');
+        
         return Inertia::render('NewLaunches/Index', [
             'auth' => ['user' => auth()->user()]
         ]);
@@ -26,6 +29,7 @@ class NewLaunchController extends Controller
                       ->orWhere('status', 'sold')
                       ->orWhere('status', 'rented');
                 })  // 只显示可用、已售和已租的房产
+                ->where('approval_status','Approved')
                 ->with(['user']);
 
             // Purchase Type 筛选

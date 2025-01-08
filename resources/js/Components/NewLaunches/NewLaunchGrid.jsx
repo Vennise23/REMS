@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import { FaMapMarkerAlt, FaExpandArrowsAlt, FaRegClock } from 'react-icons/fa';
 
 export default function NewLaunchGrid({ properties, loading, pagination, onPageChange, filters }) {
+    
     if (loading) {
         return <LoadingSkeleton />;
     }

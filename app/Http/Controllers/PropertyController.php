@@ -91,8 +91,9 @@ class PropertyController extends Controller
     {
         try {
             $query = Property::query();
-            $query->where('approval_status', 'Approved');
+            //$query->where('approval_status', 'Approved');
             $purchaseType = $request->input('purchase', 'For Sale');
+            $query->where('approval_status','Approved');
             $query->where('purchase', $purchaseType);
 
             $sortDirection = in_array($request->input('sortDirection'), ['asc', 'desc']) 

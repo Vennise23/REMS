@@ -5,7 +5,7 @@ import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Head } from "@inertiajs/react";
-import loginImage from "/resources/img/house2.gif";
+import loginImage from "/resources/img/image2.png";
 import React, { useState, useEffect } from 'react';
 
 export default function Register() {

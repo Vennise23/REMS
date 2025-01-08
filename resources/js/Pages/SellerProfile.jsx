@@ -6,6 +6,7 @@ import RentListings from '@/Components/Property/RentListings';
 import Header from '@/Layouts/HeaderMenu';
 import Footer from '@/Layouts/Footer';
 import PropertyCard from '@/Components/Property/PropertyCard';
+import { useMemo } from 'react';
 
 export default function SellerProfile({ auth, seller, sellerProperties }) {
     // Add state for active tab
@@ -13,9 +14,15 @@ export default function SellerProfile({ auth, seller, sellerProperties }) {
     const [propertyPhotos, setPropertyPhotos] = useState({});
     
     // Separate properties by type
-    const forSaleProperties = sellerProperties.filter(property => property.purchase === "For Sale");
+    const forSaleProperties = useMemo(() => 
+        sellerProperties.filter((property) => property.purchase === "For Sale"),
+        [sellerProperties]
+    );
     console.log("Property data structure:", forSaleProperties[0]);
-    const forRentProperties = sellerProperties.filter(property => property.purchase === "For Rent");
+    const forRentProperties = useMemo(() => 
+        sellerProperties.filter((property) => property.purchase === "For Rent"),
+        [sellerProperties]
+    );
 
     console.log(seller);
 

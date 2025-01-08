@@ -3,6 +3,12 @@ import { Link } from '@inertiajs/react';
 import { FaHome, FaDollarSign, FaBuilding, FaRulerCombined } from 'react-icons/fa';
 
 const PropertyCard = ({ property = {}, photos = [] }) => {
+    if (property.approval_status === 'Rejected'){
+        return null;
+    }
+    if (property.approval_status === 'Pending'){
+        return null;
+    }
     const defaultProperty = {
         id: property?.id || 0,
         property_name: property?.property_name || 'Untitled Property',

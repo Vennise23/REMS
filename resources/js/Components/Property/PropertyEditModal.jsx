@@ -53,7 +53,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 property_name: property.property_name || "",
                 agent_type:
                     property.certificate_photos &&
-                    property.certificate_photos.length > 0
+                        property.certificate_photos.length > 0
                         ? "Agent"
                         : "Non Agent",
                 property_address_line_1: property.property_address_line_1 || "",
@@ -68,10 +68,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 price: property.price || "",
                 certificate_photos: property.certificate_photos || [],
                 property_photos: property.property_photos || [],
-                each_unit_has_furnace: property.each_unit_has_furnace || false,
+                each_unit_has_furnace: property.each_unit_has_furnace || [],
                 each_unit_has_electrical_meter:
-                    property.each_unit_has_electrical_meter || false,
-                has_onsite_caretaker: property.has_onsite_caretaker || false,
+                    property.each_unit_has_electrical_meter || [],
+                has_onsite_caretaker: property.has_onsite_caretaker || [],
                 parking: property.parking || "",
                 amenities: property.amenities || [],
                 other_amenities: property.other_amenities || "",
@@ -81,8 +81,8 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             setCertificatePhotoPreview(
                 property.certificate_photos
                     ? property.certificate_photos.map(
-                          (photo) => basePath + photo
-                      )
+                        (photo) => basePath + photo
+                    )
                     : []
             );
             setPropertyPhotoPreview(
@@ -109,7 +109,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
 
         if (name === "property_name") {
             if (debounceTimeout) clearTimeout(debounceTimeout);
-    
+
             debounceTimeout = setTimeout(async () => {
                 try {
                     const response = await fetch(`/check-property-name/${value}`);
@@ -124,7 +124,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 } catch (error) {
                     console.error("Error checking property name:", error);
                 }
-            }, 500); // 延迟500毫秒后校验
+            }, 500);
         }
 
         const validImageTypes = ["image/jpeg", "image/png", "image/jpg"];
@@ -140,15 +140,19 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
         } else if (type === "radio" && name === "sale_type") {
             setFormData({ ...formData, sale_type: value });
         } else if (name === "certificate_photos") {
-            if (files.length > MAX_CERTIFICATE_PHOTOS) {
+            const currentPreviews = [...certificatePhotoPreview];
+            const currentFiles = [...formData.certificate_photos];
+            const newFiles = Array.from(files);
+
+            if (currentFiles.length + newFiles.length > MAX_CERTIFICATE_PHOTOS) {
                 setCertificateError(
                     `Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`
                 );
                 e.target.value = null;
                 return;
             }
-            const certificatePreviews = [];
-            for (const file of files) {
+
+            for (const file of newFiles) {
                 if (!validImageTypes.includes(file.type)) {
                     setCertificateError(
                         "Only JPG and PNG files are allowed for certificate photo."
@@ -156,14 +160,19 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                     e.target.value = null;
                     return;
                 }
-                certificatePreviews.push(URL.createObjectURL(file));
+                currentPreviews.push(URL.createObjectURL(file));
+                currentFiles.push(file);
             }
-            setCertificatePhotoPreview(certificatePreviews);
-            setFormData({ ...formData, [name]: files });
+
+            setCertificatePhotoPreview(currentPreviews);
+            setFormData({ ...formData, certificate_photos: currentFiles });
             setCertificateError("");
         } else if (name === "property_photos") {
-            const propertyPreviews = [];
-            for (const file of files) {
+            const currentPreviews = [...propertyPhotoPreview];
+            const currentFiles = [...formData.property_photos];
+            const newFiles = Array.from(files);
+
+            for (const file of newFiles) {
                 if (!validImageTypes.includes(file.type)) {
                     setPropertyError(
                         "Only JPG and PNG files are allowed for property photos."
@@ -171,10 +180,12 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                     e.target.value = null;
                     return;
                 }
-                propertyPreviews.push(URL.createObjectURL(file));
+                currentPreviews.push(URL.createObjectURL(file));
+                currentFiles.push(file);
             }
-            setPropertyPhotoPreview(propertyPreviews);
-            setFormData({ ...formData, [name]: files });
+
+            setPropertyPhotoPreview(currentPreviews);
+            setFormData({ ...formData, property_photos: currentFiles });
             setPropertyError("");
         } else if (
             type === "checkbox" &&
@@ -197,6 +208,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             setFormData({ ...formData, [name]: value });
         }
     };
+
 
     const handleAddressChange = (e) => {
         const { value } = e.target;
@@ -276,12 +288,11 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
 
                 const { lat, lng } = data.results[0].geometry.location;
                 const property_address_line_1 = streetNumber
-                    ? `${streetNumber.long_name}, ${
-                          streetAddress_1 ? streetAddress_1.long_name : ""
-                      }`
+                    ? `${streetNumber.long_name}, ${streetAddress_1 ? streetAddress_1.long_name : ""
+                    }`
                     : streetAddress_1
-                    ? streetAddress_1.long_name
-                    : "";
+                        ? streetAddress_1.long_name
+                        : "";
 
                 return {
                     property_address_line_1,
@@ -382,12 +393,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
     };
 
     const handleConfirmSubmit = async (e) => {
-        // e.preventDefault();
-
         setLoading(true);
         const data = new FormData();
         console.log("Form submitted:", formData);
-        // console.log("data : ", data);
+    
         Object.keys(formData).forEach((key) => {
             if (key === "certificate_photos" || key === "property_photos") {
                 if (formData[key]) {
@@ -402,26 +411,33 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 key === "each_unit_has_electrical_meter" ||
                 key === "has_onsite_caretaker"
             ) {
-                data.append(key, formData[key] ? 1 : 0);
+                const booleanValue = formData[key] ? 1 : 0;
+                data.append(key, booleanValue);
             } else {
                 data.append(key, formData[key]);
             }
         });
-
+    
         if (formData.state) {
             data.append("state", formData.state);
         }
-
+    
         const csrfToken = document
             .querySelector('meta[name="csrf-token"]')
             .getAttribute("content");
-
+    
         console.log("CSRF Token:", csrfToken);
-
+    
         try {
             const response = await axios.post(
                 `/properties/${property.id}`,
-                formData
+                data,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                        "X-CSRF-Token": csrfToken,
+                    },
+                }
             );
             setShowConfirmationModal(false);
             setShowSuccessModal(true);
@@ -429,15 +445,14 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             if (error.response && error.response.data.errors) {
                 const validationErrors = error.response.data.errors;
                 console.error("Validation Errors:", validationErrors);
-                alert("Error: Please check the form for validation errors.");
             } else {
                 console.log("Submission Error:", error);
                 alert("Error submitting the form");
             }
         } finally {
             setLoading(false);
-        }
-    };
+        }
+    };
 
     const handleCloseSuccessModal = () => {
         setShowSuccessModal(false);
@@ -865,36 +880,36 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                                             {/* Show certificate photo previews */}
                                             {certificatePhotoPreview.length >
                                                 0 && (
-                                                <div className="mt-4 grid grid-cols-3 gap-2">
-                                                    {certificatePhotoPreview.map(
-                                                        (src, index) => (
-                                                            <div
-                                                                key={index}
-                                                                className="relative"
-                                                            >
-                                                                <img
-                                                                    src={src}
-                                                                    alt={`Certificate Preview ${index}`}
-                                                                    className="w-full h-auto object-cover rounded-md"
-                                                                />
-                                                                {/* 删除按钮 */}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleDeletePhoto(
-                                                                            "certificate",
-                                                                            index
-                                                                        )
-                                                                    }
-                                                                    className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                                                    <div className="mt-4 grid grid-cols-3 gap-2">
+                                                        {certificatePhotoPreview.map(
+                                                            (src, index) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className="relative"
                                                                 >
-                                                                    X
-                                                                </button>
-                                                            </div>
-                                                        )
-                                                    )}
-                                                </div>
-                                            )}
+                                                                    <img
+                                                                        src={src}
+                                                                        alt={`Certificate Preview ${index}`}
+                                                                        className="w-full h-auto object-cover rounded-md"
+                                                                    />
+                                                                    {/* 删除按钮 */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            handleDeletePhoto(
+                                                                                "certificate",
+                                                                                index
+                                                                            )
+                                                                        }
+                                                                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                                                                    >
+                                                                        X
+                                                                    </button>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                )}
                                         </div>
                                     )}
 
