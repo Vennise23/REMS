@@ -470,7 +470,7 @@ class UserController extends Controller
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            \Log::error('Error in updateStatus: ' . $e->getMessage());
+            Log::error('Error in updateStatus: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -513,7 +513,7 @@ class UserController extends Controller
                 'location' => $isActive ? $status->location : null
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error getting user status: ' . $e->getMessage());
+            Log::error('Error getting user status: ' . $e->getMessage());
             return response()->json([
                 'online' => false,
                 'location' => null

@@ -97,4 +97,76 @@ class SellerController extends Controller
             'sellerProperties' => $sellerProperties
         ]);
     }
+
+    public function getSellerProperties(Request $request)
+    {
+        try {
+            if (!$request->sellerId) {
+                return response()->json(['error' => 'Seller ID is required'], 400);
+            }
+
+            $query = Property::query()
+                ->where('user_id', $request->sellerId)
+                ->where('status', 'available');
+
+            // Add logging to debug
+            Log::info('Query parameters:', [
+                'sellerId' => $request->sellerId,
+                'filters' => $request->all()
+            ]);
+
+            if ($request->propertyType && $request->propertyType !== 'All Property') {
+                $query->where('property_type', $request->propertyType);
+            }
+
+            if ($request->saleType && $request->saleType !== 'All') {
+                $query->where('purchase', $request->saleType);
+            }
+
+            if ($request->filled('priceMin')) {
+                $query->where('price', '>=', $request->priceMin);
+            }
+
+            if ($request->filled('priceMax')) {
+                $query->where('price', '<=', $request->priceMax);
+            }
+
+            if ($request->filled('sizeMin')) {
+                $query->where('square_feet', '>=', $request->sizeMin);
+            }
+
+            if ($request->filled('sizeMax')) {
+                $query->where('square_feet', '<=', $request->sizeMax);
+            }
+
+            if ($request->amenities) {
+                $amenities = explode(',', $request->amenities);
+                foreach ($amenities as $amenity) {
+                    if ($amenity) {
+                        $query->whereJsonContains('amenities', $amenity);
+                    }
+                }
+            }
+
+            $properties = $query->paginate($request->per_page ?? 6);
+            
+            Log::info('Properties found:', [
+                'count' => count($properties->items()),
+                'total' => $properties->total()
+            ]);
+
+            return response()->json($properties);
+
+        } catch (\Exception $e) {
+            Log::error('Error in getSellerProperties:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to fetch properties',
+                'message' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
 } 

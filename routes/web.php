@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
@@ -22,7 +23,6 @@ use App\Http\Controllers\NewLaunchController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\FindSellerController;
 use App\Models\User;
 use App\Http\Controllers\SellerController;
 
@@ -278,11 +278,12 @@ Route::get('/seller-list', function (Request $request) {
 
 Route::get('/seller/{seller}/properties', function (User $seller) {
     return Inertia::render('SellerProperties', [
+        'auth' => ['user' => Auth::user()],
         'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
     ]);
 })->name('seller.properties');
 
-Route::get('/seller-properties', [FindSellerController::class, 'getSellerProperties'])->name('seller.properties');
+Route::get('/seller-properties', [SellerController::class, 'getSellerProperties'])->name('seller.properties');
 
 Route::get('/seller/{id}', [SellerController::class, 'profile'])->name('seller.profile');
 
@@ -303,11 +304,12 @@ Route::get('/seller-list', function (Request $request) {
 
 Route::get('/seller/{seller}/properties', function (User $seller) {
     return Inertia::render('SellerProperties', [
+        'auth' => ['user' => Auth::user()],
         'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
     ]);
 })->name('seller.properties');
 
-Route::get('/seller-properties', [FindSellerController::class, 'getSellerProperties'])->name('seller.properties');
+Route::get('/seller-properties', [SellerController::class, 'getSellerProperties'])->name('seller.properties');
 
 //THREE - basic upload and binarization testing.
 Route::get('/three/upload', [ThreeController::class, 'showUploadForm'])->name('upload.show');

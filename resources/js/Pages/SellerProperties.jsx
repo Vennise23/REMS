@@ -3,6 +3,7 @@ import { Head } from "@inertiajs/react";
 import PropertyCard from "@/Components/Property/PropertyCard";
 import FilterSection from "@/Components/FilterSection";
 import Header from "@/Layouts/HeaderMenu";
+import axios from 'axios';
 
 const SellerProperties = ({ auth, seller }) => {
     const [properties, setProperties] = useState([]);
@@ -20,11 +21,15 @@ const SellerProperties = ({ auth, seller }) => {
     });
     const [propertyPhotos, setPropertyPhotos] = useState({});
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        console.log('Seller ID:', seller.id);
+        if (!auth?.user) {
+            window.location.href = '/login';
+            return;
+        }
         fetchProperties();
-    }, [filters, currentPage, seller.id]);
+    }, [filters, currentPage, seller?.id]);
 
     const fetchPropertyPhotos = async (propertyId) => {
         try {
@@ -76,34 +81,15 @@ const SellerProperties = ({ auth, seller }) => {
                 propertyType: filters.propertyType !== "All Property" ? filters.propertyType : ""
             };
 
-            console.log('Fetching properties with params:', baseParams);
-
-            const queryParams = new URLSearchParams(baseParams);
-            const response = await fetch(`/api/seller-properties?${queryParams}`, {
-                method: 'GET',
+            const response = await axios.get('/api/seller-properties', {
+                params: baseParams,
                 headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-XSRF-TOKEN': document.cookie
-                        .split('; ')
-                        .find(row => row.startsWith('XSRF-TOKEN='))
-                        ?.split('=')[1]
+                    'Accept': 'application/json',
                 },
-                credentials: 'include'
             });
 
-            if (response.status === 401) {
-                throw new Error('Unauthorized - Please log in');
-            }
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch properties: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Received properties:', data);
-
+            const data = response.data;
             if (data && Array.isArray(data.data)) {
                 setProperties(data.data);
                 setTotalPages(Math.ceil(data.total / propertiesPerPage));
@@ -118,9 +104,8 @@ const SellerProperties = ({ auth, seller }) => {
                 setTotalPages(0);
             }
         } catch (error) {
-            console.error("Error fetching properties:", error);
-            setProperties([]);
-            setTotalPages(0);
+            console.error("Error details:", error.response?.data);
+            setError('Failed to fetch properties');
         } finally {
             setLoading(false);
         }
@@ -150,6 +135,13 @@ const SellerProperties = ({ auth, seller }) => {
         return buttons;
     };
 
+    const getProfilePicturePath = (imagePath) => {
+        if (!imagePath) return '/default-profile.jpg';
+        return imagePath.startsWith('http') 
+            ? imagePath 
+            : `/storage/${imagePath}`;
+    };
+
     return (
         <>
             <Head>
@@ -163,16 +155,12 @@ const SellerProperties = ({ auth, seller }) => {
                     <div className="bg-white shadow-lg rounded-xl p-6 mb-8">
                         <div className="flex items-center mb-6">
                             <img 
-                                src={seller.profile_picture ? 
-                                    (seller.profile_picture.startsWith('http') ? 
-                                        seller.profile_picture : 
-                                        `storage/profile_pictures/${seller.profile_picture}`
-                                    ) : '/images/default-profile.jpg'} 
+                                src={getProfilePicturePath(seller.profile_picture)}
                                 alt={`${seller.firstname} ${seller.lastname}`}
                                 className="w-16 h-16 rounded-full object-cover mr-4"
                                 onError={(e) => {
-                                    e.target.onerror = null; // Prevent infinite loop
-                                    e.target.src = '/images/default-profile.jpg'; // Fallback image
+                                    e.target.onerror = null;
+                                    e.target.src = '/default-profile.jpg';
                                 }}
                             />
                             <div>

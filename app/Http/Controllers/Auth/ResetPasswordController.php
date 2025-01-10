@@ -12,9 +12,37 @@ use Carbon\Carbon;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 
 class ResetPasswordController extends Controller
 {
+    public function create()
+    {
+        return Inertia::render('Auth/ForgotPassword', [
+            'status' => session('status'),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        if ($status == Password::RESET_LINK_SENT) {
+            return back()->with('status', __($status));
+        }
+
+        throw ValidationException::withMessages([
+            'email' => [trans($status)],
+        ]);
+    }
+
     public function showResetForm(Request $request, $token = null)
     {
         $token = $token ?? $request->token;

@@ -11,7 +11,6 @@ use App\Http\Controllers\UserStatusController;
 use App\Http\Controllers\NewLaunchController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\SellerController;
-use App\Http\Controllers\FindSellerController;
 
 
 
@@ -95,7 +94,6 @@ Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 Route::get('/search-sellers', [SellerController::class, 'search']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/seller-properties', [FindSellerController::class, 'getSellerProperties'])
-        ->name('seller.properties.api');
+    Route::get('/seller-properties', [SellerController::class, 'getSellerProperties']);
 });
 
