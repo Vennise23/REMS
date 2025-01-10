@@ -13,14 +13,20 @@ export default function SellerProfile({ auth, seller, sellerProperties }) {
     const [activeTab, setActiveTab] = React.useState('sale');
     const [propertyPhotos, setPropertyPhotos] = useState({});
     
-    // Separate properties by type
+    // Separate properties by type and approval status
     const forSaleProperties = useMemo(() => 
-        sellerProperties.filter((property) => property.purchase === "For Sale"),
+        sellerProperties.filter((property) => 
+            property.purchase === "For Sale" && 
+            property.approval_status.toLowerCase() === "approved"
+        ),
         [sellerProperties]
     );
     console.log("Property data structure:", forSaleProperties[0]);
     const forRentProperties = useMemo(() => 
-        sellerProperties.filter((property) => property.purchase === "For Rent"),
+        sellerProperties.filter((property) => 
+            property.purchase === "For Rent" && 
+            property.approval_status.toLowerCase() === "approved"
+        ),
         [sellerProperties]
     );
 
@@ -79,6 +85,11 @@ export default function SellerProfile({ auth, seller, sellerProperties }) {
             fetchPropertyPhotos(property.id);
         });
     }, [forSaleProperties, forRentProperties]);
+
+    // Add this for debugging
+    console.log('All properties:', sellerProperties);
+    console.log('Sale properties:', forSaleProperties);
+    console.log('Rent properties:', forRentProperties);
 
     return (
         <>
