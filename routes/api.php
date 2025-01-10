@@ -3,7 +3,6 @@
 use App\Http\Controllers\PropertyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
 use App\Models\User;
 use App\Http\Controllers\ValidationController;
 use App\Http\Controllers\ChatController;
@@ -11,6 +10,7 @@ use App\Http\Controllers\UserStatusController;
 use App\Http\Controllers\NewLaunchController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\AdminController;
 
 
 
@@ -32,23 +32,21 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 //edit user
-Route::put('/users/{id}', [UserController::class, 'update']);
+Route::put('/users/{id}', [AdminController::class, 'update']);
 
 //PropertyList
 Route::get('/property', [PropertyController::class, 'GetPropertyList']);
 
 //check existing user
-Route::get('/existing-users', function (Request $request) {
-    return User::select('firstname', 'lastname', 'email')->get();
-});
+Route::get('/existing-users', [AdminController::class, 'getExistingUsers']);
 
 Route::middleware('api')->group(function () {
-    Route::get('/users/data', [UserController::class, 'index']);
-    Route::post('/users', [UserController::class, 'store']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/users/data', [AdminController::class, 'index']);
+    Route::post('/users', [AdminController::class, 'store']);
+    Route::delete('/users/{id}', [AdminController::class, 'destroy']);
     Route::post('/check-name-availability', [ValidationController::class, 'checkNameAvailability']);
-    Route::post('/check-email-availability', [UserController::class, 'checkEmailAvailability']);
-Route::post('/users/{id}', [UserController::class, 'update']);
+    Route::post('/check-email-availability', [AdminController::class, 'checkEmailAvailability']);
+    Route::post('/users/{id}', [AdminController::class, 'update']);
 });
 
 Route::middleware(['auth:sanctum', 'web'])->group(function () {
@@ -78,15 +76,15 @@ Route::post('/check-name-availability', function (Request $request) {
     return response()->json(['available' => !$exists]);
 });
 
-Route::post('/check-ic-availability', [UserController::class, 'checkIcAvailability']);
+Route::post('/check-ic-availability', [AdminController::class, 'checkIcAvailability']);
 
-Route::post('/check-name', 'UserController@checkNameUniqueness');
-Route::post('/check-email', 'UserController@checkEmailUniqueness');
-Route::post('/check-ic', 'UserController@checkICUniqueness');
-Route::post('/check-passport', 'UserController@checkPassportUniqueness');
+Route::post('/check-name', 'AdminController@checkNameUniqueness');
+Route::post('/check-email', 'AdminController@checkEmailUniqueness');
+Route::post('/check-ic', 'AdminController@checkICUniqueness');
+Route::post('/check-passport', 'AdminController@checkPassportUniqueness');
 
 //send welcome email to new user
-Route::post('/send-welcome-email', [UserController::class, 'sendWelcomeEmail']);
+Route::post('/send-welcome-email', [AdminController::class, 'sendWelcomeEmail']);
 
 Route::post('/validate-reset-token', [ResetPasswordController::class, 'validateToken']);
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
@@ -95,5 +93,21 @@ Route::get('/search-sellers', [SellerController::class, 'search']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/seller-properties', [SellerController::class, 'getSellerProperties']);
+});
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    // User management routes (now in AdminController)
+    Route::get('/check-ic-availability', [AdminController::class, 'checkIcAvailability']);
+    Route::post('/check-name-uniqueness', [AdminController::class, 'checkNameUniqueness']);
+    Route::post('/check-email-uniqueness', [AdminController::class, 'checkEmailUniqueness']);
+    Route::post('/send-welcome-email', [AdminController::class, 'sendWelcomeEmail']);
+    Route::post('/update-status', [AdminController::class, 'updateStatus']);
+    Route::get('/user-status/{userId}', [AdminController::class, 'getUserStatus']);
+
+    // Admin routes
+    Route::get('/admin/pending-count', [AdminController::class, 'getPendingCount']);
+    Route::get('/admin/property-table', [AdminController::class, 'propertyTable']);
+    Route::post('/admin/approve-property/{id}', [AdminController::class, 'approveProperty']);
+    Route::post('/admin/reject-property/{id}', [AdminController::class, 'rejectProperty']);
 });
 

@@ -697,14 +697,13 @@ export default function AdminUserMng({ auth, user }) {
         setShowEditModal(true);
     };
 
-    const handleDeleteClick = async (id) => {
-        if (window.confirm("Are you sure you want to delete this user?")) {
-            try {
-                await axios.delete(`/users/${id}`);
-                setUsers(users.filter(user => user.id !== id));
-            } catch (error) {
-                console.error("Error deleting user:", error);
-            }
+    const handleDeleteClick = async (userId) => {
+        try {
+            await axios.delete(`/api/users/${userId}`);
+            // Refresh user list or remove from current list
+            setUsers(users.filter(user => user.id !== userId));
+        } catch (error) {
+            console.error('Error deleting user:', error);
         }
     };
 

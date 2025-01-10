@@ -3,12 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Property;
+use App\Models\UserStatus;
 use Inertia\Inertia;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\WelcomeEmail;
+use Illuminate\Validation\Rule;
+use Carbon\Carbon;
+use Illuminate\Support\Str;
+use App\Notifications\ResetPasswordNotification;
 
 class AdminController extends Controller
 {
@@ -29,101 +38,195 @@ class AdminController extends Controller
     }
 
 
+    // Store a new user with all fields
     public function store(Request $request)
     {
-        $request->validate([
-            'firstname' => 'required|string|max:255',
-            'lastname' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'ic_number' => 'nullable|string|max:255',
-            'age' => 'nullable|integer|min:1|max:100',
-            'born_date' => 'nullable|date',
-            'phone' => 'nullable|string|max:255',
-            'address_line_1' => 'nullable|string|max:255',
-            'address_line_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
-            'role' => 'nullable|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048', // Validate profile picture
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|unique:users,email',
+                'ic_number' => 'required|unique:users,ic_number',
+                'firstname' => 'required|string|max:255',
+                'lastname' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+                'age' => 'required|integer|min:18',
+                'born_date' => 'required|date',
+                'gender' => 'required|in:male,female,other',
+                'address_line_1' => 'required|string|max:255',
+                'address_line_2' => 'nullable|string|max:255',
+                'city' => 'required|string|max:255',
+                'postal_code' => 'required|string|max:20',
+                'role' => 'required|in:user,admin',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
 
-        $user = new User([
-            'firstname' => $request->firstname,
-            'lastname' => $request->lastname,
-            'email' => $request->email,
-            'ic_number' => $request->ic_number,
-            'age' => $request->age,
-            'born_date' => $request->born_date,
-            'phone' => $request->phone,
-            'address_line_1' => $request->address_line_1,
-            'address_line_2' => $request->address_line_2,
-            'city' => $request->city,
-            'postal_code' => $request->postal_code,
-            'role' => $request->role ?? 'user',
-            'password' => Hash::make($request->password),
-        ]);
-
-        if ($request->hasFile('profile_picture')) {
-            $filePath = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $user->profile_picture = $filePath;
-        }
-
-        $user->save();
-
-        return response()->json($user);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        $request->validate([
-            'firstname' => 'required|string|max:255',
-            'lastname' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'ic_number' => 'nullable|string|max:255',
-            'age' => 'nullable|integer|min:1|max:100',
-            'born_date' => 'nullable|date',
-            'phone' => 'nullable|string|max:255',
-            'address_line_1' => 'nullable|string|max:255',
-            'address_line_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:10',
-            'role' => 'nullable|string|max:255',
-            'gender' => 'nullable|string|in:male,female,other',
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-
-        $user->update([
-            'firstname' => $request->firstname,
-            'lastname' => $request->lastname,
-            'email' => $request->email,
-            'ic_number' => $request->ic_number,
-            'age' => $request->age,
-            'born_date' => $request->born_date,
-            'phone' => $request->phone,
-            'address_line_1' => $request->address_line_1,
-            'address_line_2' => $request->address_line_2,
-            'city' => $request->city,
-            'postal_code' => $request->postal_code,
-            'role' => $request->role ?? $user->role,
-            'gender' => $request->gender,
-        ]);
-
-        // Handle profile picture update
-        if ($request->hasFile('profile_picture')) {
-            // Delete the old profile picture if it exists
-            if ($user->profile_picture) {
-                Storage::disk('public')->delete($user->profile_picture);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
             }
 
-            // Store the new profile picture
-            $filePath = $request->file('profile_picture')->store('profile_pictures', 'public');
-            $user->profile_picture = $filePath;
-        }
+            DB::beginTransaction();
 
-        return response()->json($user);
+            // Generate random temporary password
+            $temporaryPassword = Str::random(12);
+
+            // Handle profile picture upload
+            $profile_picture_path = null;
+            if ($request->hasFile('profile_picture')) {
+                $profile_picture_path = $request->file('profile_picture')->store('profile_pictures', 'public');
+            }
+
+            // Create the user with temporary password
+            $user = User::create([
+                'firstname' => $request->firstname,
+                'lastname' => $request->lastname,
+                'email' => $request->email,
+                'password' => Hash::make($temporaryPassword), // Use temporary password
+                'phone' => $request->phone,
+                'ic_number' => $request->ic_number,
+                'age' => $request->age,
+                'born_date' => $request->born_date,
+                'gender' => $request->gender,
+                'address_line_1' => $request->address_line_1,
+                'address_line_2' => $request->address_line_2,
+                'city' => $request->city,
+                'postal_code' => $request->postal_code,
+                'role' => $request->role,
+                'profile_picture' => $profile_picture_path
+            ]);
+
+            // Create a password reset token
+            $token = Str::random(64);
+            DB::table('password_reset_tokens')->insert([
+                'email' => $user->email,
+                'token' => $token,
+                'created_at' => now(),
+                'used' => false
+            ]);
+
+            // Send welcome email with temporary password
+            Mail::to($user->email)->send(new WelcomeEmail(
+                $user->firstname,
+                $user->lastname,
+                $user->email,
+                $temporaryPassword, // Pass temporary password
+                $token
+            ));
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User created successfully',
+                'user' => $user
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('User creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create user',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Update an existing user
+    public function update(Request $request, $id)
+    {
+        try {
+            // Find the specific user by ID instead of using auth()->id()
+            $user = User::findOrFail($id);
+
+            // Log the update attempt
+            Log::info('Attempting to update user:', [
+                'user_id' => $id,
+                'current_data' => $user->toArray(),
+                'new_data' => $request->all()
+            ]);
+
+            $rules = [
+                'firstname' => 'nullable|string|min:2',
+                'lastname' => 'nullable|string|min:2',
+                'email' => [
+                    'nullable',
+                    'email',
+                    Rule::unique('users')->ignore($id),  // Use $id instead of $user->id
+                ],
+                'ic_number' => [
+                    'nullable',
+                    'string',
+                    Rule::unique('users')->ignore($id),  // Use $id instead of $user->id
+                ],
+                'phone' => 'nullable|string',
+                'password' => 'nullable|min:8',
+                'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'role' => 'nullable|string',
+                'age' => 'nullable|integer',
+                'born_date' => 'nullable|date',
+                'address_line_1' => 'nullable|string',
+                'address_line_2' => 'nullable|string',
+                'city' => 'nullable|string',
+                'postal_code' => 'nullable|string',
+                'gender' => 'nullable|string'
+            ];
+
+            $validator = Validator::make($request->all(), $rules);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $data = $validator->validated();
+
+            // Handle profile picture
+            if ($request->hasFile('profile_picture')) {
+                if ($user->profile_picture) {
+                    Storage::disk('public')->delete($user->profile_picture);
+                }
+                $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+                $data['profile_picture'] = $path;
+            }
+
+            // Remove null values
+            $data = array_filter($data, function ($value) {
+                return $value !== null;
+            });
+
+            $user->fill($data)->save();
+
+            // Log successful update
+            Log::info('User updated successfully:', [
+                'user_id' => $id,
+                'updated_data' => $data
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'user' => $user
+            ]);
+        } catch (\Exception $e) {
+            Log::error('User update error:', [
+                'user_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy($id)
@@ -198,6 +301,248 @@ class AdminController extends Controller
             return response()->json(['pendingCount' => $pendingCount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Internal Server Error'], 500);
+        }
+    }
+
+    public function checkIcAvailability(Request $request)
+    {
+        try {
+            $icNumber = $request->input('ic_number');
+            $userId = $request->input('user_id');
+
+            $exists = User::where('ic_number', $icNumber)
+                ->when($userId, function ($query) use ($userId) {
+                    return $query->where('id', '!=', $userId);
+                })
+                ->exists();
+
+            return response()->json([
+                'available' => !$exists,
+                'message' => $exists ? 'IC number is already registered' : 'IC number is available'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('IC check error: ' . $e->getMessage());
+            return response()->json([
+                'available' => false,
+                'message' => 'Error checking IC availability'
+            ], 500);
+        }
+    }
+
+    public function checkNameUniqueness(Request $request)
+    {
+        try {
+            Log::info('Checking name uniqueness:', $request->all()); // Add logging
+
+            $query = User::where('firstname', $request->firstname)
+                        ->where('lastname', $request->lastname);
+
+            // Exclude current user when editing
+            if ($request->user_id) {
+                $query->where('id', '!=', $request->user_id);
+            }
+
+            $exists = $query->exists();
+
+            Log::info('Name check result:', ['exists' => $exists]); // Add logging
+
+            return response()->json([
+                'available' => !$exists,
+                'debug' => [
+                    'firstname' => $request->firstname,
+                    'lastname' => $request->lastname,
+                    'user_id' => $request->user_id,
+                    'exists' => $exists
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Name check error: ' . $e->getMessage());
+            return response()->json([
+                'available' => false,
+                'error' => 'Error checking name availability'
+            ]);
+        }
+    }
+
+    public function checkEmailUniqueness(Request $request)
+    {
+        $query = User::where('email', $request->email);
+        if ($request->user_id) {
+            $query->where('id', '!=', $request->user_id);
+        }
+        return response()->json([
+            'available' => !$query->exists()
+        ]);
+    }
+
+    public function sendWelcomeEmail(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'firstname' => 'required',
+                'lastname' => 'required',
+                'password' => 'required'
+            ]);
+
+            Mail::to($request->email)->send(new WelcomeEmail(
+                $request->firstname,
+                $request->lastname,
+                $request->email,
+                $request->password,
+                $request->resetLink
+            ));
+
+            return response()->json([
+                'message' => 'Welcome email sent successfully',
+                'status' => 'success'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send welcome email: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to send welcome email',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateStatus(Request $request)
+    {
+        try {
+            $online = $request->boolean('online');
+            $location = $request->location;
+
+            $status = UserStatus::updateOrCreate(
+                ['user_id' => auth()->id()],
+                [
+                    'is_online' => $online,
+                    'location' => $online ? $location : null,
+                    'last_activity' => $online ? now() : null
+                ]
+            );
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Error in updateStatus: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getUserStatus($userId)
+    {
+        try {
+            $status = UserStatus::where('user_id', $userId)->first();
+
+            if (!$status || !$status->is_online || !$status->last_activity) {
+                return response()->json([
+                    'online' => false,
+                    'location' => null
+                ]);
+            }
+
+            $isActive = $status->last_activity > now()->subSeconds(30);
+
+            if (!$isActive) {
+                $status->update([
+                    'is_online' => false,
+                    'location' => null,
+                    'last_activity' => null
+                ]);
+            }
+
+            return response()->json([
+                'online' => $isActive,
+                'location' => $isActive ? $status->location : null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting user status: ' . $e->getMessage());
+            return response()->json([
+                'online' => false,
+                'location' => null
+            ]);
+        }
+    }
+
+    public function index()
+    {
+        try {
+            $users = User::select([
+                'id', 'firstname', 'lastname', 'email', 'phone', 'role',
+                'profile_picture', 'ic_number', 'age', 'born_date',
+                'address_line_1', 'address_line_2', 'city', 'postal_code', 'gender'
+            ])->get();
+
+            $users = $users->map(function ($user) {
+                return [
+                    ...$user->toArray(),
+                    'profile_picture_url' => $user->profile_picture
+                        ? asset('storage/' . $user->profile_picture)
+                        : null
+                ];
+            });
+
+            return response()->json($users);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error fetching users',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function checkEmailAvailability(Request $request)
+    {
+        $email = $request->input('email');
+        $userId = $request->input('user_id');
+
+        $exists = User::where('email', $email)
+            ->when($userId, function ($query) use ($userId) {
+                return $query->where('id', '!=', $userId);
+            })
+            ->exists();
+
+        return response()->json([
+            'available' => !$exists
+        ]);
+    }
+
+    public function sendResetLinkEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return Inertia::render('Auth/ForgotPassword', [
+                    'status' => 'User not found'
+                ])->withViewData(['error' => 'User not found']);
+            }
+
+            $token = Str::random(64);
+
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $request->email],
+                [
+                    'email' => $request->email,
+                    'token' => $token,
+                    'created_at' => Carbon::now(),
+                    'used' => false
+                ]
+            );
+
+            $user->notify(new ResetPasswordNotification($token));
+
+            return Inertia::render('Auth/ForgotPassword', [
+                'status' => 'Password reset link sent successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Reset link error: ' . $e->getMessage());
+            return Inertia::render('Auth/ForgotPassword', [
+                'status' => 'Error sending reset link'
+            ])->withViewData(['error' => $e->getMessage()]);
         }
     }
 }

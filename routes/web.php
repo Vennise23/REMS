@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ThreeController;
 use App\Http\Controllers\FileController;
@@ -60,20 +59,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
     Route::get('/admin/properties', [AdminController::class, 'manageProperties'])->name('admin.properties');
-    Route::get('/properties/data', [AdminController::class, 'propertyTable'])->name('admin.properties.data');
-    Route::post('/api/properties/{id}/approve', [AdminController::class, 'approveProperty'])->name('api.properties.approve'); 
-    Route::post('/api/properties/{id}/reject', [AdminController::class, 'rejectProperty'])->name('api.properties.reject');
-
-    // User Management routes for admin
-    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
-    Route::get('/users', [UserController::class, 'index']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    
+    // User CRUD operations
+    Route::post('/admin/users', [AdminController::class, 'store'])->name('admin.users.store');
+    Route::put('/admin/users/{id}', [AdminController::class, 'update'])->name('admin.users.update');
+    Route::delete('/admin/users/{id}', [AdminController::class, 'destroy'])->name('admin.users.destroy');
 });
 Route::get('/admin/pending-count', [AdminController::class, 'getPendingCount'])->name('admin.pendingCount');
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/users/data', [UserController::class, 'index'])->name('users.data');
+    Route::get('/users/data', [AdminController::class, 'index'])->name('users.data');
     Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
     Route::get('/my-properties', [PropertyStatusController::class, 'index'])->name('my.properties');
     Route::put('/api/properties/{property}/status', [PropertyStatusController::class, 'updateStatus']);
@@ -223,13 +218,13 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 require __DIR__ . '/auth.php';
 
-Route::post('/api/check-name', [UserController::class, 'checkNameUniqueness'])
+Route::post('/api/check-name', [AdminController::class, 'checkNameUniqueness'])
     ->name('users.check-name');
 
-Route::post('/api/check-email', [UserController::class, 'checkEmailUniqueness'])
+Route::post('/api/check-email', [AdminController::class, 'checkEmailUniqueness'])
     ->name('users.check-email');
 
-Route::post('/api/check-ic', [UserController::class, 'checkIcUniqueness'])
+Route::post('/api/check-ic', [AdminController::class, 'checkIcAvailability'])
     ->name('users.check-ic');
 
 Route::post('/api/check-email', [RegisterController::class, 'checkEmailUniqueness']);
@@ -253,7 +248,7 @@ Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'valid
 Route::post('/api/reset-password', [ResetPasswordController::class, 'reset'])
     ->name('password.update');
 
-Route::post('/forgot-password', [UserController::class, 'sendResetLinkEmail'])
+Route::post('/forgot-password', [AdminController::class, 'sendResetLinkEmail'])
     ->name('password.email');
 
 // Registration Routes
@@ -321,3 +316,15 @@ Route::get('/three/uploadFile',[FileController::class,'showUploadForm'])->name('
 Route::post('/three/uploadFile',[FileController::class,'uploadFile'])->name('upload.handle');
 Route::post('/three/submitUpload',[FileController::class,'submitUploadForm'])->name('upload.submit');
 Route::get('/three/binarizeShow',[FileController::class,'showBinarizeForm'])->name('binarize.show');
+
+// Former UserController routes now using AdminController
+Route::middleware(['auth'])->group(function () {
+    Route::get('/user/profile', [AdminController::class, 'profile'])->name('user.profile');
+    Route::post('/user/update', [AdminController::class, 'updateProfile'])->name('user.update');
+    Route::get('/seller/{seller}/properties', function (User $seller) {
+        return Inertia::render('SellerProperties', [
+            'auth' => ['user' => Auth::user()],
+            'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
+        ]);
+    })->name('seller.properties');
+});

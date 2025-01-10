@@ -166,7 +166,8 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                 setFormData(prev => ({ ...prev, [name]: value }));
 
                 // Check if names are the same
-                if (newFirstname.toLowerCase() === newLastname.toLowerCase()) {
+                if (newFirstname && newLastname && 
+                    newFirstname.toLowerCase() === newLastname.toLowerCase()) {
                     setErrors(prev => ({
                         ...prev,
                         firstname: 'First name and last name cannot be the same',
@@ -186,21 +187,16 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                 // Only check uniqueness if both names are filled
                 if (newFirstname && newLastname) {
                     try {
-                        const response = await fetch('/api/check-name', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({
-                                firstname: newFirstname,
-                                lastname: newLastname,
-                                user_id: user.id // Include user_id for excluding current user
-                            })
+                        console.log('Checking names:', { newFirstname, newLastname, user_id: user.id });
+                        const response = await axios.post('/api/check-name', {
+                            firstname: newFirstname,
+                            lastname: newLastname,
+                            user_id: user.id
                         });
-                        const data = await response.json();
                         
-                        if (!data.available) {
+                        console.log('Name check response:', response.data); // Debug response
+                        
+                        if (!response.data.available) {
                             setErrors(prev => ({
                                 ...prev,
                                 nameCombo: 'This name combination is already registered'
@@ -285,6 +281,39 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
                 // Only allow numbers and limit to 12 digits
                 const icValue = value.replace(/[^0-9]/g, '').slice(0, 12);
                 setFormData(prev => ({ ...prev, [name]: icValue }));
+                
+                // Auto-fill when IC number is complete
+                if (icValue.length === 12) {
+                    // Extract date of birth (first 6 digits: YYMMDD)
+                    const year = parseInt(icValue.substring(0, 2));
+                    const month = icValue.substring(2, 4);
+                    const day = icValue.substring(4, 6);
+                    
+                    // Determine century (assuming 00-29 is 2000s, 30-99 is 1900s)
+                    const fullYear = year + (year < 30 ? 2000 : 1900);
+                    
+                    // Format birth date
+                    const birthDate = `${fullYear}-${month}-${day}`;
+                    
+                    // Calculate age
+                    const today = new Date();
+                    const birth = new Date(birthDate);
+                    let age = today.getFullYear() - birth.getFullYear();
+                    const monthDiff = today.getMonth() - birth.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                        age--;
+                    }
+                    
+                    // Determine gender (12th digit: odd = male, even = female)
+                    const gender = parseInt(icValue.charAt(11)) % 2 === 0 ? 'female' : 'male';
+                    
+                    setFormData(prev => ({
+                        ...prev,
+                        born_date: birthDate,
+                        age: age.toString(),
+                        gender: gender
+                    }));
+                }
                 
                 // Validate format when length is 12
                 if (icValue.length === 12) {
