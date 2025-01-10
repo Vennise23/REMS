@@ -3,142 +3,116 @@ import { Head } from "@inertiajs/react";
 import axios from "axios";
 import Header from "@/Layouts/HeaderMenu";
 import Tesseract, { detect } from "tesseract.js";
+import { canvas } from "leaflet";
 
 export default function Binarize({ bImages, auth }) {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [currentThreshold, setCurrentThreshold] = useState(127);
-    const [currentShowcaseImage, setCurrentShowcaseImage] = useState("");
-    const [binarizedImageButton, setBinarizedImageButton] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [detectedText, setDetectedText] = useState("");
-    const [textLoading, setTextLoading] = useState(true);
-    const [drawing, setDrawing] = useState(false); // To track if user is drawing
-    const [rect, setRect] = useState(null); // Store rectangle position and size
-    const canvasRef = useRef(null);
+    const [currentThreshold, setCurrentThreshold] = useState(0);
+    const [canvasLoadingStage, setCanvasLoadingStage] = useState(false);
+
+    const [currentImg, setCurrentImg] = useState("");
+    const [autoBinarizeImage, setAutoBinarizeImage] = useState(""); // Auto Binarize Btn Img
+    const [textDetectImage, setTextDetectImage] = useState(""); // Auto Text Detect Btn Img
+
+    const canvasRef = useRef(null); // Hidden canvas for processing
+    const canvasMain = useRef(null); // Visible canvas for displaying
+    const canvasText = useRef(null); // Visible canvas for text detection
 
     useEffect(() => {
-        if (bImages[currentIndex]) {
-            loadAndProcessImage(bImages[currentIndex].filepath, currentThreshold);
-            updateSliderValueStyle(currentThreshold);
-            detectText();
+        const initializeCanvas = async () => {
+            if (bImages[currentIndex]) {
+                // Initialize Threshold
+                setCurrentThreshold(bImages[currentIndex].threshold);
+                updateSliderStyle(bImages[currentIndex].threshold);
+
+                // Initialize Canvas
+                const currImg = await loadAndBinarizeImage(bImages[currentIndex].filepath, bImages[currentIndex].threshold);
+                setCurrentImg(currImg);
+
+                // Auto Binarize Button Image
+                const binarizedImg = await loadAndBinarizeImage(bImages[currentIndex].filepath, 127);
+                setAutoBinarizeImage(binarizedImg);
+            }
         }
-        setTimeout(() => setLoading(false), 1000);
-    }, [currentIndex]);    
+
+        initializeCanvas();
+    }, [currentIndex, bImages]);
 
     useEffect(() => {
-        if (drawing && currentShowcaseImage) {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext("2d");
+        const runContentDetection = async () => {
+            if (currentImg) {
+                await contentDetection("text");
+            }
+        };
+
+        runContentDetection();
+    }, [currentImg]);
+
+    const loadAndBinarizeImage = (filepath, threshold) => {
+        return new Promise((resolve, reject) => {
+            const hiddenCanvas = canvasRef.current;
+            const hiddenCtx = hiddenCanvas.getContext("2d", { willReadFrequently: true });
+            const mainCanvas = canvasMain.current;
+            const mainCtx = mainCanvas.getContext("2d");
 
             const image = new Image();
-            image.src = currentShowcaseImage;
+            image.src = filepath;
 
             image.onload = () => {
-                canvas.width = image.width;
-                canvas.height = image.height;
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear any previous drawings
-                ctx.drawImage(image, 0, 0); // Draw the current image onto the canvas
+                // Set canvas sizes to match the image
+                hiddenCanvas.width = image.width;
+                hiddenCanvas.height = image.height;
+
+                mainCanvas.width = image.width;
+                mainCanvas.height = image.height;
+
+                // Draw the image on the hidden canvas
+                hiddenCtx.drawImage(image, 0, 0);
+
+                // Get image data for processing
+                const imageData = hiddenCtx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+                const data = imageData.data;
+
+                // Normalize threshold to a contrast factor (-1 to +1)
+                const contrastFactor = threshold / 127;
+
+                // Process the image: binarize based on the threshold
+                if (threshold !== 0) {
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Convert to grayscale using weighted formula
+                        const grayscale = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+                        // Apply contrast adjustment
+                        const adjustedValue = Math.min(
+                            255,
+                            Math.max(0, 128 + (grayscale - 128) * (1 + contrastFactor))
+                        );
+
+                        // Set RGB channels to the adjusted grayscale value
+                        data[i] = data[i + 1] = data[i + 2] = adjustedValue;
+                    }
+                }
+
+                // Update the hidden canvas with processed image data
+                hiddenCtx.putImageData(imageData, 0, 0);
+
+                // Draw the processed image from the hidden canvas onto the main canvas
+                mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+                mainCtx.drawImage(hiddenCanvas, 0, 0);
+
+                // Resolve the Promise with the binarized image data URL
+                resolve(hiddenCanvas.toDataURL());
             };
-        }
-    }, [drawing, currentShowcaseImage]);
 
-    const loadAndProcessImage = (filepath, threshold) => {
-        const image = new Image();
-        image.src = filepath;
-        image.onload = () => {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext("2d", { willReadFrequently: true });
-            canvas.width = image.width;
-            canvas.height = image.height;
-            ctx.drawImage(image, 0, 0);
-            applyBinarization(threshold);
-
-            // Generate binarized button image with default threshold
-            const binarizedImage = generateBinarizedImage(127);
-            setBinarizedImageButton(binarizedImage);
-        };
+            image.onerror = () => {
+                console.error("Failed to load image:", filepath);
+                reject(new Error("Image load error"));
+            };
+        });
     };
 
-    const applyBinarization = (threshold) => {
-        const binarizedImage = generateBinarizedImage(threshold);
-        setCurrentShowcaseImage(binarizedImage);
-    };
 
-    const generateBinarizedImage = (threshold) => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-        // Reset the canvas with the original image data
-        const image = new Image();
-        image.src = bImages[currentIndex].filepath;
-        ctx.drawImage(image, 0, 0);
-
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imgData.data;
-
-        // Normalize threshold to a contrast factor (-1 to +1)
-        const contrastFactor = threshold / 127;
-
-        for (let i = 0; i < data.length; i += 4) {
-            // Convert to grayscale using weighted formula
-            const grayscale = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-
-            // Apply contrast adjustment
-            const adjustedValue = Math.min(
-                255,
-                Math.max(0, 128 + (grayscale - 128) * (1 + contrastFactor))
-            );
-
-            // Set RGB channels to the adjusted grayscale value
-            data[i] = data[i + 1] = data[i + 2] = adjustedValue;
-        }
-
-        // Update the canvas with the new image data
-        ctx.putImageData(imgData, 0, 0);
-        return canvas.toDataURL(); // Return binarized image
-    };
-
-    
-
-    const handleOriginalClick = () => {
-        setCurrentThreshold(0);
-        const img = new Image();
-        img.src = bImages[currentIndex].filepath;
-
-        img.onload = () => {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            setCurrentShowcaseImage(canvas.toDataURL()); // Set original image
-        };
-        updateSliderValueStyle(0);
-        detectText();
-    };
-
-    const handleBinarizedClick = () => {
-        setCurrentThreshold(127);
-        applyBinarization(127);
-        updateSliderValueStyle(127);
-        detectText();
-    };
-
-    const handleSliderChange = (e) => {
-        const newThreshold = parseInt(e.target.value, 10);
-        setCurrentThreshold(newThreshold);
-        if (newThreshold == 0) {
-            setCurrentShowcaseImage(bImages[currentIndex].filepath);
-        } else {
-            applyBinarization(newThreshold);
-        }
-
-        updateSliderValueStyle(newThreshold);
-        bImages[currentIndex].threshold = newThreshold;
-    };
-
-    const updateSliderValueStyle = (value, retry = true) => {
+    const updateSliderStyle = (value, retry = true) => {
         const min = 0;
         const max = 255;
         const percentage = ((value - min) / (max - min)) * 100;
@@ -146,270 +120,185 @@ export default function Binarize({ bImages, auth }) {
         // Set the custom CSS variable --value
         const slider = document.getElementById("threshold");
         if (slider) {
-            // Set the custom CSS variable --value
             slider.style.setProperty("--value", `${percentage}%`);
         } else if (retry) {
             console.warn("Slider element not found. Retrying in 1.5 seconds...");
-            setTimeout(() => updateSliderValueStyle(value, false), 1500);
+            setTimeout(() => updateSliderStyle(value, false), 1500);
         } else {
             console.error("Slider element not found after retry.");
         }
     };
 
-    const handlePrev = () => {
-        setLoading(true);
-        const newIndex = currentIndex - 1;
-        if (currentIndex > 0) setCurrentIndex(newIndex);
-        setCurrentThreshold(bImages[newIndex].threshold);
-        applyBinarization(bImages[newIndex].threshold);
-        updateSliderValueStyle(bImages[newIndex].threshold);
-        // Trigger text detection for the new image
-        detectText();
+    const updateThreshold = (newThreshold) => {
+        setCurrentThreshold(newThreshold);
+        updateSliderStyle(newThreshold);
+        bImages[currentIndex].threshold = newThreshold;
+
+        loadAndBinarizeImage(bImages[currentIndex].filepath, newThreshold);
     };
 
-    const handleNext = () => {
-        setLoading(true);
-        const newIndex = currentIndex + 1;
-        if (currentIndex < bImages.length - 1) setCurrentIndex(newIndex);
-        setCurrentThreshold(bImages[newIndex].threshold);
-        applyBinarization(bImages[newIndex].threshold);
-        updateSliderValueStyle(bImages[newIndex].threshold);
-        // Trigger text detection for the new image
-        detectText();
+    const handleIndexChange = (direction) => {
+        setCurrentIndex((prevIndex) => {
+            const newIndex = prevIndex + direction;
+            // Ensure the new index stays within bounds
+            if (newIndex < 0 || newIndex >= bImages.length) {
+                return prevIndex;
+            }
+            return newIndex;
+        });
     };
 
-    const detectText = (rect = null, isSliderChange = false) => {
-        setTextLoading(true);
-        setLoading(true);
-    
-        const canvas = canvasRef.current;
-        if (!canvas) {
-            console.error("Canvas not found.");
-            setLoading(false);
-            setTextLoading(false);
-            return;
+    const contentDetection = (type, rect = null) => {
+        var img = new Image();
+        switch (type) {
+            case 'text':
+                img = detectText(rect);
+                break;
+            default:
+                console.error("Content Detection Type not recognized.");
+                break;
         }
+
+        return img;
+    };
+
+    const detectText = (rect = null) => {
+        setCanvasLoadingStage(true);
+
+        const hiddenCanvas = canvasRef.current;
+        const hiddenCtx = hiddenCanvas.getContext("2d", { willReadFrequently: true });
+        const mainCanvas = canvasMain.current;
+        const mainCtx = mainCanvas.getContext("2d");
+        const textCanvas = canvasText.current;
+        const textCtx = textCanvas.getContext("2d");
+
+        const detectImg = new Image();
+        detectImg.src = currentImg;
+
+        let imageLogs = [];
+        let boundingBoxes = [];
+        let attempt = 0;
+        const maxRetries = 3;
     
-        const ctx = canvas.getContext("2d");
-        const originalImage = new Image();
-        originalImage.src = canvas.toDataURL();
-    
-        originalImage.onload = () => {
-            // If bImages['texts'] is already populated, this is not the first time detection
-            // if (!bImages['texts'] || isSliderChange) {
-                // Perform first-time detection of the entire image or when slider changes
-                canvas.width = originalImage.width;
-                canvas.height = originalImage.height;
-                ctx.drawImage(originalImage, 0, 0);
-    
-                Tesseract.recognize(originalImage.src, "eng", {
-                    logger: (info) => console.log(info),
-                    tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", // Alphanumeric whitelist
+        const loadImage = () => {
+            detectImg.onload = () => {
+                // Set up hidden canvas
+                if (rect) {
+                    const { x, y, width, height } = rect;
+                    hiddenCanvas.width = width;
+                    hiddenCanvas.height = height;
+                    hiddenCtx.drawImage(detectImg, x, y, width, height, 0, 0, width, height);
+                } else {
+                    hiddenCanvas.width = detectImg.width;
+                    hiddenCanvas.height = detectImg.height;
+                    hiddenCtx.drawImage(detectImg, 0, 0);
+                }
+
+                // Run Tesseract on cropped or full area
+                const croppedImage = hiddenCanvas.toDataURL();
+
+                Tesseract.recognize(croppedImage, "eng", {
+                    logger: (info) => {
+                        imageLogs.push(info);
+                    },
+                    tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
                 })
                     .then(({ data }) => {
+                        console.log(imageLogs);
+
                         const detectedText = [];
-                        data.words.forEach((word) => {
+                        const mergedBoxes = [];
+
+                        // Sort words by their y-coordinate
+                        const sortedWords = data.words.sort((a, b) => a.bbox.y0 - b.bbox.y0);
+
+                        sortedWords.forEach((word) => {
                             if (word.confidence > 80) {
-                                const wordData = {
-                                    text: word.text,
-                                    bbox: word.bbox,
-                                };
-                                detectedText.push(wordData);
-    
-                                // Draw bounding boxes for detected words
-                                ctx.strokeStyle = "red";
-                                ctx.lineWidth = 2;
-                                const { x0, y0, x1, y1 } = word.bbox;
-                                ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+                                let { text, bbox } = word;
+
+                                // Adjust bounding box if rect is provided
+                                if (rect) {
+                                    const { x, y } = rect;
+                                    bbox = {
+                                        x0: bbox.x0 + x,
+                                        y0: bbox.y0 + y,
+                                        x1: bbox.x1 + x,
+                                        y1: bbox.y1 + y,
+                                    };
+                                }
+
+                                const { x0, y0, x1, y1 } = bbox;
+
+                                // Merge nearby words into single boxes
+                                if (mergedBoxes.length === 0) {
+                                    mergedBoxes.push({ text, x0, y0, x1, y1 });
+                                    return;
+                                }
+
+                                const lastBox = mergedBoxes[mergedBoxes.length - 1];
+                                const isSameLine = Math.abs(lastBox.y0 - y0) < 5;
+                                const isClose = x0 - lastBox.x1 < 5;
+
+                                if (isSameLine && isClose) {
+                                    lastBox.text += ` ${text}`;
+                                    lastBox.x1 = x1;
+                                    lastBox.y1 = Math.max(lastBox.y1, y1);
+                                } else {
+                                    mergedBoxes.push({ text, x0, y0, x1, y1 });
+                                }
                             }
                         });
-    
-                        // Store detected text and their bounding boxes in bImages['texts']
-                        bImages['texts'] = detectedText;
-    
-                        // Set the detected text to be shown
-                        setDetectedText(detectedText.map((item) => item.text).join(" "));
-    
-                        // Update currentShowcaseImage with the detected text and bounding boxes
-                        setCurrentShowcaseImage(canvas.toDataURL());
+
+                        // Clear the textCanvas before redrawing
+                        textCanvas.width = mainCanvas.width;
+                        textCanvas.height = mainCanvas.height;
+                        textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+
+                        // Draw bounding boxes and detected text on the respective canvases
+                        mergedBoxes.forEach((box) => {
+                            const { text, x0, y0, x1, y1 } = box;
+                            detectedText.push({ text, bbox: { x0, y0, x1, y1 } });
+
+                            // Draw the bounding box on the mainCanvas
+                            mainCtx.strokeStyle = "red";
+                            mainCtx.lineWidth = 2;
+                            mainCtx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+
+                            // Draw the text on the textCanvas
+                            textCtx.font = "16px Arial";
+                            textCtx.fillStyle = "black";
+                            textCtx.fillText(text, x0, y0 - 5); // Position text slightly above the bounding box
+                        });
+
+                        setTextDetectImage(textCanvas.toDataURL());
+
+                        boundingBoxes = mergedBoxes;
                     })
                     .catch((error) => {
                         console.error("Error detecting text:", error);
                     })
                     .finally(() => {
-                        setLoading(false);
-                        setTextLoading(false);
+                        setCanvasLoadingStage(false);
                     });
-            // } else {
-            //     // If bImages['texts'] already exists, detect text inside the given rectangle
-            //     if (rect) {
-            //         const rectTexts = [];
-            //         bImages['texts'].forEach((wordData) => {
-            //             const { bbox, text } = wordData;
-    
-            //             // Check if the word's bounding box intersects with the rectangle
-            //             const isIntersecting =
-            //                 bbox.x0 < rect.startX + rect.width &&
-            //                 bbox.x1 > rect.startX &&
-            //                 bbox.y0 < rect.startY + rect.height &&
-            //                 bbox.y1 > rect.startY;
-    
-            //             if (isIntersecting) {
-            //                 rectTexts.push({ text, bbox });
-            //             }
-            //         });
-    
-            //         setDetectedText(rectTexts.map((item) => item.text).join(" "));
-    
-            //         // Highlight the bounding boxes for the intersecting words
-            //         ctx.strokeStyle = "red";
-            //         ctx.lineWidth = 2;
-            //         rectTexts.forEach((item) => {
-            //             const { x0, y0, x1, y1 } = item.bbox;
-            //             ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-            //         });
-    
-            //         // Update currentShowcaseImage with the highlighted rectangles
-            //         setCurrentShowcaseImage(canvas.toDataURL());
-            //     } else {
-            //         console.error("Rectangle is required for subsequent detections.");
-            //         setLoading(false);
-            //         setTextLoading(false);
-            //     }
-            // }
-        };
-    
-        originalImage.onerror = () => {
-            console.error("Failed to load image for text detection.");
-            setLoading(false);
-            setTextLoading(false);
-        };
-    };
-    
-    
-
-    // Function to handle mouse click event on the canvas
-    const handleCanvasClick = (e) => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
-        const canvasRect = canvas.getBoundingClientRect();
-        const clickX = e.clientX - canvasRect.left;
-        const clickY = e.clientY - canvasRect.top;
-
-        // Check if the click is inside any of the red bounding boxes
-        const clickedBox = bImages['texts'].find((wordData, index) => {
-            const { x0, y0, x1, y1 } = wordData.bbox;
-
-            return (
-                clickX >= x0 &&
-                clickX <= x1 &&
-                clickY >= y0 &&
-                clickY <= y1
-            );
-        });
-
-        if (clickedBox) {
-            // If a box was clicked, find its index in the array and remove it
-            const clickedIndex = bImages['texts'].indexOf(clickedBox);
-
-            // Remove the text and bounding box from the list
-            bImages['texts'].splice(clickedIndex, 1);
-
-            // Redraw the image with the updated bounding boxes
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const image = new Image();
-            image.src = canvas.toDataURL();
-
-            image.onload = () => {
-                ctx.drawImage(image, 0, 0);
-
-                // Redraw the remaining bounding boxes
-                bImages['texts'].forEach((wordData) => {
-                    const { bbox } = wordData;
-                    ctx.strokeStyle = "red";
-                    ctx.lineWidth = 2;
-                    const { x0, y0, x1, y1 } = bbox;
-                    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-                });
-
-                // Update the displayed image after removing the box
-                setCurrentShowcaseImage(canvas.toDataURL());
             };
-        }
 
-        setTextLoading(false);
-    };
-
-    // Attach the click event handler to the canvas
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            canvas.addEventListener("click", handleCanvasClick);
-        }
-        return () => {
-            if (canvas) {
-                canvas.removeEventListener("click", handleCanvasClick);
-            }
-        };
-    }, []);
-
-
-    // Toggle drawing mode
-    const handleDrawButtonClick = () => {
-        setDrawing((prev) => !prev);
-
-        if (!drawing) {
-            // Switch to drawing mode: redraw the image on the canvas
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext("2d");
-
-            const image = new Image();
-            image.src = currentShowcaseImage;
-
-            image.onload = () => {
-                canvas.width = image.width;
-                canvas.height = image.height;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(image, 0, 0);
+            detectImg.onerror = (error) => {
+                if (attempt < maxRetries) {
+                    attempt += 1;
+                    console.error(`Error loading image, retrying (${attempt}/${maxRetries})...`);
+                    setTimeout(loadImage, 1500); // Retry after 1.5 seconds
+                } else {
+                    console.error("Failed to load image after multiple attempts:", error);
+                    setCanvasLoadingStage(false); // Ensure we stop loading stage on failure
+                }
             };
-        }
-    };
+        };
 
-
-    // Start drawing the rectangle
-    const handleMouseDown = (e) => {
-        if (!drawing) return;
-
-        const canvas = canvasRef.current;
-        const rectStartX = e.clientX - canvas.getBoundingClientRect().left;
-        const rectStartY = e.clientY - canvas.getBoundingClientRect().top;
-
-        setRect({ startX: rectStartX, startY: rectStartY, width: 0, height: 0 });
-    };
-
-    // Update rectangle dimensions as mouse moves
-    const handleMouseMove = (e) => {
-        if (!rect || !drawing) return;
-
-        const canvas = canvasRef.current;
-        const rectWidth = e.clientX - canvas.getBoundingClientRect().left - rect.startX;
-        const rectHeight = e.clientY - canvas.getBoundingClientRect().top - rect.startY;
-
-        setRect({
-            ...rect,
-            width: rectWidth,
-            height: rectHeight,
-        });
-    };
-
-    const handleMouseUp = () => {
-        if (drawing && rect.width && rect.height) {
-            //detectText(rect);
-            setDrawing(false); // Exit drawing mode after text detection
-        }
+        loadImage();
     };
 
     const handleSubmit = (e) => {
+        //didn't finish yet
         e.preventDefault();
         console.log("Submitting image data:", {
             ...bImages[currentIndex],
@@ -422,20 +311,20 @@ export default function Binarize({ bImages, auth }) {
             <Head title="Binarize" />
             <Header auth={auth} />
             <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
-                <h1 style={{ fontSize: "2.5em" }}>Binarization</h1>
+                <h1 style={{ fontSize: "2.5em" }}>Content Detection</h1>
                 <div className="container-fluid">
                     <form
                         onSubmit={handleSubmit}
                         className="space-y-4 mx-auto row justify-content-center"
                         style={{ maxWidth: "100%" }}
                     >
-                        <div className="col-lg-8 col-md-10 col-12">
+                        <div className="col-lg-10 col-md-10 col-12">
                             <div className="my-5">
                                 <div className="d-flex justify-content-between mb-3">
                                     <button
                                         type="button"
                                         className="btn btn-secondary"
-                                        onClick={handlePrev}
+                                        onClick={() => handleIndexChange(-1)}
                                         disabled={currentIndex === 0}
                                     >
                                         &lt; Prev
@@ -446,56 +335,49 @@ export default function Binarize({ bImages, auth }) {
                                     <button
                                         type="button"
                                         className="btn btn-secondary"
-                                        onClick={handleNext}
+                                        onClick={() => handleIndexChange(1)}
                                         disabled={currentIndex === bImages.length - 1}
                                     >
                                         Next &gt;
                                     </button>
                                 </div>
                                 <div className="d-flex justify-content-between mb-3">
-                                    <button
+                                    {/* <button
                                         type="button"
                                         className="btn btn-secondary"
                                         onClick={handleDrawButtonClick}
                                     >
                                         {drawing ? "Stop Drawing" : "Draw Rectangle"}
-                                    </button>
+                                    </button> */}
                                 </div>
-
                                 <div className="row">
                                     {/* Showcase Image Section */}
                                     <div className="col-md-9">
-                                        <div className="img-showcase p-3 bg-white text-center">
-                                            {loading && (
+                                        <div className="img-showcase p-3 bg-white text-center relative-container">
+                                            {canvasLoadingStage && (
                                                 <div className="overlay d-flex justify-content-center align-items-center">
                                                     <div className="spinner-border text-primary" role="status">
                                                         <span className="visually-hidden">Loading...</span>
                                                     </div>
                                                 </div>
                                             )}
-                                            {drawing ? (
-                                                <canvas
-                                                    ref={canvasRef}
-                                                    onMouseDown={handleMouseDown}
-                                                    onMouseMove={handleMouseMove}
-                                                    onMouseUp={handleMouseUp}
-                                                    style={{
-                                                        display: "block",
-                                                        width: "100%",
-                                                        maxHeight: "calc(100vh - 250px)",
-                                                    }}
-                                                />
-                                            ) : currentShowcaseImage ? (
-                                                <>
-                                                    <img
-                                                        src={currentShowcaseImage}
-                                                        alt="Showcase"
-                                                        className="rounded-lg shadow-md img-fluid w-100"
-                                                        style={{
-                                                            maxHeight: "calc(100vh - 250px)",
-                                                            objectFit: "contain",
-                                                        }}
-                                                    />
+                                            {bImages[currentIndex] ? (
+                                                <div className="main-content">
+                                                    <div className="mt-3">
+                                                        <canvas
+                                                            ref={canvasMain}
+                                                            // onMouseDown={handleMouseDown}
+                                                            // onMouseMove={handleMouseMove}
+                                                            // onMouseUp={handleMouseUp}
+                                                            style={{
+                                                                display: "block",
+                                                                width: "100%",
+                                                                maxHeight: "calc(100vh - 250px)",
+                                                                objectFit: "contain",
+                                                                border: "1px solid black",
+                                                            }}
+                                                        />
+                                                    </div>
                                                     <div className="mt-3">
                                                         <label htmlFor="thresholdSlider" className="form-label">
                                                             Threshold: {currentThreshold}
@@ -507,21 +389,34 @@ export default function Binarize({ bImages, auth }) {
                                                             max="255"
                                                             step="1"
                                                             value={currentThreshold}
-                                                            onInput={handleSliderChange}
+                                                            onInput={(e) => updateThreshold(parseInt(e.target.value, 10))}
+                                                            onBlur={(e) => { const currImg = loadAndBinarizeImage(bImages[currentIndex].filepath, e.target.value); setCurrentImg(currImg); }}
                                                             className="form-range w-100"
-                                                            disabled={drawing} // Disable slider in drawing mode
                                                         />
                                                     </div>
-                                                </>
+                                                    <div className="mt-3">
+                                                        <canvas
+                                                            ref={canvasText}
+                                                            id="textLayer"
+                                                            style={{
+                                                                display: "block",
+                                                                width: "100%",
+                                                                maxHeight: "calc(100vh - 250px)",
+                                                                objectFit: "contain",
+                                                                border: "1px solid black",
+                                                            }}
+                                                        />
+                                                        Text Layer
+                                                    </div>
+                                                </div>
                                             ) : (
-                                                <p>No image available</p>
+                                                <p>There is some error, no image available.</p>
                                             )}
 
                                             <canvas ref={canvasRef} style={{ display: "none" }} />
 
                                         </div>
                                     </div>
-
                                     {/* Side Menu Section */}
                                     <div className="col-md-3">
                                         <div className="side-menu bg-white p-3">
@@ -531,7 +426,7 @@ export default function Binarize({ bImages, auth }) {
                                                     src={bImages[currentIndex]?.filepath}
                                                     alt="Original"
                                                     className="img-fluid mb-2"
-                                                    onClick={handleOriginalClick}
+                                                    onClick={() => updateThreshold(0)}
                                                     style={{
                                                         width: "100%",
                                                         height: "auto",
@@ -547,11 +442,11 @@ export default function Binarize({ bImages, auth }) {
                                             <div className="mb-3 text-center">
                                                 <button
                                                     type="button"
-                                                    onClick={handleBinarizedClick}
+                                                    onClick={() => updateThreshold(127)}
                                                     className="img-fluid mb-2"
                                                 >
                                                     <img
-                                                        src={binarizedImageButton}
+                                                        src={autoBinarizeImage}
                                                         alt="Binarized"
                                                         className="img-fluid"
                                                         style={{
@@ -565,22 +460,29 @@ export default function Binarize({ bImages, auth }) {
                                                 </button>
                                                 <p className="small text-muted">Auto Binarized Image</p>
                                             </div>
-                                            {detectedText || textLoading ? (
-                                                <div className="mt-3">
-                                                    <h5>Detected Text:</h5>
-                                                    {textLoading ? (
-                                                        <div className="d-flex justify-content-center align-items-center">
-                                                            <div className="spinner-border text-primary" role="status">
-                                                                <span className="visually-hidden">Loading...</span>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                                                            {detectedText}
-                                                        </pre>
-                                                    )}
-                                                </div>
-                                            ) : null}
+
+                                            {/* Text Detect Button */}
+                                            <div className="mb-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => contentDetection('text')}
+                                                    className="img-fluid mb-2"
+                                                >
+                                                    <img
+                                                        src={textDetectImage}
+                                                        alt="Text Detect"
+                                                        className="img-fluid"
+                                                        style={{
+                                                            width: "100%",
+                                                            height: "auto",
+                                                            objectFit: "contain",
+                                                            cursor: "pointer",
+                                                            maxHeight: "200px",
+                                                        }}
+                                                    />
+                                                </button>
+                                                <p className="small text-muted">Detect Text</p>
+                                            </div>
 
                                             {/* <button
                                                 type="submit"
