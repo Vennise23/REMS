@@ -161,14 +161,23 @@ const Buy = ({ auth }) => {
             const response = await fetch(`/api/properties?${queryParams}`);
             const data = await response.json();
 
-            if (data.data) {
-                setProperties(data.data);
-                setTotalPages(Math.ceil(data.total / propertiesPerPage));
+            console.group('Property Data Fetched');
+            console.log('Raw Response:', data);
+            console.log('Properties:', data.data);
+            console.log('Pagination:', {
+                currentPage: data.current_page,
+                totalPages: data.last_page,
+                totalItems: data.total,
+                perPage: data.per_page
+            });
+            console.groupEnd();
 
-                data.data.forEach((property) => {
-                    fetchPropertyPhotos(property.id);
-                });
-            }
+            setProperties(data.data);
+            setTotalPages(Math.ceil(data.total / propertiesPerPage));
+
+            data.data.forEach((property) => {
+                fetchPropertyPhotos(property.id);
+            });
         } catch (error) {
             console.error("Error fetching properties:", error);
         }

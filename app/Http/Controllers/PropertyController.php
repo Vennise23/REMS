@@ -90,6 +90,10 @@ class PropertyController extends Controller
     {
         try {
             $query = Property::query();
+            
+            // 启用查询日志
+            \DB::enableQueryLog();
+            
             $purchaseType = $request->input('purchase', 'For Sale');
             $query->where('purchase', $purchaseType);
 
@@ -154,12 +158,24 @@ class PropertyController extends Controller
 
             $properties = $query->paginate($request->input('per_page', 6));
 
+            // 获取并记录执行的 SQL 查询
+            $queries = \DB::getQueryLog();
+            \Log::info('Property Queries:', [
+                'queries' => $queries,
+                'request_params' => $request->all()
+            ]);
+
             return response()->json([
                 'data' => $properties->items(),
                 'total' => $properties->total(),
                 'per_page' => $properties->perPage(),
                 'current_page' => $properties->currentPage(),
-                'last_page' => $properties->lastPage()
+                'last_page' => $properties->lastPage(),
+                // 添加 SQL 查询信息（仅在开发环境）
+                'debug' => config('app.debug') ? [
+                    'queries' => $queries,
+                    'params' => $request->all()
+                ] : null
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

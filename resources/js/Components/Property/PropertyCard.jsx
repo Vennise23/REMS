@@ -3,6 +3,12 @@ import { Link } from '@inertiajs/react';
 import { FaHome, FaDollarSign, FaBuilding, FaRulerCombined } from 'react-icons/fa';
 
 const PropertyCard = ({ property = {}, photos = [] }) => {
+    // 添加属性数据日志
+    console.group(`Property Card: ${property?.property_name}`);
+    console.log('Property Details:', property);
+    console.log('Property Photos:', photos);
+    console.groupEnd();
+
     const defaultProperty = {
         id: property?.id || 0,
         property_name: property?.property_name || 'Untitled Property',

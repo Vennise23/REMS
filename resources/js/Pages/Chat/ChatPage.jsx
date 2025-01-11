@@ -122,7 +122,7 @@ export default function ChatPage({ auth, chatRoom }) {
         try {
             setIsSending(true);
             
-            // 1. 发送消息到服务器
+            // 这里调用了 ChatMessageController 的 store 方法
             const response = await axios.post(route('chat.messages.store', { chatRoom: chatRoom.id }), {
                 chat_room_id: chatRoom.id,
                 message: newMessage.trim()
