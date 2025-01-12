@@ -79,7 +79,7 @@ Route::middleware(['auth'])->group(function () {
 
 // Profile routes
 Route::middleware(['auth'])->group(function () {
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.updatUsere');
     Route::post('/profile/check-name', [ProfileController::class, 'checkName'])->name('profile.checkName');
     Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
     Route::post('/profile/check-ic', [ProfileController::class, 'checkIC'])->name('profile.checkIC');
@@ -276,9 +276,9 @@ Route::get('/seller/{seller}/properties', function (User $seller) {
         'auth' => ['user' => Auth::user()],
         'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
     ]);
-})->name('seller.properties');
+});
 
-Route::get('/seller-properties', [SellerController::class, 'getSellerProperties'])->name('seller.properties');
+Route::get('/seller-properties', [SellerController::class, 'getSellerProperties']);
 
 Route::get('/seller/{id}', [SellerController::class, 'profile'])->name('seller.profile');
 
@@ -302,14 +302,14 @@ Route::get('/seller/{seller}/properties', function (User $seller) {
         'auth' => ['user' => Auth::user()],
         'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
     ]);
-})->name('seller.properties');
+});
 
-Route::get('/seller-properties', [SellerController::class, 'getSellerProperties'])->name('seller.properties');
+Route::get('/seller-properties', [SellerController::class, 'getSellerProperties']);
 
 //THREE - basic upload and binarization testing.
-Route::get('/three/upload', [ThreeController::class, 'showUploadForm'])->name('upload.show');
-Route::post('/three/upload', [ThreeController::class, 'handleUpload'])->name('upload.handle');
-Route::post('/three/saveUpload', [ThreeController::class, 'saveUploadFiles'])->name('uplaod.save');
+Route::get('/three/upload', [ThreeController::class, 'showUploadForm']);
+Route::post('/three/upload', [ThreeController::class, 'handleUpload']);
+Route::post('/three/saveUpload', [ThreeController::class, 'saveUploadFiles']);
 
 //THREE - new :: allow upload multiple files and binarize.
 Route::get('/three/uploadFile',[FileController::class,'showUploadForm'])->name('upload.show');
@@ -326,5 +326,5 @@ Route::middleware(['auth'])->group(function () {
             'auth' => ['user' => Auth::user()],
             'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
         ]);
-    })->name('seller.properties');
+    });
 });
