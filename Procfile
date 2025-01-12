@@ -1,1 +1,2 @@
-web: php artisan serve --host=0.0.0.0 --port=$PORT && npm run dev
+web: php artisan serve --host=0.0.0.0 --port=$PORT
+vite: npm run dev
