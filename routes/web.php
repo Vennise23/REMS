@@ -54,12 +54,12 @@ Route::get('/three', function () {
 Route::get('/admin/login', [AuthenticatedSessionController::class, 'create'])->name('admin.login');
 Route::post('/admin/login', [AuthenticatedSessionController::class, 'storeAdmin'])->name('admin.login.store');
 
-// Admin routes with user management
+// Admin routes with user management and property management
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
     Route::get('/admin/properties', [AdminController::class, 'manageProperties'])->name('admin.properties');
-    
+    Route::get('/properties/data', [AdminController::class, 'propertyTable'])->name('admin.properties.data');
     // User CRUD operations
     Route::post('/admin/users', [AdminController::class, 'store'])->name('admin.users.store');
     Route::put('/admin/users/{id}', [AdminController::class, 'update'])->name('admin.users.update');
