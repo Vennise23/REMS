@@ -19,7 +19,8 @@ export default defineConfig({
         'process.env': {},
     },
     server: {
-        port: process.env.PORT || 10000, // Render's default port
-        strictPort: true, // Ensures Vite binds only to the specified port
-    },
+        port: process.env.PORT || 8080,  // Use $PORT if available, fallback to 3000 for local dev
+        strictPort: true,  // Ensure Vite strictly uses the specified port
+        host: '0.0.0.0', 
+    }
 });
