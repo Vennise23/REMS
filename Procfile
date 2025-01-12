@@ -1,2 +1,2 @@
 web: php artisan serve --host=0.0.0.0 --port=$PORT
-vite: npm run dev
+vite: ./wait-for-it.sh $HOST:$PORT -- npm run dev
