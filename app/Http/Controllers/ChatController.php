@@ -12,6 +12,7 @@ use App\Notifications\NewMessageNotification;
 use App\Events\UnreadMessagesUpdated;
 use Illuminate\Support\Facades\Session;
 use App\Events\MessageCountUpdated;
+use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
 {
@@ -92,7 +93,7 @@ class ChatController extends Controller
                 'chatRoom' => $chatRoom->load(['buyer', 'seller', 'property']),
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error in createRoom: ' . $e->getMessage());
+            Log::error('Error in createRoom: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Failed to create chat room',
                 'message' => $e->getMessage()
@@ -126,7 +127,7 @@ class ChatController extends Controller
 
             return response()->json($message);
         } catch (\Exception $e) {
-            \Log::error('Error in store method: ' . $e->getMessage());
+            Log::error('Error in store method: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -160,7 +161,7 @@ class ChatController extends Controller
         }
 
         // Add debugging information
-        \Log::info('Chat room accessed', [
+        Log::info('Chat room accessed', [
             'chat_room_id' => $chatRoom->id,
             'user_id' => auth()->id(),
             'is_buyer' => auth()->id() === $chatRoom->buyer_id,
@@ -281,7 +282,7 @@ class ChatController extends Controller
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            \Log::error('Error marking messages as read: ' . $e->getMessage());
+            Log::error('Error marking messages as read: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

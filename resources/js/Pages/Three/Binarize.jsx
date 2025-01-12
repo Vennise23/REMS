@@ -27,7 +27,30 @@ export default function Binarize({ bImages, auth }) {
 
                 // Initialize Canvas
                 const currImg = await loadAndBinarizeImage(bImages[currentIndex].filepath, bImages[currentIndex].threshold);
-                setCurrentImg(currImg);
+                if (bImages[currentIndex].textDetectImg) {
+                    setTextDetectImage(bImages[currentIndex].textDetectImg);
+                    const textCanvas = canvasText.current;
+                    const textCtx = textCanvas.getContext("2d");
+
+                    const img = new Image();
+                    img.src = bImages[currentIndex].textDetectImg;
+
+                    img.onload = () => {
+                        // Set canvas size to match the image size
+                        textCanvas.width = img.width;
+                        textCanvas.height = img.height;
+
+                        // Draw the image onto the canvas
+                        textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);  // Clear the canvas first
+                        textCtx.drawImage(img, 0, 0);
+                    };
+
+                    img.onerror = (error) => {
+                        console.error("Error loading the image from textDetectImg:", error);
+                    };
+                } else {
+                    setCurrentImg(currImg);
+                }
 
                 // Auto Binarize Button Image
                 const binarizedImg = await loadAndBinarizeImage(bImages[currentIndex].filepath, 127);
@@ -137,6 +160,16 @@ export default function Binarize({ bImages, auth }) {
         loadAndBinarizeImage(bImages[currentIndex].filepath, newThreshold);
     };
 
+    const applyThreshold = (newThreshold) => {
+        loadAndBinarizeImage(bImages[currentIndex].filepath, newThreshold)
+            .then((img) => {
+                setCurrentImg(img);
+            })
+            .catch((error) => {
+                console.error("Error binarizing image:", error);
+            });
+    };
+
     const handleIndexChange = (direction) => {
         setCurrentIndex((prevIndex) => {
             const newIndex = prevIndex + direction;
@@ -176,10 +209,9 @@ export default function Binarize({ bImages, auth }) {
         detectImg.src = currentImg;
 
         let imageLogs = [];
-        let boundingBoxes = [];
         let attempt = 0;
         const maxRetries = 3;
-    
+
         const loadImage = () => {
             detectImg.onload = () => {
                 // Set up hidden canvas
@@ -272,7 +304,18 @@ export default function Binarize({ bImages, auth }) {
 
                         setTextDetectImage(textCanvas.toDataURL());
 
-                        boundingBoxes = mergedBoxes;
+                        // Ensure arrays exist before assigning values
+                        if (!bImages[currentIndex].textDetectImg) {
+                            bImages[currentIndex].textDetectImg = [];
+                        }
+                        if (!bImages[currentIndex].textBoxes) {
+                            bImages[currentIndex].textBoxes = [];
+                        }
+
+                        // Save the generated data
+                        bImages[currentIndex].textDetectImg = textCanvas.toDataURL();
+                        bImages[currentIndex].textBoxes = mergedBoxes;
+
                     })
                     .catch((error) => {
                         console.error("Error detecting text:", error);
@@ -390,7 +433,8 @@ export default function Binarize({ bImages, auth }) {
                                                             step="1"
                                                             value={currentThreshold}
                                                             onInput={(e) => updateThreshold(parseInt(e.target.value, 10))}
-                                                            onBlur={(e) => { const currImg = loadAndBinarizeImage(bImages[currentIndex].filepath, e.target.value); setCurrentImg(currImg); }}
+                                                            onMouseUp={(e) => applyThreshold(parseInt(e.target.value, 10))} // Apply changes when mouse is released
+                                                            onTouchEnd={(e) => applyThreshold(parseInt(e.target.value, 10))}
                                                             className="form-range w-100"
                                                         />
                                                     </div>
