@@ -60,6 +60,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/users', [AdminController::class, 'manageUsers'])->name('admin.users');
     Route::get('/admin/properties', [AdminController::class, 'manageProperties'])->name('admin.properties');
     Route::get('/properties/data', [AdminController::class, 'propertyTable'])->name('admin.properties.data');
+    Route::post('/api/properties/{id}/approve', [AdminController::class, 'approveProperty'])->name('api.properties.approve'); 
+    Route::post('/api/properties/{id}/reject', [AdminController::class, 'rejectProperty'])->name('api.properties.reject');
     // User CRUD operations
     Route::post('/admin/users', [AdminController::class, 'store'])->name('admin.users.store');
     Route::put('/admin/users/{id}', [AdminController::class, 'update'])->name('admin.users.update');
@@ -79,7 +81,7 @@ Route::middleware(['auth'])->group(function () {
 
 // Profile routes
 Route::middleware(['auth'])->group(function () {
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.updatUsere');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/check-name', [ProfileController::class, 'checkName'])->name('profile.checkName');
     Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
     Route::post('/profile/check-ic', [ProfileController::class, 'checkIC'])->name('profile.checkIC');
@@ -276,9 +278,9 @@ Route::get('/seller/{seller}/properties', function (User $seller) {
         'auth' => ['user' => Auth::user()],
         'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
     ]);
-});
+})->name('seller.properties');
 
-Route::get('/seller-properties', [SellerController::class, 'getSellerProperties']);
+Route::get('/seller-properties', [SellerController::class, 'getSellerProperties'])->name('seller.properties');
 
 Route::get('/seller/{id}', [SellerController::class, 'profile'])->name('seller.profile');
 
@@ -302,14 +304,14 @@ Route::get('/seller/{seller}/properties', function (User $seller) {
         'auth' => ['user' => Auth::user()],
         'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
     ]);
-});
+})->name('seller.properties');
 
-Route::get('/seller-properties', [SellerController::class, 'getSellerProperties']);
+Route::get('/seller-properties', [SellerController::class, 'getSellerProperties'])->name('seller.properties');
 
 //THREE - basic upload and binarization testing.
-Route::get('/three/upload', [ThreeController::class, 'showUploadForm']);
-Route::post('/three/upload', [ThreeController::class, 'handleUpload']);
-Route::post('/three/saveUpload', [ThreeController::class, 'saveUploadFiles']);
+Route::get('/three/upload', [ThreeController::class, 'showUploadForm'])->name('upload.show');
+Route::post('/three/upload', [ThreeController::class, 'handleUpload'])->name('upload.handle');
+Route::post('/three/saveUpload', [ThreeController::class, 'saveUploadFiles'])->name('uplaod.save');
 
 //THREE - new :: allow upload multiple files and binarize.
 Route::get('/three/uploadFile',[FileController::class,'showUploadForm'])->name('upload.show');
@@ -326,5 +328,5 @@ Route::middleware(['auth'])->group(function () {
             'auth' => ['user' => Auth::user()],
             'seller' => $seller->only(['id', 'firstname', 'lastname', 'profile_picture', 'agency_name']),
         ]);
-    });
+    })->name('seller.properties');
 });
