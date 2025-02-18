@@ -13,11 +13,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\WelcomeEmail;
 use Illuminate\Validation\Rule;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
-use App\Notifications\ResetPasswordNotification;
+use App\Mail\Builder\PermanentEmailBuilder;
+use App\Mail\Builder\TemporaryEmailBuilder;
 
 class AdminController extends Controller
 {
@@ -42,6 +41,9 @@ class AdminController extends Controller
     public function store(Request $request)
     {
         try {
+            // Log incoming request data
+            Log::info('Incoming request data:', $request->all());
+
             $validator = Validator::make($request->all(), [
                 'email' => 'required|email|unique:users,email',
                 'ic_number' => 'required|unique:users,ic_number',
@@ -55,11 +57,12 @@ class AdminController extends Controller
                 'address_line_2' => 'nullable|string|max:255',
                 'city' => 'required|string|max:255',
                 'postal_code' => 'required|string|max:20',
-                'role' => 'required|in:user,admin',
+                'role' => 'required|in:user,admin,seller',
                 'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation failed:', $validator->errors()->toArray());
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -67,61 +70,53 @@ class AdminController extends Controller
                 ], 422);
             }
 
-            DB::beginTransaction();
+             DB::beginTransaction();
 
-            // Generate random temporary password
             $temporaryPassword = Str::random(12);
-
-            // Handle profile picture upload
             $profile_picture_path = null;
+
             if ($request->hasFile('profile_picture')) {
                 $profile_picture_path = $request->file('profile_picture')->store('profile_pictures', 'public');
             }
 
-            // Create the user with temporary password
-            $user = User::create([
-                'firstname' => $request->firstname,
-                'lastname' => $request->lastname,
-                'email' => $request->email,
-                'password' => Hash::make($temporaryPassword), // Use temporary password
-                'phone' => $request->phone,
-                'ic_number' => $request->ic_number,
-                'age' => $request->age,
-                'born_date' => $request->born_date,
-                'gender' => $request->gender,
-                'address_line_1' => $request->address_line_1,
-                'address_line_2' => $request->address_line_2,
-                'city' => $request->city,
-                'postal_code' => $request->postal_code,
-                'role' => $request->role,
-                'profile_picture' => $profile_picture_path
+            // Create user with validated data
+            $userData = $validator->validated();
+            $userData['password'] = Hash::make($temporaryPassword);
+            $userData['profile_picture'] = $profile_picture_path;
+
+             $user = User::create($userData);
+
+            Log::info('About to create email with user details:', [
+                'firstname' => $user->firstname,
+                'lastname' => $user->lastname,
+                'email' => $user->email
             ]);
 
-            // Create a password reset token
-            $token = Str::random(64);
-            DB::table('password_reset_tokens')->insert([
-                'email' => $user->email,
-                'token' => $token,
-                'created_at' => now(),
-                'used' => false
-            ]);
+             $builder = new PermanentEmailBuilder();
+            $email = $builder
+                ->setRecipient($user->email)
+                ->setUserDetails(
+                    $user->firstname,
+                    $user->lastname,
+                    $temporaryPassword
+                )
+                ->buildEmail()
+                ->getResult();
 
-            // Send welcome email with temporary password
-            Mail::to($user->email)->send(new WelcomeEmail(
-                $user->firstname,
-                $user->lastname,
-                $user->email,
-                $temporaryPassword, // Pass temporary password
-                $token
-            ));
+             Log::info('Email object created, about to send');
 
-            DB::commit();
+             Mail::send($email);
+
+             Log::info('Email sent successfully');
+
+             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'User created successfully',
                 'user' => $user
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('User creation failed', [
@@ -378,20 +373,18 @@ class AdminController extends Controller
     public function sendWelcomeEmail(Request $request)
     {
         try {
-            $request->validate([
-                'email' => 'required|email',
-                'firstname' => 'required',
-                'lastname' => 'required',
-                'password' => 'required'
-            ]);
+            $builder = new PermanentEmailBuilder();
+            $email = $builder
+                ->setRecipient($request->email)
+                ->setUserDetails(
+                    $request->firstname,
+                    $request->lastname,
+                    $request->password
+                )
+                ->buildEmail()
+                ->getResult();
 
-            Mail::to($request->email)->send(new WelcomeEmail(
-                $request->firstname,
-                $request->lastname,
-                $request->email,
-                $request->password,
-                $request->resetLink
-            ));
+            Mail::send($email);
 
             return response()->json([
                 'message' => 'Welcome email sent successfully',
@@ -399,10 +392,7 @@ class AdminController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send welcome email: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Failed to send welcome email',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -508,41 +498,32 @@ class AdminController extends Controller
 
     public function sendResetLinkEmail(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
         try {
-            $user = User::where('email', $request->email)->first();
+            $builder = new TemporaryEmailBuilder();
+            $email = $builder
+                ->setRecipient($request->email)
+                ->buildEmail();
 
-            if (!$user) {
-                return Inertia::render('Auth/ForgotPassword', [
-                    'status' => 'User not found'
-                ])->withViewData(['error' => 'User not found']);
-            }
-
-            $token = Str::random(64);
-
+            // Store token in database
             DB::table('password_reset_tokens')->updateOrInsert(
                 ['email' => $request->email],
                 [
-                    'email' => $request->email,
-                    'token' => $token,
-                    'created_at' => Carbon::now(),
+                    'token' => $builder->getToken(),
+                    'created_at' => now(),
+                    'expires_at' => $builder->getExpiresAt(),
                     'used' => false
                 ]
             );
 
-            $user->notify(new ResetPasswordNotification($token));
+            Mail::send($email->getResult());
 
-            return Inertia::render('Auth/ForgotPassword', [
-                'status' => 'Password reset link sent successfully'
+            return response()->json([
+                'message' => 'Reset link sent successfully',
+                'status' => 'success'
             ]);
         } catch (\Exception $e) {
-            Log::error('Reset link error: ' . $e->getMessage());
-            return Inertia::render('Auth/ForgotPassword', [
-                'status' => 'Error sending reset link'
-            ])->withViewData(['error' => $e->getMessage()]);
+            Log::error('Failed to send reset email: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }

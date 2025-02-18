@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
@@ -234,21 +235,26 @@ Route::post('/api/check-email', [RegisterController::class, 'checkEmailUniquenes
 Route::get('/profile', [ProfileController::class, 'show'])->middleware(['auth'])->name('profile.show');
 
 // Password Reset Routes
-Route::get('/password-reset/{token}', [ResetPasswordController::class, 'showResetForm'])
-    ->name('password.reset')
-    ->middleware('web');
+Route::middleware('guest')->group(function () {
+    // For welcome email first-time password setup
+    Route::get('/setup-password/{token}', [ResetPasswordController::class, 'showSetupForm'])
+        ->name('password.setup');
+    Route::post('/setup-password', [ResetPasswordController::class, 'setup'])
+        ->name('password.setup.submit');
 
-Route::get('/forgot-password', function () {
-    return Inertia::render('Auth/ForgotPassword');
-})
-->name('password.request')
-->middleware('web');
+    // For password reset requests
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
+        ->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
+        ->name('password.update');
+
+    // For requesting new password reset
+    Route::post('/forgot-password', [ResetPasswordController::class, 'createToken'])
+    ->name('password.email');
+});
 
 Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'validateToken'])
     ->name('password.validate.token');
-
-Route::post('/api/reset-password', [ResetPasswordController::class, 'reset'])
-    ->name('password.update');
 
 Route::post('/forgot-password', [AdminController::class, 'sendResetLinkEmail'])
     ->name('password.email');
@@ -330,3 +336,4 @@ Route::middleware(['auth'])->group(function () {
         ]);
     })->name('seller.properties');
 });
+

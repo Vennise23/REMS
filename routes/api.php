@@ -11,6 +11,7 @@ use App\Http\Controllers\NewLaunchController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\AdminController;
+use Illuminate\Support\Facades\DB;
 
 
 
@@ -86,7 +87,18 @@ Route::post('/check-passport', 'AdminController@checkPassportUniqueness');
 //send welcome email to new user
 Route::post('/send-welcome-email', [AdminController::class, 'sendWelcomeEmail']);
 
-Route::post('/validate-reset-token', [ResetPasswordController::class, 'validateToken']);
+Route::post('/validate-reset-token', function (Request $request) {
+    $tokenData = DB::table('password_reset_tokens')
+        ->where('token', $request->token)
+        ->where('email', $request->email)
+        ->first();
+
+    return response()->json([
+        'valid' => $tokenData !== null,
+        'used' => $tokenData ? $tokenData->used : 1
+    ]);
+});
+
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 
 Route::get('/search-sellers', [SellerController::class, 'search']);

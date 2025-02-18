@@ -828,8 +828,12 @@ export default function AdminUserMng({ auth, user }) {
         try {
             setIsSubmitting(true);
             
-            // Create FormData object
+            // Log the form data to see what's being sent
+            console.log('Form Data:', newUser);
+            
             const formData = new FormData();
+            
+            // Make sure we're using firstname and lastname, not name
             formData.append('firstname', newUser.firstname);
             formData.append('lastname', newUser.lastname);
             formData.append('email', newUser.email);
@@ -842,43 +846,33 @@ export default function AdminUserMng({ auth, user }) {
             formData.append('address_line_2', newUser.address_line_2 || '');
             formData.append('city', newUser.city);
             formData.append('postal_code', newUser.postal_code);
-            formData.append('role', newUser.role || 'user');
-            
+            formData.append('role', newUser.role);
+
             if (newUser.profile_picture) {
                 formData.append('profile_picture', newUser.profile_picture);
             }
-    
-            // Send request
-            const response = await axios.post('/api/users', formData, {
+
+            // Log what's being sent to the server
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}:`, value);
+            }
+
+            const response = await axios.post("/api/users", formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
+                    'Content-Type': 'multipart/form-data'
                 }
             });
-    
-            console.log('Response:', response.data); // Add this for debugging
-    
+
             if (response.data.success) {
-                // Show success toast
-                toast.success(response.data.message || 'User created successfully');
-                
-                // Reset form and refresh user list
-                resetForm();
-                setShowAddUserForm(false); // Close the form
+                toast.success('User created successfully');
                 await fetchUsers();
-            } else {
-                // Show error toast if success is false
-                toast.error(response.data.message || 'Failed to create user');
+                resetForm();
+                setShowAddUserForm(false);
             }
-    
+
         } catch (error) {
             console.error('Error details:', error.response?.data);
-            
-            // Show detailed error message
-            const errorMessage = error.response?.data?.message 
-                || error.response?.data?.error 
-                || 'An error occurred while creating the user';
-            toast.error(errorMessage);
-            
+            toast.error(error.response?.data?.message || 'Failed to create user');
         } finally {
             setIsSubmitting(false);
         }
