@@ -312,25 +312,31 @@ export default function Main({ auth }) {
                     <div className="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-gray-100 to-transparent"></div>
 
                     <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-full max-w-lg bg-[rgb(255,255,255,0.46)] p-4 rounded-xl shadow-lg">
-                        <div className="flex justify-center mb-2">
-                            <button
-                                onClick={() => setIsBuy(true)}
-                                className={`px-6 py-2 font-bold rounded-l-full ${isBuy
-                                    ? "bg-red-500 text-white"
-                                    : "bg-gray-200 text-gray-600"
-                                    }`}
-                            >
-                                Buy
-                            </button>
-                            <button
-                                onClick={() => setIsBuy(false)}
-                                className={`px-6 py-2 font-bold rounded-r-full ${!isBuy
-                                    ? "bg-red-500 text-white"
-                                    : "bg-gray-200 text-gray-600"
-                                    }`}
-                            >
-                                Rent
-                            </button>
+                        <div className="flex justify-center mb-2 relative w-40 w-full flex justify-center items-center">
+                            <div className="relative  inset-0 bg-gray-200 rounded-full w-40 h-8 flex items-center justify-between">
+                                <div
+                                    className={`absolute top-0 left-1 h-full w-1/2 bg-red-500 rounded-full transition-transform duration-300`}
+                                    style={{ transform: isBuy ? "translateX(0%)" : "translateX(100%)" }}
+                                ></div>
+                                <button
+                                    onClick={() => setIsBuy(true)}
+                                    className={`relative w-1/2 px-6 py-2 font-bold transition-colors duration-300 ${
+                                        isBuy ? "text-white" : "text-gray-600"
+                                    } z-10`}
+                                >
+                                    Buy
+                                </button>
+                                <button
+                                    onClick={() => setIsBuy(false)}
+                                    className={`relative w-1/2 px-6 py-2 font-bold transition-colors duration-300 ${
+                                        !isBuy ? "text-white" : "text-gray-600"
+                                    } z-10`}
+                                >
+                                    Rent
+                                </button>
+                            </div>
+
+
                         </div>
 
                         <div className="flex items-center bg-white p-2 rounded-full shadow-md mb-2">
