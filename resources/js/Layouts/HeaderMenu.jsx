@@ -1,32 +1,75 @@
 import React, { useState, useEffect } from "react";
 import { Link, Head, router } from "@inertiajs/react";
-import logo from "/resources/img/REMS_logo_light.png";
+import ApplicationLogo from "../Components/ApplicationLogo";
 import axios from "axios";
 import { FaEnvelope } from "react-icons/fa";
 import { IoNotifications } from "react-icons/io5";
 
-export default function Main({ auth }) {
+export default function HeaderMenu({ auth }) {
+    const [menuState, setMenuState] = useState({
+        showNotifications: false,
+        showMessages: false,
+        dropdownOpen: false,
+    });
+    const [chatRooms, setChatRooms] = useState([]);
+    const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+    const [notifications, setNotifications] = useState([]);
+    const [totalNotifications, setTotalNotifications] = useState(0);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [bgOpacity, setBgOpacity] = useState("bg-transparent");
+    const [textColor, setTextColor] = useState("text-white-600 hover:text-white-900");
+    const [fillColor, setFillColor] = useState("rgb(118,139,114)");//for logo color
+
     useEffect(() => {
         // 设置 CSRF token
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (token) {
             axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
         }
-        
+
         // 设置接受 JSON 响应
         axios.defaults.headers.common['Accept'] = 'application/json';
-        
+
         // 设置 withCredentials
         axios.defaults.withCredentials = true;
+
+        if (window.location.pathname === "/") {
+            setBgOpacity("bg-transparent bg-opacity-0 shadow-none text-white");
+            setTextColor("text-white-600 hover:text-red")
+            setFillColor("white");
+
+            // for header getting transparent when scroll to top. (only in main page)
+            const handleScroll = () => {
+                const scrollY = window.scrollY;
+
+                // If scrolled more than 50px, start making the background opaque
+                if (scrollY > 50) {
+                    setBgOpacity("bg-gray-100 bg-opacity-100 shadow-md");
+                    setTextColor("text-grey-600 hover:text-grey-900");
+                    setFillColor("rgb(118,139,114)");
+                } else {
+                    setBgOpacity("bg-transparent bg-opacity-0 shadow-none text-white hover:text-red");
+                    setTextColor("text-white-600 hover:text-red")
+                    setFillColor("white");
+                }
+            };
+
+            window.addEventListener("scroll", handleScroll);
+            return () => window.removeEventListener("scroll", handleScroll);
+        } else {
+            setBgOpacity("bg-gray-100 bg-opacity-100 shadow-md");
+            setTextColor("text-grey-600 hover:text-grey-900");
+            setFillColor("rgb(118,139,114)");
+        }
     }, []);
 
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [showMessages, setShowMessages] = useState(false);
-    const [chatRooms, setChatRooms] = useState([]);
-    const [totalUnreadCount, setTotalUnreadCount] = useState(0);
-    const [showNotifications, setShowNotifications] = useState(false);
-    const [notifications, setNotifications] = useState([]);
-    const [totalNotifications, setTotalNotifications] = useState(0);
+    const handleToggle = (menu) => {
+        setMenuState((prevState) => ({
+            showNotifications: menu === "showNotifications" ? !prevState.showNotifications : false,
+            showMessages: menu === "showMessages" ? !prevState.showMessages : false,
+            dropdownOpen: menu === "dropdownOpen" ? !prevState.dropdownOpen : false,
+        }));
+    };
 
     // Fetch and update unread message counts
     const updateUnreadCounts = async () => {
@@ -70,10 +113,6 @@ export default function Main({ auth }) {
         };
     }, [auth?.user]);
 
-    const toggleDropdown = () => {
-        setDropdownOpen((prev) => !prev);
-    };
-
     const handleLogout = async (e) => {
         e.preventDefault();
         try {
@@ -81,7 +120,15 @@ export default function Main({ auth }) {
             console.log("Logout successful:", response);
             window.location.href = "/";
         } catch (error) {
-            console.error("Logout failed:", error);
+            // If 419 error occurs (CSRF token mismatch), refresh the page and retry logout
+            if (error.response && error.response.status === 419) {
+                console.warn("CSRF token expired, refreshing the page...");
+                setTimeout(() => {
+                    window.location.reload(); // Refresh the page to get a new CSRF token
+                }, 1000);
+            } else {
+                console.error("Logout failed:", error);
+            }
         }
     };
 
@@ -109,32 +156,20 @@ export default function Main({ auth }) {
         }
     };
 
-    const handleBlurMessage = () => {
-        setTimeout(() => {
-            setShowMessages(false);
-        }, 50);
-    };
-
-    const handleBlurNotifications= () => {
-        setTimeout(() => {
-            setShowNotifications(false);
-        }, 1000);
-    };
-
     const fetchNotifications = async () => {
         try {
             const response = await axios.get("/notifications");
             console.log("API Response:", response.data);
-            
+
             if (response.data && typeof response.data.notifications === "object") {
                 // Convert object to array
                 const notificationsArray = Object.values(response.data.notifications);
-    
+
                 // Filter unread notifications
                 const unreadNotifications = notificationsArray.filter(
                     (notification) => !notification.isRead
                 );
-    
+
                 setNotifications(unreadNotifications);
                 setTotalNotifications(unreadNotifications.length);
             } else {
@@ -148,8 +183,6 @@ export default function Main({ auth }) {
     };
 
     const handleNotificationClick = (notificationId, e) => {
-        console.log('click')
-        setShowNotifications(false);
         setNotifications((prevNotifications) =>
             prevNotifications.map((notification) =>
                 notification.id === notificationId
@@ -157,7 +190,7 @@ export default function Main({ auth }) {
                     : notification
             )
         );
-    
+
         axios
             .post(`/notifications/${notificationId}/mark-as-read`)
             .catch((error) => {
@@ -176,84 +209,142 @@ export default function Main({ auth }) {
         const interval = setInterval(() => {
             fetchNotifications();
         }, 5000);
-    
+
         return () => clearInterval(interval);
     }, []);
-    
+
     return (
-        <header className="bg-gray-100 p-6 border-b border-gray-300 fixed top-0 left-0 w-full z-50 shadow-md">
+        <header className={`p-6  fixed top-0 left-0 w-full flex flex-wrap item-center z-50 shadow-md transition-colors duration-500 ease-in-out ${bgOpacity}`}>
             <div className="container mx-auto flex justify-between items-center">
-                <div className="flex items-center space-x-4">
-                    <img
-                        src={logo}
-                        alt="Real Estate Logo"
-                        className="w-12 h-12"
-                    />
+                {/* Mobile Menu Button */}
+                <div className={`fixed inset-0 bg-black bg-opacity-0 z-50 transition-transform transitions-colors duration-500 ${menuOpen ? "translate-x-0 bg-black" : "-translate-x-full bg-transparent"}`}>
+                    <div className={`bg-white w-64 h-full p-4 shadow-lg text-grey-600 hover:text-grey-900 transition-transform duration-500 delay-200 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+                        style={{ color: `black` }}
+                    >
+                        {/* Close Button */}
+                        <button onClick={() => setMenuOpen(false)} className="text-gray-700 focus:outline-none">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+
+                        {/* Mobile Navigation */}
+                        <nav className="mt-4 flex flex-col space-y-4">
+                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("main")}>
+                                <svg class="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                                Home
+                            </Link>
+                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("buy")}>
+                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13a3 3 0 100 6 3 3 0 000-6m10 0a3 3 0 100 6 3 3 0 000-6" />
+                                </svg>
+                                Buy
+                            </Link>
+                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("rent")}>
+                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="8" cy="12" r="4" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M12 12h6v-2h-3v-2h-3v4z" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                Rent
+                            </Link>
+                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("new-launches")}>
+                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <rect x="5" y="5" width="14" height="14" strokeWidth="2" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 8h2m4 0h2m-8 4h2m4 0h2m-8 4h2m4 0h2" />
+                                </svg>
+                                New Launches
+                            </Link>
+                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} z href={route("find-seller")}>
+                                <svg class="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Find Seller
+                            </Link>
+                        </nav>
+                    </div>
                 </div>
 
-                <div className="flex-grow flex justify-center">
+                <div className="flex items-center space-x-4">
+                    <button onClick={() => setMenuOpen(true)} className="md:hidden focus:outline-none flex-grow justify-center">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                    <Link
+                        href={route("main")}
+
+                    >
+                        <div class="w-13 h-12">
+                            <ApplicationLogo fillColor={String(fillColor)} />
+                        </div>
+
+                    </Link>
+                </div>
+
+                {/* Desktop Navigation */}
+                <div className=" hidden md:flex flex justify-center space-x-4">
                     <nav className="flex space-x-8">
                         <Link
                             href={route("main")}
-                            className="text-gray-600 hover:text-gray-900 font-medium"
+                            className={`${textColor} font-medium`}
                         >
                             Home
                         </Link>
                         <Link
                             href={route("buy")}
-                            className="text-gray-600 hover:text-gray-900 font-medium"
+                            className={`${textColor} font-medium`}
                         >
                             Buy
                         </Link>
                         <Link
                             href={route("rent")}
-                            className="text-gray-600 hover:text-gray-900 font-medium"
+                            className={`${textColor} font-medium`}
                         >
                             Rent
                         </Link>
                         <Link
                             href={route("new-launches")}
-                            className="text-gray-600 hover:text-gray-900 font-medium"
+                            className={`${textColor} font-medium`}
                         >
                             New Launches
                         </Link>
                         <Link
                             href={route("find-seller")}
-                            className="text-gray-600 hover:text-gray-900 font-medium"
+                            className={`${textColor} font-medium`}
                         >
                             Find Seller
                         </Link>
                     </nav>
                 </div>
 
-                <div className="flex items-center space-x-4 absolute right-40 top-1/2 transform -translate-y-1/2">
+
+                <div className="flex items-center space-x-4">
                     {auth?.user && (
                         <div className="relative">
                             <button
-                                onClick={() =>
-                                    setShowNotifications(!showNotifications)
-                                }
+                                onClick={()=>handleToggle("showNotifications")}
                                 // onBlur={handleBlurNotifications}
-                                className="relative text-gray-600 hover:text-gray-900"
+                                className={`relative ${textColor}`}
                             >
                                 <IoNotifications className="w-6 h-6" />
                                 {totalNotifications > 0 && (
                                     <span
-                                        className={`absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full px-2 py-1 ${
-                                            notifications.some((n) => !n.isRead)
-                                                ? ""
-                                                : "hidden"
-                                        }`}
+                                        className={`absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full px-2 py-1 ${notifications.some((n) => !n.isRead)
+                                            ? ""
+                                            : "hidden"
+                                            }`}
                                     >
                                         {totalNotifications}
                                     </span>
                                 )}
                             </button>
 
-                            {showNotifications && (
+                            {menuState.showNotifications && (
                                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50">
                                     <div className="p-4">
-                                        <h3 className="text-lg font-semibold mb-4">
+                                        <h3 className="text-gray-500 text-lg font-semibold mb-4">
                                             Notifications
                                         </h3>
                                         {notifications.length === 0 ? (
@@ -266,15 +357,14 @@ export default function Main({ auth }) {
                                                     <div
                                                         key={notification.id}
                                                         onClick={() => handleNotificationClick(notification.id)}
-                                                        className={`p-3 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center ${
-                                                            notification.isRead
-                                                                ? ''
-                                                                : notification.status === 'approved'
+                                                        className={`p-3 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center ${notification.isRead
+                                                            ? ''
+                                                            : notification.status === 'approved'
                                                                 ? 'bg-green-100'
                                                                 : notification.status === 'rejected'
-                                                                ? 'bg-red-100'
-                                                                : ''
-                                                        }`}
+                                                                    ? 'bg-red-100'
+                                                                    : ''
+                                                            }`}
                                                     >
                                                         <div className="flex-1">
                                                             <div className="font-medium">
@@ -307,9 +397,9 @@ export default function Main({ auth }) {
                     {auth?.user && (
                         <div className="relative">
                             <button
-                                onClick={() => setShowMessages(!showMessages)}
+                                onClick={()=>handleToggle("showMessages")}
                                 // onBlur={handleBlurMessage}
-                                className="relative p-2 text-gray-600 hover:text-gray-900"
+                                className={`relative p-2 ${textColor}`}
                             >
                                 <FaEnvelope className="w-6 h-6" />
                                 {totalUnreadCount > 0 && (
@@ -319,17 +409,17 @@ export default function Main({ auth }) {
                                 )}
                             </button>
 
-                            {showMessages && (
+                            {menuState.showMessages && (
                                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50">
                                     <div className="p-4">
-                                        <h3 className="text-lg font-semibold mb-4">
+                                        <h3 className="text-gray-500 text-lg font-semibold mb-4">
                                             Messages
                                         </h3>
                                         <div className="max-h-96 overflow-y-auto">
                                             {chatRooms.map((room) => {
                                                 const otherUser =
                                                     auth.user.id ===
-                                                    room.buyer?.id
+                                                        room.buyer?.id
                                                         ? room.seller
                                                         : room.buyer;
 
@@ -361,12 +451,12 @@ export default function Main({ auth }) {
                                                         </div>
                                                         {room.unread_count >
                                                             0 && (
-                                                            <span className="flex-shrink-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                                                {
-                                                                    room.unread_count
-                                                                }
-                                                            </span>
-                                                        )}
+                                                                <span className="flex-shrink-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                                                                    {
+                                                                        room.unread_count
+                                                                    }
+                                                                </span>
+                                                            )}
                                                     </div>
                                                 );
                                             })}
@@ -381,14 +471,14 @@ export default function Main({ auth }) {
                         auth.user.role === "admin" ? (
                             <div className="relative">
                                 <button
-                                    onClick={toggleDropdown}
+                                    onClick={()=>handleToggle("dropdownOpen")}
                                     className="flex items-center space-x-2"
                                 >
-                                    <span className="font-semibold text-gray-600 hover:text-gray-900">
+                                    <span className={`font-semibold ${textColor}`}>
                                         Admin
                                     </span>
                                 </button>
-                                {dropdownOpen && (
+                                {menuState.dropdownOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
                                         <Link
                                             href={route("admin.dashboard")}
@@ -414,7 +504,7 @@ export default function Main({ auth }) {
                         ) : (
                             <div className="relative">
                                 <button
-                                    onClick={toggleDropdown}
+                                    onClick={()=>handleToggle("dropdownOpen")}
                                     className="flex items-center space-x-2"
                                 >
                                     <img
@@ -426,11 +516,11 @@ export default function Main({ auth }) {
                                         alt="Profile"
                                         className="w-8 h-8 rounded-full"
                                     />
-                                    <span className="font-semibold text-gray-600 hover:text-gray-900">
+                                    <span className={`font-semibold ${textColor}`}>
                                         {auth.user.firstname}
                                     </span>
                                 </button>
-                                {dropdownOpen && (
+                                {menuState.dropdownOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
                                         <Link
                                             href={route("profile.show")}
@@ -456,18 +546,16 @@ export default function Main({ auth }) {
                         )
                     ) : (
                         <>
-                            <Link
-                                href={route("login")}
-                                className="text-gray-600 hover:text-gray-900 font-medium"
-                            >
-                                Login
-                            </Link>
-                            <Link
-                                href={route("register")}
-                                className="text-gray-600 hover:text-gray-900 font-medium"
-                            >
-                                Register
-                            </Link>
+                            <div className=" d-flex justify-content-center align-items-center space-x-2">
+                                <Link href={route("login")} className={`${textColor} text-decoration-none mx-2`}>
+                                    Login
+                                </Link>
+                                <span className={`${textColor}`}>|</span>
+                                <Link href={route("register")} className={`${textColor} text-decoration-none mx-2`}>
+                                    Register
+                                </Link>
+                            </div>
+
                         </>
                     )}
                 </div>

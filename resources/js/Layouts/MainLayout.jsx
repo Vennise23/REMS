@@ -7,11 +7,11 @@ export default function MainLayout({ children }) {
     const { auth } = usePage().props;
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <HeaderMenu auth={auth} />
-            <div className="pt-16">
-                {children}
+            <div className="min-h-screen bg-gray-100">
+                <HeaderMenu auth={auth} />
+                <div className="pt-16">
+                    {children}
+                </div>
             </div>
-        </div>
     );
 }

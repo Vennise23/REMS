@@ -50,8 +50,8 @@ export default function Login() {
         <GuestLayout>
             <Head title="Login" />
 
-            <div className="flex flex-col md:flex-row h-auto bg-gray-100">
-                <div className="md:w-1/2 w-full flex flex-col justify-center p-8 max-w-md sm:max-w-lg mx-auto bg-white rounded-lg shadow-md relative">
+            <div className="flex flex-col md:flex-row h-auto bg-transparent ">
+            <div className="w-full sm:w-auto min-w-[420px] min-h-fit max-w-md sm:max-w-lg mx-auto p-8 bg-white rounded-lg shadow-md flex flex-col justify-center relative">
                     {/* Close Button */}
                     <button
                         onClick={() => window.history.back()}
@@ -128,7 +128,7 @@ export default function Login() {
                     </form>
                 </div>
 
-                <div className="md:w-1/2 w-full flex justify-center items-center rounded-r-lg overflow-hidden h-64 md:h-auto">
+                {/* <div className="md:w-1/2 w-full flex justify-center items-center rounded-r-lg overflow-hidden h-64 md:h-auto">
                     <div
                         style={{
                             backgroundImage: `url(${loginImage})`,
@@ -139,7 +139,7 @@ export default function Login() {
                         }}
                         className="w-full h-full rounded-r-lg"
                     />
-                </div>
+                </div> */}
             </div>
         </GuestLayout>
     );

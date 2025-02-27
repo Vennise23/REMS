@@ -23,6 +23,26 @@ export default function Main({ auth }) {
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [suggestions, setSuggestions] = useState([]);
+    // Add by Vennise on 2/27/25 just for fun, bouncing text on main page.
+    const [atTop, setAtTop] = useState(true);
+    const [startBouncing, setStartBouncing] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setAtTop(window.scrollY === 0);
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    useEffect(() => {
+        if (atTop) {
+            setTimeout(() => setStartBouncing(true), 3000); // Start bouncing after roll-in animation
+        } else {
+            setStartBouncing(false);
+        }
+    }, [atTop]);
 
     const openModal = () => {
         setIsModalOpen(true);
@@ -255,13 +275,44 @@ export default function Main({ auth }) {
             <Head title="Main" />
             <Header auth={auth} />
 
-            <main className="pt-32 mt-12 min-h-screen bg-gray-100 flex flex-col items-center">
+            <main className=" min-h-screen bg-gray-100 flex flex-col items-center">
                 <div
-                    className="relative w-full max-w-4xl h-80 bg-cover bg-center mb-8"
-                    style={{ backgroundImage: `url(${backgroundImage})` }}
+                    className="relative w-full bg-cover bg-center mb-8 sm:aspect-[137/50] sm:h-auto h-[50vh]"
+                    style={{ backgroundImage: "url('http://[::1]:5173/resources/img/estate_property_background.jpg')" }}
                 >
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-full max-w-3xl bg-[#f7f1e8] p-8 rounded-xl shadow-lg">
-                        <div className="flex justify-center mb-4">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-serif 
+                max-w-screen px-4 text-center  text-5xl sm:text-base md:text-lg lg:text-7xl 
+                whitespace-nowrap ">
+                        <div
+                            className={`flex space-x-4 font-bold text-white transform transition-all duration-[3000ms] ${atTop ? "translate-x-0" : "translate-x-full"
+                                }`}
+                        >
+                            {["Dream House"].map((word, wordIndex) => (
+                                <div key={wordIndex} className="flex">
+                                    {word.split("").map((letter, letterIndex) => (
+                                        <span
+                                            key={letterIndex}
+                                            className="inline-block animate-bounce"
+                                            style={{
+                                                animationDelay: `${letterIndex * 200}ms`, // Stagger each letter
+                                                animationDuration: `${word.length * 200}ms`, // Ensures cycle completes before restarting
+                                                animationIterationCount: "infinite",
+                                                minWidth: letter === " " ? "0.5rem" : "auto", // Ensures spaces are visible
+                                            }}
+                                        >
+                                            {letter === " " ? "\u00A0" : letter}
+                                        </span>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* White gradient overlay */}
+                    <div className="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-gray-100 to-transparent"></div>
+
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-full max-w-lg bg-[rgb(255,255,255,0.46)] p-4 rounded-xl shadow-lg">
+                        <div className="flex justify-center mb-2">
                             <button
                                 onClick={() => setIsBuy(true)}
                                 className={`px-6 py-2 font-bold rounded-l-full ${isBuy
@@ -282,7 +333,7 @@ export default function Main({ auth }) {
                             </button>
                         </div>
 
-                        <div className="flex items-center bg-white p-2 rounded-full shadow-md mb-4">
+                        <div className="flex items-center bg-white p-2 rounded-full shadow-md mb-2">
                             <div className="relative flex-grow">
                                 <input
                                     type="text"
@@ -391,7 +442,7 @@ export default function Main({ auth }) {
                                         </span>
                                     </button>
                                     {activeDropdown === "category" && (
-                                        <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-56 p-4 max-h-60 overflow-y-auto z-10">
+                                        <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-56 p-4 max-h-60 overflow-y-auto z-10 bottom-full mb-2">
                                             <div className="space-y-3">
                                                 <div className="flex items-center">
                                                     <input
@@ -500,7 +551,7 @@ export default function Main({ auth }) {
                                     </span>
                                 </button>
                                 {activeDropdown === "propertyType" && (
-                                    <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-60 p-4 max-h-60 overflow-y-auto z-10">
+                                    <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-60 p-4 max-h-60 overflow-y-auto z-10 bottom-full mb-2">
                                         <div className="space-y-3">
                                             <div className="flex items-center">
                                                 <input
@@ -620,7 +671,7 @@ export default function Main({ auth }) {
                                     </span>
                                 </button>
                                 {activeDropdown === "price" && (
-                                    <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-60 p-4 overflow-y-auto z-10">
+                                    <div className="absolute bg-white border rounded-lg shadow-lg mt-2 w-60 p-4 overflow-y-auto z-10 bottom-full mb-2">
                                         <div
                                             className="py-2"
                                             style={{ padding: "0px !important" }}
@@ -639,7 +690,7 @@ export default function Main({ auth }) {
                                         <div
                                             className="py-2"
                                             style={{ padding: "0px !important" }}
-                                            >
+                                        >
                                             <label className="block text-sm">
                                                 Max Price
                                             </label>

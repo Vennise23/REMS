@@ -68,10 +68,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 price: property.price || "",
                 certificate_photos: property.certificate_photos || [],
                 property_photos: property.property_photos || [],
-                each_unit_has_furnace: property.each_unit_has_furnace || [],
+                each_unit_has_furnace: property.each_unit_has_furnace || "",
                 each_unit_has_electrical_meter:
-                    property.each_unit_has_electrical_meter || [],
-                has_onsite_caretaker: property.has_onsite_caretaker || [],
+                    property.each_unit_has_electrical_meter || "",
+                has_onsite_caretaker: property.has_onsite_caretaker || "",
                 parking: property.parking || "",
                 amenities: property.amenities || [],
                 other_amenities: property.other_amenities || "",
@@ -112,7 +112,9 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
 
             debounceTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`/check-property-name/${value}`);
+                    const response = await fetch(
+                        `/check-property-name/${value}`
+                    );
                     const data = await response.json();
                     if (data.exists) {
                         setPropertyNameError(
@@ -144,7 +146,10 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             const currentFiles = [...formData.certificate_photos];
             const newFiles = Array.from(files);
 
-            if (currentFiles.length + newFiles.length > MAX_CERTIFICATE_PHOTOS) {
+            if (
+                currentFiles.length + newFiles.length >
+                MAX_CERTIFICATE_PHOTOS
+            ) {
                 setCertificateError(
                     `Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`
                 );

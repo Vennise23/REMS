@@ -238,3 +238,7 @@ input[type="range"]::-ms-thumb {
     position: relative;
     z-index: 1; /* Content stays below the overlay */
 }
+
+a {
+    text-decoration: none !important;
+}
