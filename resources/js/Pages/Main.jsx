@@ -272,39 +272,39 @@ export default function Main({ auth }) {
 
     return (
         <>
-            <Head title="Main" />
+            <Head title={"Main"} />
             <Header auth={auth} />
 
             <main className=" min-h-screen bg-gray-100 flex flex-col items-center">
                 <div
-                    className="relative w-full bg-cover bg-center mb-8 sm:aspect-[137/50] sm:h-auto h-[50vh]"
+                    className="relative w-full bg-cover bg-center mb-8 sm:aspect-[137/50] sm:h-auto h-[50vh] "
                     style={{ backgroundImage: "url('http://[::1]:5173/resources/img/estate_property_background.jpg')" }}
                 >
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-serif 
-                max-w-screen px-4 text-center  text-5xl sm:text-base md:text-lg lg:text-7xl 
-                whitespace-nowrap ">
-                        <div
-                            className={`flex space-x-4 font-bold text-white transform transition-all duration-[3000ms] ${atTop ? "translate-x-0" : "translate-x-full"
-                                }`}
-                        >
-                            {["Dream House"].map((word, wordIndex) => (
-                                <div key={wordIndex} className="flex">
-                                    {word.split("").map((letter, letterIndex) => (
-                                        <span
-                                            key={letterIndex}
-                                            className="inline-block animate-bounce"
-                                            style={{
-                                                animationDelay: `${letterIndex * 200}ms`, // Stagger each letter
-                                                animationDuration: `${word.length * 200}ms`, // Ensures cycle completes before restarting
-                                                animationIterationCount: "infinite",
-                                                minWidth: letter === " " ? "0.5rem" : "auto", // Ensures spaces are visible
-                                            }}
-                                        >
-                                            {letter === " " ? "\u00A0" : letter}
-                                        </span>
-                                    ))}
-                                </div>
-                            ))}
+                    <div className="p-2 absolute max-w-screen overflow-hidden w-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                        <div className="  transform  font-serif  px-4 text-center  text-5xl sm:text-base md:text-lg lg:text-7xl whitespace-nowrap ">
+                            <div
+                                className={`flex space-x-4 font-bold text-white transform transition-all duration-[3000ms] ${atTop ? "translate-x-0" : "translate-x-full"
+                                    }`}
+                            >
+                                {["Dream House"].map((word, wordIndex) => (
+                                    <div key={wordIndex} className="flex">
+                                        {word.split("").map((letter, letterIndex) => (
+                                            <span
+                                                key={letterIndex}
+                                                className="inline-block animate-bounce"
+                                                style={{
+                                                    animationDelay: `${letterIndex * 200}ms`, // Stagger each letter
+                                                    animationDuration: `${word.length * 200}ms`, // Ensures cycle completes before restarting
+                                                    animationIterationCount: "infinite",
+                                                    minWidth: letter === " " ? "0.5rem" : "auto", // Ensures spaces are visible
+                                                }}
+                                            >
+                                                {letter === " " ? "\u00A0" : letter}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -320,17 +320,15 @@ export default function Main({ auth }) {
                                 ></div>
                                 <button
                                     onClick={() => setIsBuy(true)}
-                                    className={`relative w-1/2 px-6 py-2 font-bold transition-colors duration-300 ${
-                                        isBuy ? "text-white" : "text-gray-600"
-                                    } z-10`}
+                                    className={`relative w-1/2 px-6 py-2 font-bold transition-colors duration-300 ${isBuy ? "text-white" : "text-gray-600"
+                                        } z-10`}
                                 >
                                     Buy
                                 </button>
                                 <button
                                     onClick={() => setIsBuy(false)}
-                                    className={`relative w-1/2 px-6 py-2 font-bold transition-colors duration-300 ${
-                                        !isBuy ? "text-white" : "text-gray-600"
-                                    } z-10`}
+                                    className={`relative w-1/2 px-6 py-2 font-bold transition-colors duration-300 ${!isBuy ? "text-white" : "text-gray-600"
+                                        } z-10`}
                                 >
                                     Rent
                                 </button>
@@ -723,7 +721,7 @@ export default function Main({ auth }) {
                     </div>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center overflow-hidden max-w-full mx-auto px-4">
                     {loading ? (
                         <div className="flex justify-center items-center ">
                             <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
@@ -733,7 +731,7 @@ export default function Main({ auth }) {
                             No listings available at the moment.
                         </div>
                     ) : (
-                        <div>
+                        <div className="flex justify-center">
                             {isBuy ? (
                                 <>
                                     {/* New Launch Listings */}

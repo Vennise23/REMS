@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import InputError from "@/Components/InputError";
@@ -19,6 +19,27 @@ export default function Login() {
         email: "",
         password: "",
     });
+
+    const [gradientStyle, setGradientStyle] = useState({
+        background: "linear-gradient(to top left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.5))",
+        backgroundSize: "200% 200%",
+        animation: "gradientShift 3s infinite alternate ease-in-out",
+    });
+
+    useEffect(() => {
+        const styleSheet = document.createElement("style");
+        styleSheet.innerHTML = `
+            @keyframes gradientShift {
+                0% {
+                    background-position: bottom right;
+                }
+                100% {
+                    background-position: top left;
+                }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+    }, []);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -51,7 +72,10 @@ export default function Login() {
             <Head title="Login" />
 
             <div className="flex flex-col md:flex-row h-auto bg-transparent ">
-            <div className="w-full sm:w-auto min-w-[420px] min-h-fit max-w-md sm:max-w-lg mx-auto p-8 bg-white rounded-lg shadow-md flex flex-col justify-center relative">
+                <div
+                    className="w-full sm:w-auto min-w-[420px] min-h-fit max-w-md sm:max-w-lg mx-auto p-8 rounded-lg shadow-md flex flex-col justify-center relative overflow-hidden"
+                    style={gradientStyle}
+                >
                     {/* Close Button */}
                     <button
                         onClick={() => window.history.back()}
@@ -119,7 +143,6 @@ export default function Login() {
 
                         <div className="flex items-center justify-end mt-4">
                             <PrimaryButton
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
                                 disabled={processing}
                             >
                                 Login

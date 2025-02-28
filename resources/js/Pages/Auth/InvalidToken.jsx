@@ -1,12 +1,36 @@
 import { Head, Link } from '@inertiajs/react';
-import GuestLayout from '@/Layouts/GuestLayout';
+import { useEffect, useState } from 'react';
+import SecondaryButton from '@/Components/SecondaryButton';
+import DangerButton from '@/Components/DangerButton';
 
 export default function InvalidToken() {
+    const [gradientStyle, setGradientStyle] = useState({
+        background: "linear-gradient(to top left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.5))",
+        backgroundSize: "200% 200%",
+        animation: "gradientShift 3s infinite alternate ease-in-out",
+    });
+
+    useEffect(() => {
+        const styleSheet = document.createElement("style");
+        styleSheet.innerHTML = `
+                    @keyframes gradientShift {
+                        0% {
+                            background-position: bottom right;
+                        }
+                        100% {
+                            background-position: top left;
+                        }
+                    }
+                `;
+        document.head.appendChild(styleSheet);
+    }, []);
+
     return (
-        <GuestLayout>
-            <Head title="Invalid Token" />
-            
-            <div className="mb-4 text-sm text-gray-600 text-center">
+        <div className="flex flex-col md:flex-row h-auto bg-transparent ">
+            <div
+                className="w-full sm:w-auto md:min-w-[600px] min-h-fit max-w-md sm:max-w-lg mx-auto p-8 rounded-lg shadow-md flex flex-col justify-center relative overflow-hidden"
+                style={gradientStyle}
+            >
                 <div className="mb-4">
                     <h2 className="text-xl font-bold text-red-600">
                         Invalid Token
@@ -18,21 +42,15 @@ export default function InvalidToken() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-center gap-4">
-                    <Link
-                        href={route('login')}
-                        className="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                    >
-                        Return to Login
-                    </Link>
-                    
-                    <Link
-                        href={route('password.request')}
-                        className="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 focus:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                    >
-                        Request New Reset Link
-                    </Link>
+                    <SecondaryButton>
+                        <Link href={route('login')}>Return to Login</Link>
+                    </SecondaryButton>
+
+                    <DangerButton>
+                        <Link href={route('password.request')}>Request New Link</Link>
+                    </DangerButton>
                 </div>
             </div>
-        </GuestLayout>
+        </div>
     );
 } 

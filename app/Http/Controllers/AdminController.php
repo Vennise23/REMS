@@ -496,34 +496,35 @@ class AdminController extends Controller
         ]);
     }
 
-    public function sendResetLinkEmail(Request $request)
-    {
-        try {
-            $builder = new TemporaryEmailBuilder();
-            $email = $builder
-                ->setRecipient($request->email)
-                ->buildEmail();
+    // Duplicated function with PasswordResetLinkController hence removed - Vennise
+    // public function sendResetLinkEmail(Request $request)
+    // {
+    //     try {
+    //         $builder = new TemporaryEmailBuilder();
+    //         $email = $builder
+    //             ->setRecipient($request->email)
+    //             ->buildEmail();
 
-            // Store token in database
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $request->email],
-                [
-                    'token' => $builder->getToken(),
-                    'created_at' => now(),
-                    'expires_at' => $builder->getExpiresAt(),
-                    'used' => false
-                ]
-            );
+    //         // Store token in database
+    //         DB::table('password_reset_tokens')->updateOrInsert(
+    //             ['email' => $request->email],
+    //             [
+    //                 'token' => $builder->getToken(),
+    //                 'created_at' => now(),
+    //                 'expires_at' => $builder->getExpiresAt(),
+    //                 'used' => false
+    //             ]
+    //         );
 
-            Mail::send($email->getResult());
+    //         Mail::send($email->getResult());
 
-            return response()->json([
-                'message' => 'Reset link sent successfully',
-                'status' => 'success'
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to send reset email: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
+    //         return response()->json([
+    //             'message' => 'Reset link sent successfully',
+    //             'status' => 'success'
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         Log::error('Failed to send reset email: ' . $e->getMessage());
+    //         return response()->json(['error' => $e->getMessage()], 500);
+    //     }
+    // }
 }

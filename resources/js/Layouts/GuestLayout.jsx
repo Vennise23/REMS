@@ -21,9 +21,14 @@ export default function Guest({ children }) {
                     return prevDrops;
                 }
 
+                const screenWidth = parentRef.current.clientWidth;
+                if (latestCursorX.current < 20 || latestCursorX.current > screenWidth - 20) {
+                    return prevDrops;
+                }
+
                 const newDrop = {
                     id: Date.now(),
-                    x: latestCursorX.current,
+                    x: latestCursorX.current - 40 / 2,
                     y: 0,
                     stopped: false,
                 };
@@ -68,6 +73,12 @@ export default function Guest({ children }) {
 
                         return { ...drop, y: newY };
                     }
+                    if (drop.stopped && drop.y <= 10 && !drop.blinking) {
+                        setTimeout(() => {
+                            setDrops((drops) => drops.filter((d) => d.id !== drop.id));
+                        }, 3000);
+                        return { ...drop, blinking: true };
+                    }
                     return drop;
                 }).filter((drop) => !(drop.stopped && drop.y === 0))
             );
@@ -76,15 +87,25 @@ export default function Guest({ children }) {
     }, [drops]);
 
     return (
-        <div className="z-0 bg-cover bg-center flex flex-col justify-center items-center min-h-[100vh] py-7 bg-gray-100"
+        <div className="z-0 bg-cover bg-center flex flex-col justify-center items-center min-h-[100vh] py-7 bg-gray-100 "
             style={{ backgroundImage: `url(${backgroundImage})` }}
             ref={parentRef}
             onMouseMove={handleMouseMove}
         >
+            <div className="h-28 w-28 z-30" >
+                <Link href="/">
+                    <ApplicationLogo fillColor="white" />
+                </Link>
+            </div>
+            <div className="inline-block min-h-0 mt-4 px-8 py-6 overflow-hidden sm:rounded-lg  z-30 min-w-9/10 md:min-w-0">
+                {children}
+            </div>
+
             {drops.map((drop) => (
                 <div
                     key={drop.id}
-                    className="z-0 border-b-4 border-gray-800 absolute w-10 h-5 bg-purple-900  flex items-center justify-between p-1 shadow-[0_0_15px_rgba(255,208,255,0.2)]"
+                    className={`z-0 border-b-4  absolute w-10 h-5 flex items-center justify-between p-1 shadow-[0_0_15px_rgba(255,208,255,0.2)]
+                        ${drop.blinking ? "animate-pulse bg-red-500 border-white-500" : "border-gray-800 bg-purple-900"}`}
                     style={{
                         left: `${drop.x}px`,
                         top: `${drop.y}px`,
@@ -99,15 +120,9 @@ export default function Guest({ children }) {
                     <div className="w-1 h-1 bg-white"></div>
                 </div>
             ))}
-            <div className="h-28 w-28 z-30" >
-                <Link href="/">
-                    <ApplicationLogo fillColor="white" />
-                </Link>
-            </div>
 
-            <div className="inline-block min-w-0 min-h-0 mt-4 px-8 py-6 bg-white shadow-md overflow-hidden sm:rounded-lg bg-opacity-50 z-30">
-                {children}
-            </div>
+
+
             {showMessage && (
                 <div className="z-10 fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded-lg shadow-lg">
                     Exceed 300 Blocks, Thanks for playing until the end. It worth nothing my babe.

@@ -19,6 +19,12 @@ export default function Register() {
 
     const [existingUsers, setExistingUsers] = useState([]);
 
+    const [gradientStyle, setGradientStyle] = useState({
+        background: "linear-gradient(to top left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.5))",
+        backgroundSize: "200% 200%",
+        animation: "gradientShift 3s infinite alternate ease-in-out",
+    });
+
     // Fetch existing users from the API
     useEffect(() => {
         axios
@@ -29,6 +35,19 @@ export default function Register() {
             .catch((error) => {
                 console.error("There was an error fetching the existing users:", error);
             });
+
+        const styleSheet = document.createElement("style");
+        styleSheet.innerHTML = `
+                    @keyframes gradientShift {
+                        0% {
+                            background-position: bottom right;
+                        }
+                        100% {
+                            background-position: top left;
+                        }
+                    }
+                `;
+        document.head.appendChild(styleSheet);
     }, []);
 
     const validateField = (field, value) => {
@@ -69,7 +88,7 @@ export default function Register() {
                 setError("email", "Please enter a valid email address (e.g., user@example.com)");
             } else {
                 clearErrors("email");
-                
+
                 // Check if email already exists
                 const isExistingEmail = existingUsers.some((user) => user.email === value);
                 if (isExistingEmail) {
@@ -97,54 +116,62 @@ export default function Register() {
         e.preventDefault();
         post(route("register"));
     };
-    
+
 
     return (
         <GuestLayout>
             <Head title="Register" />
-            <div className="flex flex-col md:flex-row h-auto bg-gray-100">
-                <div className="md:w-1/2 w-full flex flex-col justify-center p-8 max-w-md sm:max-w-lg mx-auto bg-white rounded-lg shadow-md relative">
+            <div className="flex flex-col md:flex-row h-auto bg-transparent ">
+                <div
+                    className="w-full sm:w-auto md:min-w-[600px] min-h-fit max-w-md sm:max-w-lg mx-auto p-8 rounded-lg shadow-md flex flex-col justify-center relative overflow-hidden"
+                    style={gradientStyle}
+                >
+                    {/* Close Button */}
                     <button
                         onClick={() => window.history.back()}
                         className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
                     >
-                        &#x2715;
+                        &#x2715; {/* This is the "X" icon */}
                     </button>
 
                     <h2 className="text-3xl font-semibold mb-6 text-gray-800">
                         Register
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <InputLabel htmlFor="firstname" value="First Name" />
-                        <TextInput
-                            id="firstname"
-                            name="firstname"
-                            value={data.firstname}
-                            style={{ backgroundColor: "white", color: "black" }}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                            onChange={handleChange}
-                            required
-                        />
-                        <InputError
-                            message={errors.firstname}
-                            className="text-red-500"
-                        />
-
-                        <InputLabel htmlFor="lastname" value="Last Name" className="mt-4" />
-                        <TextInput
-                            id="lastname"
-                            name="lastname"
-                            value={data.lastname}
-                            style={{ backgroundColor: "white", color: "black" }}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                            onChange={handleChange}
-                            required
-                        />
-                        <InputError
-                            message={errors.lastname}
-                            className="text-red-500"
-                        />
-
+                        <div className="flex flex-col md:flex-row gap-4 w-full">
+                            <div className="w-full md:w-1/3">
+                                <InputLabel htmlFor="firstname" value="First Name" className="mt-4" />
+                                <TextInput
+                                    id="firstname"
+                                    name="firstname"
+                                    value={data.firstname}
+                                    style={{ backgroundColor: "white", color: "black" }}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <InputError
+                                    message={errors.firstname}
+                                    className="text-red-500"
+                                />
+                            </div>
+                            <div className="w-full md:w-2/3">
+                                <InputLabel htmlFor="lastname" value="Last Name" className="mt-4" />
+                                <TextInput
+                                    id="lastname"
+                                    name="lastname"
+                                    value={data.lastname}
+                                    style={{ backgroundColor: "white", color: "black" }}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <InputError
+                                    message={errors.lastname}
+                                    className="text-red-500"
+                                />
+                            </div>
+                        </div>
                         <InputLabel htmlFor="email" value="Email" className="mt-4" />
                         <TextInput
                             id="email"
@@ -161,43 +188,47 @@ export default function Register() {
                             message={errors.email}
                             className="text-red-500"
                         />
+                        <div className="flex flex-col md:flex-row gap-4 w-full">
+                            <div className="w-full md:w-1/2">
+                                <InputLabel htmlFor="password" value="Password" className="mt-4" />
+                                <TextInput
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={data.password}
+                                    style={{ backgroundColor: "white", color: "black" }}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                                    autoComplete="new-password"
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <InputError
+                                    message={errors.password}
+                                    className="text-red-500"
+                                />
+                            </div>
 
-                        <InputLabel htmlFor="password" value="Password" className="mt-4" />
-                        <TextInput
-                            id="password"
-                            type="password"
-                            name="password"
-                            value={data.password}
-                            style={{ backgroundColor: "white", color: "black" }}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                            autoComplete="new-password"
-                            onChange={handleChange}
-                            required
-                        />
-                        <InputError
-                            message={errors.password}
-                            className="text-red-500"
-                        />
-
-                        <InputLabel htmlFor="password_confirmation" value="Confirm Password" className="mt-4" />
-                        <TextInput
-                            id="password_confirmation"
-                            type="password"
-                            name="password_confirmation"
-                            value={data.password_confirmation}
-                            style={{ backgroundColor: "white", color: "black" }}
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                            autoComplete="new-password"
-                            onChange={(e) => setData("password_confirmation", e.target.value)}
-                            required
-                        />
-                        <InputError
-                            message={errors.password_confirmation}
-                            className="text-red-500"
-                        />
-
+                            <div className="w-full md:w-1/2">
+                                <InputLabel htmlFor="password_confirmation" value="Confirm Password" className="mt-4" />
+                                <TextInput
+                                    id="password_confirmation"
+                                    type="password"
+                                    name="password_confirmation"
+                                    value={data.password_confirmation}
+                                    style={{ backgroundColor: "white", color: "black" }}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                                    autoComplete="new-password"
+                                    onChange={(e) => setData("password_confirmation", e.target.value)}
+                                    required
+                                />
+                                <InputError
+                                    message={errors.password_confirmation}
+                                    className="text-red-500"
+                                />
+                            </div>
+                        </div>
                         <PrimaryButton
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+                            className="mt-4"
                             disabled={processing}
                         >
                             Register
@@ -205,7 +236,7 @@ export default function Register() {
                     </form>
                 </div>
 
-                <div className="md:w-1/2 w-full flex justify-center items-center rounded-r-lg overflow-hidden h-64 md:h-auto">
+                {/* <div className="md:w-1/2 w-full flex justify-center items-center rounded-r-lg overflow-hidden h-64 md:h-auto">
                     <div
                         style={{
                             backgroundImage: `url(${loginImage})`,
@@ -216,7 +247,7 @@ export default function Register() {
                         }}
                         className="w-full h-full rounded-r-lg"
                     />
-                </div>
+                </div> */}
             </div>
         </GuestLayout>
     );

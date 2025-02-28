@@ -85,33 +85,33 @@ export default function HeaderMenu({ auth }) {
     };
 
     // Real-time listening for new messages in all chat rooms
-    useEffect(() => {
-        if (!auth?.user) return;
+    // useEffect(() => {
+    //     if (!auth?.user) return;
 
-        fetchNotifications();
-        // Initial load
-        updateUnreadCounts();
+    //     fetchNotifications();
+    //     // Initial load
+    //     updateUnreadCounts();
 
-        const channel = window.Echo.private(`App.Models.User.${auth.user.id}`);
+    //     const channel = window.Echo.private(`App.Models.User.${auth.user.id}`);
 
-        // Listen for message count updates
-        channel.listen(".message.count.updated", (e) => {
-            console.log("Received message count update:", e);
-            updateUnreadCounts(); // Trigger recount of unread messages
-        });
+    //     // Listen for message count updates
+    //     channel.listen(".message.count.updated", (e) => {
+    //         console.log("Received message count update:", e);
+    //         updateUnreadCounts(); // Trigger recount of unread messages
+    //     });
 
-        // Listen for new messages
-        channel.listen(".message.sent", (e) => {
-            console.log("Received new message:", e);
-            updateUnreadCounts(); // Update unread count when new message arrives
-        });
+    //     // Listen for new messages
+    //     channel.listen(".message.sent", (e) => {
+    //         console.log("Received new message:", e);
+    //         updateUnreadCounts(); // Update unread count when new message arrives
+    //     });
 
-        return () => {
-            channel.stopListening(".message.count.updated");
-            channel.stopListening(".message.sent");
-            window.Echo.leave(`App.Models.User.${auth.user.id}`);
-        };
-    }, [auth?.user]);
+    //     return () => {
+    //         channel.stopListening(".message.count.updated");
+    //         channel.stopListening(".message.sent");
+    //         window.Echo.leave(`App.Models.User.${auth.user.id}`);
+    //     };
+    // }, [auth?.user]);
 
     const handleLogout = async (e) => {
         e.preventDefault();
@@ -205,13 +205,13 @@ export default function HeaderMenu({ auth }) {
             });
     };
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchNotifications();
-        }, 5000);
+    // useEffect(() => {
+    //     const interval = setInterval(() => {
+    //         fetchNotifications();
+    //     }, 5000);
 
-        return () => clearInterval(interval);
-    }, []);
+    //     return () => clearInterval(interval);
+    // }, []);
 
     return (
         <header className={`p-6  fixed top-0 left-0 w-full flex flex-wrap item-center z-50 shadow-md transition-colors duration-500 ease-in-out ${bgOpacity}`}>
@@ -231,8 +231,8 @@ export default function HeaderMenu({ auth }) {
                         {/* Mobile Navigation */}
                         <nav className="mt-4 flex flex-col space-y-4">
                             <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("main")}>
-                                <svg class="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                 </svg>
                                 Home
                             </Link>
@@ -257,8 +257,8 @@ export default function HeaderMenu({ auth }) {
                                 New Launches
                             </Link>
                             <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} z href={route("find-seller")}>
-                                <svg class="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                                 Find Seller
                             </Link>
@@ -276,8 +276,8 @@ export default function HeaderMenu({ auth }) {
                         href={route("main")}
 
                     >
-                        <div class="w-13 h-12">
-                            <ApplicationLogo fillColor={String(fillColor)} />
+                        <div className="w-13 h-12">
+                            <ApplicationLogo fillColor={fillColor.toString()} />
                         </div>
 
                     </Link>

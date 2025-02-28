@@ -241,23 +241,10 @@ Route::middleware('guest')->group(function () {
         ->name('password.setup');
     Route::post('/setup-password', [ResetPasswordController::class, 'setup'])
         ->name('password.setup.submit');
-
-    // For password reset requests
-    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])
-        ->name('password.reset');
-    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])
-        ->name('password.update');
-
-    // For requesting new password reset
-    Route::post('/forgot-password', [ResetPasswordController::class, 'createToken'])
-    ->name('password.email');
 });
 
 Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'validateToken'])
     ->name('password.validate.token');
-
-Route::post('/forgot-password', [AdminController::class, 'sendResetLinkEmail'])
-    ->name('password.email');
 
 // Registration Routes
 Route::get('/register', [RegisteredUserController::class, 'create'])
@@ -336,4 +323,10 @@ Route::middleware(['auth'])->group(function () {
         ]);
     })->name('seller.properties');
 });
+
+// For testing emails view
+Route::get('/email/reset', function () {
+    return view('emails.reset-password');
+});
+
 

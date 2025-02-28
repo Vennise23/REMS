@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import GuestLayout from '@/Layouts/GuestLayout';
+import InvalidToken from '@/Pages/Auth/InvalidToken';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -28,6 +29,7 @@ export default function ResetPassword({ token, email }) {
 
     const checkToken = async () => {
         try {
+            // here the url is not directing to anywhere...
             const response = await axios.post('/validate-token', {
                 token: token,
                 email: email
@@ -103,25 +105,7 @@ export default function ResetPassword({ token, email }) {
             <Head title={isTokenValid ? "Reset Password" : "Invalid Token"} />
 
             {!isTokenValid ? (
-                <div className="mb-4 text-sm text-gray-600 text-center">
-                    <div className="mb-4">
-                        <h2 className="text-xl font-bold text-red-600">
-                            Invalid Token
-                        </h2>
-                        <p className="mt-4">
-                            This password reset link has already been used or is invalid.
-                        </p>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-center">
-                        <Link
-                            href={route('login')}
-                            className="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
-                        >
-                            Return to Login
-                        </Link>
-                    </div>
-                </div>
+                <InvalidToken/>
             ) : (
                 <form onSubmit={submit}>
                     <div>
