@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import GuestLayout from "@/Layouts/GuestLayout";
 import InputError from "@/Components/InputError";
@@ -77,12 +77,12 @@ export default function Login() {
                     style={gradientStyle}
                 >
                     {/* Close Button */}
-                    <button
-                        onClick={() => window.history.back()}
-                        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                    >
-                        &#x2715; {/* This is the "X" icon */}
-                    </button>
+                    <Link href={route('main')}>
+                        <button
+                            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                        >&#x2715;{/* This is the "X" icon */}
+                        </button>
+                    </Link>
 
                     <h2 className="text-3xl font-semibold mb-6 text-gray-800">
                         Login

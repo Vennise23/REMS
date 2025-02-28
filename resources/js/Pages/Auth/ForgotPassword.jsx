@@ -4,7 +4,7 @@ import InputSuccess from '@/Components/InputSuccess';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputLabel from "@/Components/InputLabel";
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { usePage } from "@inertiajs/react";
 
@@ -14,7 +14,7 @@ export default function ForgotPassword({ status }) {
     });
     const { errors = {} } = usePage().props;
     const { flash = {} } = usePage().props;
-    const [successMessage, setSuccessMessage] = useState(flash?.message );
+    const [successMessage, setSuccessMessage] = useState(flash?.message);
     const [errorMessage, setErrorMessage] = useState(errors?.message);
     const [gradientStyle, setGradientStyle] = useState({
         background: "linear-gradient(to top left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.5))",
@@ -70,7 +70,7 @@ export default function ForgotPassword({ status }) {
 
         if (validateEmail(data.email)) {
             post(route('password.email'), {
-                preserveScroll: true, 
+                preserveScroll: true,
                 onSuccess: (page) => {
                     setSuccessMessage(page.props.flash?.message || "Reset Link has been sent.");
                 },
@@ -91,12 +91,13 @@ export default function ForgotPassword({ status }) {
                     style={gradientStyle}
                 >
                     {/* Close Button */}
-                    <button
-                        onClick={() => window.history.back()}
-                        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                    >
-                        &#x2715; {/* This is the "X" icon */}
-                    </button>
+                    <Link href={route('login')}>
+                        <button
+                            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                        >
+                            &#x2715;{/* This is the "X" icon */}
+                        </button>
+                    </Link>
                     <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
                         Reset your password? No problem. Just let us know your email address and we will email you a password
                         reset link that will allow you to choose a new one.
