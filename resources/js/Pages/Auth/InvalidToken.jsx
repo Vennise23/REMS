@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DangerButton from '@/Components/DangerButton';
 
-export default function InvalidToken() {
+export default function InvalidToken({message=""}) {
     const [gradientStyle, setGradientStyle] = useState({
         background: "linear-gradient(to top left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.5))",
         backgroundSize: "200% 200%",
@@ -36,7 +36,8 @@ export default function InvalidToken() {
                         Invalid Token
                     </h2>
                     <p className="mt-4">
-                        This password reset link has already been used or is invalid.
+                        {/* This password reset link has already been used or is invalid. */}
+                        {message}
                         Please request a new password reset link if needed.
                     </p>
                 </div>

@@ -19,11 +19,11 @@ export const PendingCountProvider = ({ children }) => {
         }
     };
 
-    useEffect(() => {
-        fetchPendingCount();
-        const interval = setInterval(fetchPendingCount, 5000);
-        return () => clearInterval(interval);
-    }, []);
+    // useEffect(() => {
+    //     fetchPendingCount();
+    //     const interval = setInterval(fetchPendingCount, 5000);
+    //     return () => clearInterval(interval);
+    // }, []);
 
     return (
         <PendingCountContext.Provider

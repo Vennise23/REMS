@@ -13,8 +13,10 @@ import axios from 'axios';
 
 axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;
 
-export default function ResetPassword({ token, email }) {
+export default function ResetPassword({ token }) {
     const [isTokenValid, setIsTokenValid] = useState(true);
+    const [tokenMessage, setTokenMessage] = useState("");
+    const [email,setEmail] = useState("");
 
     const { data, setData, post, processing, errors, reset } = useForm({
         token: token,
@@ -23,8 +25,27 @@ export default function ResetPassword({ token, email }) {
         password_confirmation: '',
     });
 
+    const [gradientStyle, setGradientStyle] = useState({
+        background: "linear-gradient(to top left, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.5))",
+        backgroundSize: "200% 200%",
+        animation: "gradientShift 3s infinite alternate ease-in-out",
+    });
+
     useEffect(() => {
         checkToken();
+
+        const styleSheet = document.createElement("style");
+        styleSheet.innerHTML = `
+                    @keyframes gradientShift {
+                        0% {
+                            background-position: bottom right;
+                        }
+                        100% {
+                            background-position: top left;
+                        }
+                    }
+                `;
+        document.head.appendChild(styleSheet);
     }, []);
 
     const checkToken = async () => {
@@ -32,11 +53,18 @@ export default function ResetPassword({ token, email }) {
             // here the url is not directing to anywhere...
             const response = await axios.post('/validate-token', {
                 token: token,
-                email: email
             });
             setIsTokenValid(!response.data.used);
+            setTokenMessage(response.data.message);
+            setEmail(response.data.email);
         } catch (error) {
             setIsTokenValid(false);
+
+            if (error.response && error.response.data && error.response.data.message) {
+                setTokenMessage(error.response.data.message);
+            } else {
+                setTokenMessage("An unexpected error occurred. ");
+            }
         }
     };
 
@@ -88,7 +116,7 @@ export default function ResetPassword({ token, email }) {
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
-            
+
             window.location.href = route('login');
         } catch (error) {
             Swal.fire({
@@ -105,8 +133,13 @@ export default function ResetPassword({ token, email }) {
             <Head title={isTokenValid ? "Reset Password" : "Invalid Token"} />
 
             {!isTokenValid ? (
-                <InvalidToken/>
+                <InvalidToken message={tokenMessage} />
             ) : (
+                <div className="flex flex-col md:flex-row h-auto bg-transparent ">
+                <div
+                    className="w-full sm:w-auto md:min-w-[350px] min-h-fit max-w-md sm:max-w-lg mx-auto p-8 rounded-lg shadow-md flex flex-col justify-center relative overflow-hidden"
+                    style={gradientStyle}
+                >
                 <form onSubmit={submit}>
                     <div>
                         <InputLabel htmlFor="email" value="Email" />
@@ -114,7 +147,7 @@ export default function ResetPassword({ token, email }) {
                             id="email"
                             type="email"
                             name="email"
-                            value={data.email}
+                            value={email}
                             className="mt-1 block w-full"
                             autoComplete="username"
                             onChange={(e) => setData('email', e.target.value)}
@@ -157,6 +190,8 @@ export default function ResetPassword({ token, email }) {
                         </PrimaryButton>
                     </div>
                 </form>
+                </div>
+                </div>
             )}
         </GuestLayout>
     );

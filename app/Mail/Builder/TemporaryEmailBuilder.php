@@ -30,23 +30,20 @@ class TemporaryEmailBuilder extends MailBuilder
     }
 
     public function setData()
-    {
-        // Generate token with expiration
-        $token = Str::random(64);
-        
+    { 
         // Store token in password_reset_tokens table with used = 0
         DB::table('password_reset_tokens')->insert([
             'email' => $this->recipient,
-            'token' => $token,
+            'token' => $this->token,
             'created_at' => now(),
             'used' => 0  // Not used yet
         ]);
 
-        $resetUrl = route('password.reset', ['token' => $token]);  // Use named route
+        $resetUrl = route('password.reset', ['token' => $this->token]);  // Use named route
 
         $this->data = [
             'resetUrl' => $resetUrl,
-            'expiresAt' => now()->addMinutes(60)->format('Y-m-d H:i:s')
+            'expiresAt' =>$this->expiresAt->format('Y-m-d H:i:s')
         ];
 
         return $this;

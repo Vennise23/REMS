@@ -234,15 +234,6 @@ Route::post('/api/check-email', [RegisterController::class, 'checkEmailUniquenes
 
 Route::get('/profile', [ProfileController::class, 'show'])->middleware(['auth'])->name('profile.show');
 
-// Password Reset Routes
-Route::middleware('guest')->group(function () {
-    // For welcome email first-time password setup
-    Route::get('/setup-password/{token}', [ResetPasswordController::class, 'showSetupForm'])
-        ->name('password.setup');
-    Route::post('/setup-password', [ResetPasswordController::class, 'setup'])
-        ->name('password.setup.submit');
-});
-
 Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'validateToken'])
     ->name('password.validate.token');
 
