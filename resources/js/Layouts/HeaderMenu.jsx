@@ -4,6 +4,8 @@ import ApplicationLogo from "../Components/ApplicationLogo";
 import axios from "axios";
 import { FaEnvelope } from "react-icons/fa";
 import { IoNotifications } from "react-icons/io5";
+import SideMenu from "../Components/SideMenu";
+import SideMenuToggleButton from "../Components/SideMenuToggleBtn";
 
 export default function HeaderMenu({ auth }) {
     const [menuState, setMenuState] = useState({
@@ -16,6 +18,8 @@ export default function HeaderMenu({ auth }) {
     const [notifications, setNotifications] = useState([]);
     const [totalNotifications, setTotalNotifications] = useState(0);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [menuLinks, setMenuLinks] = useState([]);
+    const [smallScreenOnly, setSmallScreenOnly] = useState(false);
     const [bgOpacity, setBgOpacity] = useState("bg-transparent");
     const [textColor, setTextColor] = useState("text-white-600 hover:text-white-900");
     const [fillColor, setFillColor] = useState("rgb(118,139,114)");//for logo color
@@ -37,6 +41,47 @@ export default function HeaderMenu({ auth }) {
             setBgOpacity("bg-transparent bg-opacity-0 shadow-none text-white");
             setTextColor("text-white-600 hover:text-red")
             setFillColor("white");
+
+            setMenuLinks([
+                {
+                    href: "main",
+                    label: "Home",
+                    icon: (<svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>),
+                },
+                {
+                    href: "buy",
+                    label: "Buy",
+                    icon: (<svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13a3 3 0 100 6 3 3 0 000-6m10 0a3 3 0 100 6 3 3 0 000-6" />
+                    </svg>),
+                },
+                {
+                    href: "rent",
+                    label: "Rent",
+                    icon: (<svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <circle cx="8" cy="12" r="4" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M12 12h6v-2h-3v-2h-3v4z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>),
+                },
+                {
+                    href: "new-launches",
+                    label: "New Launches",
+                    icon: (<svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <rect x="5" y="5" width="14" height="14" strokeWidth="2" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 8h2m4 0h2m-8 4h2m4 0h2m-8 4h2m4 0h2" />
+                    </svg>),
+                },
+                {
+                    href: "find-seller",
+                    label: "Find Seller",
+                    icon: (<svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>),
+                },
+            ])
+            setSmallScreenOnly(true);
 
             // for header getting transparent when scroll to top. (only in main page)
             const handleScroll = () => {
@@ -216,65 +261,14 @@ export default function HeaderMenu({ auth }) {
     return (
         <header className={`p-6  fixed top-0 left-0 w-full flex flex-wrap item-center z-50 shadow-md transition-colors duration-500 ease-in-out ${bgOpacity}`}>
             <div className="container mx-auto flex justify-between items-center">
-                {/* Mobile Menu Button */}
-                <div className={`fixed inset-0 bg-black bg-opacity-0 z-50 transition-transform transitions-colors duration-500 ${menuOpen ? "translate-x-0 bg-black" : "-translate-x-full bg-transparent"}`}>
-                    <div className={`bg-white w-64 h-full p-4 shadow-lg text-grey-600 hover:text-grey-900 transition-transform duration-500 delay-200 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
-                        style={{ color: `black` }}
-                    >
-                        {/* Close Button */}
-                        <button onClick={() => setMenuOpen(false)} className="text-gray-700 focus:outline-none">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-
-                        {/* Mobile Navigation */}
-                        <nav className="mt-4 flex flex-col space-y-4">
-                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("main")}>
-                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                </svg>
-                                Home
-                            </Link>
-                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("buy")}>
-                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13a3 3 0 100 6 3 3 0 000-6m10 0a3 3 0 100 6 3 3 0 000-6" />
-                                </svg>
-                                Buy
-                            </Link>
-                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("rent")}>
-                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="8" cy="12" r="4" strokeLinecap="round" strokeLinejoin="round" />
-                                    <path d="M12 12h6v-2h-3v-2h-3v4z" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                Rent
-                            </Link>
-                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} href={route("new-launches")}>
-                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <rect x="5" y="5" width="14" height="14" strokeWidth="2" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 8h2m4 0h2m-8 4h2m4 0h2m-8 4h2m4 0h2" />
-                                </svg>
-                                New Launches
-                            </Link>
-                            <Link className={` font-medium d-inline-flex justify-content-start align-items-center`} z href={route("find-seller")}>
-                                <svg className="w-6 h-6 stroke-current mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Find Seller
-                            </Link>
-                        </nav>
-                    </div>
-                </div>
-
                 <div className="flex items-center space-x-4">
-                    <button onClick={() => setMenuOpen(true)} className="md:hidden focus:outline-none flex-grow justify-center">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-                        </svg>
-                    </button>
+                    {menuLinks.length > 0 && (
+                        <button onClick={() => setMenuOpen(!menuOpen)}>
+                            <SideMenuToggleButton smallScreenOnly={smallScreenOnly} />
+                        </button>
+                    )}
                     <Link
                         href={route("main")}
-
                     >
                         <div className="w-13 h-12">
                             <ApplicationLogo fillColor={fillColor.toString()} />
@@ -324,7 +318,7 @@ export default function HeaderMenu({ auth }) {
                     {auth?.user && (
                         <div className="relative">
                             <button
-                                onClick={()=>handleToggle("showNotifications")}
+                                onClick={() => handleToggle("showNotifications")}
                                 // onBlur={handleBlurNotifications}
                                 className={`relative ${textColor}`}
                             >
@@ -397,7 +391,7 @@ export default function HeaderMenu({ auth }) {
                     {auth?.user && (
                         <div className="relative">
                             <button
-                                onClick={()=>handleToggle("showMessages")}
+                                onClick={() => handleToggle("showMessages")}
                                 // onBlur={handleBlurMessage}
                                 className={`relative p-2 ${textColor}`}
                             >
@@ -471,7 +465,7 @@ export default function HeaderMenu({ auth }) {
                         auth.user.role === "admin" ? (
                             <div className="relative">
                                 <button
-                                    onClick={()=>handleToggle("dropdownOpen")}
+                                    onClick={() => handleToggle("dropdownOpen")}
                                     className="flex items-center space-x-2"
                                 >
                                     <span className={`font-semibold ${textColor}`}>
@@ -504,7 +498,7 @@ export default function HeaderMenu({ auth }) {
                         ) : (
                             <div className="relative">
                                 <button
-                                    onClick={()=>handleToggle("dropdownOpen")}
+                                    onClick={() => handleToggle("dropdownOpen")}
                                     className="flex items-center space-x-2"
                                 >
                                     <img

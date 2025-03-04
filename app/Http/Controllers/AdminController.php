@@ -70,7 +70,7 @@ class AdminController extends Controller
                 ], 422);
             }
 
-             DB::beginTransaction();
+            DB::beginTransaction();
 
             $temporaryPassword = Str::random(12);
             $profile_picture_path = null;
@@ -84,7 +84,7 @@ class AdminController extends Controller
             $userData['password'] = Hash::make($temporaryPassword);
             $userData['profile_picture'] = $profile_picture_path;
 
-             $user = User::create($userData);
+            $user = User::create($userData);
 
             Log::info('About to create email with user details:', [
                 'firstname' => $user->firstname,
@@ -92,7 +92,7 @@ class AdminController extends Controller
                 'email' => $user->email
             ]);
 
-             $builder = new PermanentEmailBuilder();
+            $builder = new PermanentEmailBuilder();
             $email = $builder
                 ->setRecipient($user->email)
                 ->setUserDetails(
@@ -103,20 +103,19 @@ class AdminController extends Controller
                 ->buildEmail()
                 ->getResult();
 
-             Log::info('Email object created, about to send');
+            Log::info('Email object created, about to send');
 
-             Mail::send($email);
+            Mail::send($email);
 
-             Log::info('Email sent successfully');
+            Log::info('Email sent successfully');
 
-             DB::commit();
+            DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'User created successfully',
                 'user' => $user
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('User creation failed', [
@@ -330,7 +329,7 @@ class AdminController extends Controller
             Log::info('Checking name uniqueness:', $request->all()); // Add logging
 
             $query = User::where('firstname', $request->firstname)
-                        ->where('lastname', $request->lastname);
+                ->where('lastname', $request->lastname);
 
             // Exclude current user when editing
             if ($request->user_id) {
@@ -457,9 +456,21 @@ class AdminController extends Controller
     {
         try {
             $users = User::select([
-                'id', 'firstname', 'lastname', 'email', 'phone', 'role',
-                'profile_picture', 'ic_number', 'age', 'born_date',
-                'address_line_1', 'address_line_2', 'city', 'postal_code', 'gender'
+                'id',
+                'firstname',
+                'lastname',
+                'email',
+                'phone',
+                'role',
+                'profile_picture',
+                'ic_number',
+                'age',
+                'born_date',
+                'address_line_1',
+                'address_line_2',
+                'city',
+                'postal_code',
+                'gender'
             ])->get();
 
             $users = $users->map(function ($user) {
@@ -494,6 +505,17 @@ class AdminController extends Controller
         return response()->json([
             'available' => !$exists
         ]);
+    }
+
+    public function getExistingUsers()
+    {
+        try {
+            $users = USER::select('id', 'firstname', 'email')->get();
+            return response()->json($users);
+        } catch (\Exception $e) {
+            Log::error("Error fetching users: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch users'.$e->getMessage()], 500);
+        }
     }
 
     // Duplicated function with PasswordResetLinkController hence removed - Vennise

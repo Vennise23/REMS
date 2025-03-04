@@ -154,7 +154,7 @@ class ProfileController extends Controller
 
     public function show()
     {
-        return Inertia::render('Profile', [
+        return Inertia::render('Profile/ProfileForm', [
             'user' => auth()->user()
         ]);
     }

@@ -4,7 +4,7 @@ import axios from "axios";
 
 import backgroundImage from "/resources/img/estate_property_background.jpg";
 import PropertyFormModal from "@/Components/Property/PropertyFormModal";
-import Header from "@/Layouts/HeaderMenu";
+import MainLayout from '@/Layouts/MainLayout';
 import NewLaunchListing from "@/Components/Property/NewLaunchListing";
 import LatestListings from "@/Components/Property/LatestListings";
 import RentListings from "@/Components/Property/RentListings";
@@ -271,11 +271,9 @@ export default function Main({ auth }) {
     };
 
     return (
-        <>
+        <MainLayout>
             <Head title={"Main"} />
-            <Header auth={auth} />
-
-            <main className=" min-h-screen bg-gray-100 flex flex-col items-center">
+            
                 <div
                     className="relative w-full bg-cover bg-center mb-8 sm:aspect-[137/50] sm:h-auto h-[50vh] "
                     style={{ backgroundImage: "url('http://[::1]:5173/resources/img/estate_property_background.jpg')" }}
@@ -804,8 +802,7 @@ export default function Main({ auth }) {
                         </div>
                     )}
                 </div>
-            </main>
             <Footer />
-        </>
+        </MainLayout>
     );
 }

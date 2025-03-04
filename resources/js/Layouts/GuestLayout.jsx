@@ -10,6 +10,10 @@ export default function Guest({ children }) {
     const [showMessage, setShowMessage] = useState(false);
 
     useEffect(() => {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (token) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+        }
         let interval = setInterval(() => {
             if (!parentRef.current) return;
 

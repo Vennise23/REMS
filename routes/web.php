@@ -36,13 +36,6 @@ Route::get('/', function () {
     ]);
 })->name('main');
 
-// User Profile and Logout routes
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-});
-
 Route::get('/dbconn', function () {
     return view('dbconn');
 });
@@ -78,15 +71,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/properties/{property}/potential-buyers', [PropertyStatusController::class, 'getPotentialBuyers']);
     Route::post('/api/chat-rooms/create', [ChatController::class, 'createRoom']);
     Route::delete('/api/properties/{property}', [PropertyController::class, 'destroy']);
-});
-
-// Profile routes
-Route::middleware(['auth'])->group(function () {
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/profile/check-name', [ProfileController::class, 'checkName'])->name('profile.checkName');
-    Route::post('/profile/check-email', [ProfileController::class, 'checkEmail'])->name('profile.checkEmail');
-    Route::post('/profile/check-ic', [ProfileController::class, 'checkIC'])->name('profile.checkIC');
-    Route::post('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
 });
 
 // Buy Route
@@ -231,8 +215,6 @@ Route::post('/api/check-ic', [AdminController::class, 'checkIcAvailability'])
     ->name('users.check-ic');
 
 Route::post('/api/check-email', [RegisterController::class, 'checkEmailUniqueness']);
-
-Route::get('/profile', [ProfileController::class, 'show'])->middleware(['auth'])->name('profile.show');
 
 Route::post('/api/validate-reset-token', [ResetPasswordController::class, 'validateToken'])
     ->name('password.validate.token');

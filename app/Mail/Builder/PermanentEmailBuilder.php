@@ -12,6 +12,11 @@ class PermanentEmailBuilder extends MailBuilder
     private $lastname;
     private $tempPassword;
 
+    public function __construct()
+    {
+        // Any default value declare here.
+    }
+
     public function setUserDetails($firstname, $lastname, $tempPassword)
     {
         // Debug log
@@ -67,18 +72,5 @@ class PermanentEmailBuilder extends MailBuilder
         ];
 
         return $this;
-    }
-
-    public function getResult(): ProductEmail
-    {
-        // Debug log before creating ProductEmail
-        Log::info('PermanentEmailBuilder getResult data:', $this->data);
-
-        return new ProductEmail(
-            $this->recipient,
-            $this->subject,
-            $this->template,
-            $this->data
-        );
     }
 } 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\APIController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
@@ -49,6 +50,8 @@ Route::middleware('api')->group(function () {
     Route::post('/check-email-availability', [AdminController::class, 'checkEmailAvailability']);
     Route::post('/users/{id}', [AdminController::class, 'update']);
 });
+
+Route::get('/proxy/nominatim', [APIController::class,'getAddress']);
 
 Route::middleware(['auth:sanctum', 'web'])->group(function () {
     Route::get('/chat-rooms', [ChatController::class, 'getChatRooms']);
