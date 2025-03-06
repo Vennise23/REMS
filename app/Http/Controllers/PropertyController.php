@@ -11,75 +11,6 @@ use App\Models\ChatRoom;
 
 class PropertyController extends Controller
 {
-    public function store(Request $request)
-    {
-        try {
-            $validatedData = $request->validate([
-                'user_id' => 'nullable|integer',
-                'username' => 'nullable|string|max:255',
-                'property_name' => 'required|string|max:255',
-                'property_type' => 'required|string|in:Conventional Condominium,Bare Land Condominium,Commercial',
-                'property_address_line_1' => 'required|string|max:255',
-                'property_address_line_2' => 'nullable|string|max:255',
-                'city' => 'required|string|max:255',
-                'postal_code' => 'nullable|string|max:255',
-                'state' => 'required|string|max:255',
-                'purchase' => 'required|string|in:For Sale,For Rent',
-                'sale_type' => 'nullable|string|in:New Launch,Subsale',
-                'number_of_units' => 'required|integer',
-                'square_feet' => 'nullable|integer',
-                'price' => 'required|numeric',
-                'property_photos' => 'nullable|array',
-                'each_unit_has_furnace' => 'nullable|boolean',
-                'each_unit_has_electrical_meter' => 'nullable|boolean',
-                'has_onsite_caretaker' => 'nullable|boolean',
-                'parking' => 'nullable|string|in:Above ground,Underground,Both',
-                'amenities' => 'nullable|array',
-                'other_amenities' => 'nullable|string|max:255',
-                'additional_info' => 'nullable|string',
-            ]);
-
-            $user = auth()->user();
-
-            if (!$user) {
-                return response()->json(['error' => 'User is not authenticated'], 401);
-            }
-
-            $validatedData['username'] = $user->firstname . ' ' . $user->lastname;
-
-            $validatedData['user_id'] = $user->id;
-
-            if (isset($validatedData['amenities'])) {
-                $validatedData['amenities'] = array_map(function ($amenity) {
-                    return trim($amenity);
-                }, $validatedData['amenities']);
-            }
-
-            if ($request->hasFile('certificate_photos')) {
-                $certificatePhotos = [];
-                foreach ($request->file('certificate_photos') as $photo) {
-                    $certificatePhotos[] = $photo->store('certificate_photos', 'public');
-                }
-                $validatedData['certificate_photos'] = $certificatePhotos;
-            }
-
-            if ($request->hasFile('property_photos')) {
-                $propertyPhotos = [];
-                foreach ($request->file('property_photos') as $photo) {
-                    $propertyPhotos[] = $photo->store('property_photos', 'public');
-                }
-                $validatedData['property_photos'] = $propertyPhotos;
-            }
-
-            Property::create($validatedData);
-
-            return redirect()->back()->with('success', 'Property created successfully!');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json($e->validator->errors(), 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
 
     public function GetPropertyList()
     {
@@ -338,12 +269,6 @@ class PropertyController extends Controller
         }
     }
 
-    public function checkPropertyName($name)
-    {
-        $property = Property::where('property_name', $name)->first();
-        return response()->json(['exists' => $property ? true : false]);
-    }
-
     public function searchAddresses(Request $request)
     {
         $query = $request->input('query', '');
@@ -432,13 +357,6 @@ class PropertyController extends Controller
         return response()->json(['status' => 'success']);
     }
 
-    public function propertyManagementBySeller()
-    {
-        return Inertia::render('Property/PropertyManagement', [
-            'properties' => Property::all(),
-        ]);
-    }
-
     public function getUserProperties(Request $request)
     {
         $user = $request->user();
@@ -449,75 +367,6 @@ class PropertyController extends Controller
             'totalPages' => $properties->lastPage(),
             'total' => $properties->total(),
         ]);
-    }
-
-    public function update(Request $request, $id)
-    {
-        try {
-            $validatedData = $request->validate([
-                'property_name' => 'required|string|max:255',
-                'property_type' => 'required|string|in:Conventional Condominium,Bare Land Condominium,Commercial',
-                'property_address_line_1' => 'required|string|max:255',
-                'property_address_line_2' => 'nullable|string|max:255',
-                'city' => 'required|string|max:255',
-                'postal_code' => 'nullable|string|max:255',
-                'purchase' => 'required|string|in:For Sale,For Rent',
-                'sale_type' => 'nullable|string|in:New Launch,Subsale',
-                'number_of_units' => 'required|integer',
-                'square_feet' => 'nullable|integer|min:1',
-                'price' => 'required|numeric|min:0',
-                'certificate_photos' => 'nullable|array',
-                'property_photos' => 'nullable|array',
-                'each_unit_has_furnace' => 'nullable|boolean',
-                'each_unit_has_electrical_meter' => 'nullable|boolean',
-                'has_onsite_caretaker' => 'nullable|boolean',
-                'parking' => 'nullable|string|in:Above ground,Underground,Both',
-                'amenities' => 'nullable|array',
-                'other_amenities' => 'nullable|string|max:255',
-                'additional_info' => 'nullable|string',
-            ]);
-
-            $property = Property::findOrFail($id);
-
-            if ($property->user_id !== Auth::id()) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-
-            if (isset($validatedData['amenities'])) {
-                $validatedData['amenities'] = array_map(function ($amenity) {
-                    return trim($amenity);
-                }, $validatedData['amenities']);
-            }
-
-            if ($request->hasFile('certificate_photos')) {
-                $certificatePhotos = $property->certificate_photos ?: [];
-                foreach ($request->file('certificate_photos') as $photo) {
-                    $certificatePhotos[] = $photo->store('certificate_photos', 'public');
-                }
-                $validatedData['certificate_photos'] = $certificatePhotos;
-            }
-
-            if ($request->hasFile('property_photos')) {
-                $propertyPhotos = $property->property_photos ?: [];
-                foreach ($request->file('property_photos') as $photo) {
-                    $propertyPhotos[] = $photo->store('property_photos', 'public');
-                }
-                $validatedData['property_photos'] = $propertyPhotos;
-            }
-
-            $validatedData['approval_status'] = 'Pending';
-            $validatedData['is_read'] = '0';
-            $property->update($validatedData);
-
-            return response()->json([
-                'message' => 'Property updated successfully',
-                'data' => $property,
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->validator->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
     }
 
 

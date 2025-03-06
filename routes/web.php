@@ -66,11 +66,10 @@ Route::get('/admin/pending-count', [AdminController::class, 'getPendingCount'])-
 Route::middleware(['auth'])->group(function () {
     Route::get('/users/data', [AdminController::class, 'index'])->name('users.data');
     Route::get('/chat/{chatRoom}', [ChatController::class, 'showChat'])->name('chat.show');
-    Route::get('/my-properties', [PropertyStatusController::class, 'index'])->name('my.properties');
     Route::put('/api/properties/{property}/status', [PropertyStatusController::class, 'updateStatus']);
     Route::get('/api/properties/{property}/potential-buyers', [PropertyStatusController::class, 'getPotentialBuyers']);
     Route::post('/api/chat-rooms/create', [ChatController::class, 'createRoom']);
-    Route::delete('/api/properties/{property}', [PropertyController::class, 'destroy']);
+  
 });
 
 // Buy Route
@@ -96,10 +95,8 @@ Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'get
 
 // Property Route
 Route::middleware(['auth'])->group(function () {
-    Route::post('/apply-property', [PropertyController::class, 'store']);
     Route::get('/api/properties', [PropertyController::class, 'index']);
     Route::get('/api/user-properties', [PropertyController::class, 'getUserProperties']);
-    Route::get('/property-management', [PropertyController::class, 'propertyManagementBySeller'])->name('manage.property');
 });
 Route::get('/property/{id}', [PropertyController::class, 'showInformationById'])->name('property.show');
 Route::get('/rent', [PropertyController::class, 'showRentPage'])->name('rent');
@@ -108,13 +105,10 @@ Route::get('/property', [PropertyController::class, 'GetPropertyList']);
 
 Route::get('/api/property/{propertyId}/photos', [PropertyController::class, 'getPropertyPhotos']);
 Route::get('/api/properties/nearby', [PropertyController::class, 'searchNearby']);
-Route::get('/check-property-name/{name}', [PropertyController::class, 'checkPropertyName']);
 Route::get('/api/search-addresses', [PropertyController::class, 'searchAddresses']);
 
 Route::get('/notifications', [PropertyController::class, 'getNotifications']);
 Route::post('/notifications/{id}/mark-as-read', [PropertyController::class, 'markAsRead']);
-
-Route::post('/properties/{id}', [PropertyController::class, 'update'])->name('properties.update');
 Route::delete('/api/properties/{id}', [PropertyController::class, 'deletePropertyBySeller']);
 // GOOGLE API TESTING
 // Route::get('/test-google-maps', function () {

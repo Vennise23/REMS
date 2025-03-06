@@ -12,7 +12,7 @@ import { FaEnvelope } from "react-icons/fa";
 
 export default function Authenticated({ user, header, children }) {
     // Header Menu Declaration
-    const [menuOpen, setMenuOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(true);
     const [menuLinks, setMenuLinks] = useState([]);
     const [sideLinks, setSideLinks] = useState([]);
     const [smallScreenOnly, setSmallScreenOnly] = useState(false);
@@ -95,12 +95,12 @@ export default function Authenticated({ user, header, children }) {
                 icon: (<></>),
                 links: [
                     {
-                        href: "",
+                        href: "manage.property",
                         label: "Add Property",
                         icon: (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 576" width='24' height='24'><path fill="currentColor" d="M543.8 287.6c17 0 32-14 32-32.1c1-9-3-17-11-24L309.5 7c-6-5-14-7-21-7s-15 1-22 8L10 231.5c-7 7-10 15-10 24c0 18 14 32.1 32 32.1h32V448c0 35.3 28.7 64 64 64h320.4c35.5 0 64.2-28.8 64-64.3l-.7-160.2h32zM256 208c0-8.8 7.2-16 16-16h32c8.8 0 16 7.2 16 16v48h48c8.8 0 16 7.2 16 16v32c0 8.8-7.2 16-16 16h-48v48c0 8.8-7.2 16-16 16h-32c-8.8 0-16-7.2-16-16v-48h-48c-8.8 0-16-7.2-16-16v-32c0-8.8 7.2-16 16-16h48z" /></svg>)
                     },
                     {
-                        href: "",
+                        href: "my.properties",
                         label: "My Listing",
                         icon: (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width='24' height='24'><path d="M18.991 2H9.01C7.899 2 7 2.899 7 4.01v5.637l-4.702 4.642A1 1 0 0 0 3 16v5a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4.009C21 2.899 20.102 2 18.991 2zm-8.069 13.111V20H5v-5.568l2.987-2.949l2.935 3.003v.625zM13 9h-2V7h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z" fill="currentColor" /><path d="M7 15h2v2H7z" fill="currentColor" /></svg>)
                     },
@@ -109,11 +109,11 @@ export default function Authenticated({ user, header, children }) {
                         label: "Requests & Inquiries",
                         icon: (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width='24' height='24'><path fill="none" stroke="currentColor" d="M11 12.5h3.5v-7L8 3.5l-6.5 2V8m3-1.5v6m0 0l-2-2m2 2l2-2m1.5-1l2-2m0 0l2 2m-2-2V12" /></svg>)
                     },
-                    {
-                        href: "",
-                        label: "Submissions & Approval",
-                        icon: (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width='24' height='24'><path fill="currentColor" d="m18.1 24.543l-9.204-5.19l3.199-5.61l9.206 5.187zm18.37 4.788l-15.552-8.76l-1.599 2.808l15.55 8.761zm1.888 1.065l-1.604 2.806l8.02 4.514l1.604-2.803zm-2.16 2.806c-.123.219-.459.271-.751.111c-.291-.164-.42-.475-.296-.697l1.875-3.285c.129-.223.465-.277.754-.111c.287.164.417.482.293.705zm11.832 1.799a2 2 0 0 0-1.011-.248l-2.051 3.592c.165.301.411.564.735.74c.904.512 2.041.217 2.538-.652l.526-.93c.498-.875.17-1.99-.737-2.502M22.191 17.849a.9.9 0 0 1-1.225.342l-8.056-4.542a.89.89 0 0 1-.339-1.223a.904.904 0 0 1 1.23-.334l8.054 4.536a.89.89 0 0 1 .336 1.221m1.129-1.972a.9.9 0 0 1-1.227.34l-8.059-4.541a.885.885 0 0 1-.337-1.217a.9.9 0 0 1 1.23-.341l8.056 4.537a.89.89 0 0 1 .337 1.222m-6.808 11.944a.907.907 0 0 1-1.229.334l-8.062-4.542a.894.894 0 0 1-.338-1.223a.91.91 0 0 1 1.229-.334l8.058 4.542a.9.9 0 0 1 .342 1.223m1.126-1.979a.9.9 0 0 1-1.234.335L8.348 21.64a.9.9 0 0 1-.339-1.223a.9.9 0 0 1 1.231-.335l8.055 4.537a.9.9 0 0 1 .343 1.223M4.119 33.921h14.204v1.633H4.119zm17.306 3.406a1.15 1.15 0 0 0-1.135-.963H2.156a1.15 1.15 0 0 0-1.135.963H1v2.674h20.446v-2.674z" /></svg>)
-                    }
+                    // {
+                    //     href: "",
+                    //     label: "Submissions & Approval",
+                    //     icon: (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width='24' height='24'><path fill="currentColor" d="m18.1 24.543l-9.204-5.19l3.199-5.61l9.206 5.187zm18.37 4.788l-15.552-8.76l-1.599 2.808l15.55 8.761zm1.888 1.065l-1.604 2.806l8.02 4.514l1.604-2.803zm-2.16 2.806c-.123.219-.459.271-.751.111c-.291-.164-.42-.475-.296-.697l1.875-3.285c.129-.223.465-.277.754-.111c.287.164.417.482.293.705zm11.832 1.799a2 2 0 0 0-1.011-.248l-2.051 3.592c.165.301.411.564.735.74c.904.512 2.041.217 2.538-.652l.526-.93c.498-.875.17-1.99-.737-2.502M22.191 17.849a.9.9 0 0 1-1.225.342l-8.056-4.542a.89.89 0 0 1-.339-1.223a.904.904 0 0 1 1.23-.334l8.054 4.536a.89.89 0 0 1 .336 1.221m1.129-1.972a.9.9 0 0 1-1.227.34l-8.059-4.541a.885.885 0 0 1-.337-1.217a.9.9 0 0 1 1.23-.341l8.056 4.537a.89.89 0 0 1 .337 1.222m-6.808 11.944a.907.907 0 0 1-1.229.334l-8.062-4.542a.894.894 0 0 1-.338-1.223a.91.91 0 0 1 1.229-.334l8.058 4.542a.9.9 0 0 1 .342 1.223m1.126-1.979a.9.9 0 0 1-1.234.335L8.348 21.64a.9.9 0 0 1-.339-1.223a.9.9 0 0 1 1.231-.335l8.055 4.537a.9.9 0 0 1 .343 1.223M4.119 33.921h14.204v1.633H4.119zm17.306 3.406a1.15 1.15 0 0 0-1.135-.963H2.156a1.15 1.15 0 0 0-1.135.963H1v2.674h20.446v-2.674z" /></svg>)
+                    // }
                 ]
             },
             {
@@ -268,7 +268,7 @@ export default function Authenticated({ user, header, children }) {
 
     return (
         <div className="min-h-[screen] bg-gray-100">
-            <header className={`p-6 z-60 fixed top-0 left-0 w-full flex flex-wrap item-center z-50 shadow-md transition-colors duration-500 ease-in-out ${bgOpacity}`}>
+            <header className={`p-6 fixed top-0 left-0 w-full flex flex-nowrap item-center z-50 shadow-md transition-colors duration-500 ease-in-out ${bgOpacity}`}>
                 {menuLinks.length > 0 && (
                     <button onClick={() => setMenuOpen(!menuOpen)}
                         className={`focus:outline-none flex-grow justify-center w-fit

@@ -40,6 +40,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
     const [isAdditionalInfoOpen, setIsAdditionalInfoOpen] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const [suggestionsPostalCode, setSuggestionsPostalCode] = useState([]);
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -226,37 +227,41 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
     };
 
     const fetchSuggestions = async (query, type) => {
-        try {
-            const url = `/api/place-autocomplete?query=${query}&type=${type}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            console.log("data suggestion: ", data);
+        setSuggestionsLoading(true);
+        const response = await axios.get(`/api/proxy/nominatim?q=${encodeURIComponent(query)}`);
+        setSuggestions(response.data);
+        setSuggestionsLoading(false);
+        // try {
+        //     const url = `/api/place-autocomplete?query=${query}&type=${type}`;
+        //     const response = await fetch(url);
+        //     const data = await response.json();
+        //     console.log("data suggestion: ", data);
 
-            if (data.predictions && Array.isArray(data.predictions)) {
-                if (type === "address") {
-                    const suggestions = data.predictions.map((prediction) => ({
-                        description: prediction.description,
-                        placeId: prediction.place_id,
-                        geometry: prediction.geometry,
-                    }));
-                    setSuggestions(suggestions);
-                } else {
-                    setSuggestionsPostalCode(
-                        data.predictions.map(
-                            (prediction) => prediction.description
-                        )
-                    );
-                }
-            } else {
-                if (type === "address") {
-                    setSuggestions([]);
-                } else {
-                    setSuggestionsPostalCode([]);
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching address suggestions:", error);
-        }
+        //     if (data.predictions && Array.isArray(data.predictions)) {
+        //         if (type === "address") {
+        //             const suggestions = data.predictions.map((prediction) => ({
+        //                 description: prediction.description,
+        //                 placeId: prediction.place_id,
+        //                 geometry: prediction.geometry,
+        //             }));
+        //             setSuggestions(suggestions);
+        //         } else {
+        //             setSuggestionsPostalCode(
+        //                 data.predictions.map(
+        //                     (prediction) => prediction.description
+        //                 )
+        //             );
+        //         }
+        //     } else {
+        //         if (type === "address") {
+        //             setSuggestions([]);
+        //         } else {
+        //             setSuggestionsPostalCode([]);
+        //         }
+        //     }
+        // } catch (error) {
+        //     console.error("Error fetching address suggestions:", error);
+        // }
     };
 
     const fetchPostalCode = async (placeId) => {
@@ -349,38 +354,64 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
 
     const onAddressSelect = async (suggestion) => {
         try {
-            const googleResult = await fetchPostalCode(suggestion.placeId);
+            // Split the address by comma and remove any extra spaces
+            let parts = address.split(',').map(part => part.trim());
 
-            if (googleResult) {
-                const {
-                    lat,
-                    lng,
-                    postalCode,
-                    property_address_line_1,
-                    property_address_line_2,
-                    city,
-                    country,
-                    state,
-                } = googleResult;
+            // Ensure we have at least 4 parts (city, state, postcode, country)
+            if (parts.length < 4) return null;
 
-                let postalInfo = postalCode
-                    ? { postalCode }
-                    : await fetchPostalCodeFromGeonames(lat, lng);
+            // Extract values from the back
+            const country = parts.pop();
+            const postcode = parts.pop();
+            const state = parts.pop();
+            const city = parts.pop();
 
-                console.log("postalCode", postalInfo);
+            // Remaining parts are for address line 1 and 2
+            const address1 = parts.slice(0, 3).join(', '); // First three (if available)
+            const address2 = parts.slice(3).join(', ');    // Remaining ones
 
-                setFormData({
-                    ...formData,
-                    property_address_line_1,
-                    property_address_line_2,
-                    city,
-                    country,
-                    postal_code: postalInfo?.postalCode || postalCode || "",
-                    state: postalInfo?.adminName1 || state || "",
-                });
+            setData(data => ({
+                ...data,
+                address_line_1: address1,
+                address_line_2: address2,
+                city: city,
+                country:country,
+                state:state,
+                postal_code: postcode
+            }));
+            setSuggestions([]);
+            // const googleResult = await fetchPostalCode(suggestion.placeId);
 
-                console.log("Updated formData:", formData);
-            }
+            // if (googleResult) {
+            //     const {
+            //         lat,
+            //         lng,
+            //         postalCode,
+            //         property_address_line_1,
+            //         property_address_line_2,
+            //         city,
+            //         country,
+            //         state,
+            //     } = googleResult;
+
+            //     let postalInfo = postalCode
+            //         ? { postalCode }
+            //         : await fetchPostalCodeFromGeonames(lat, lng);
+
+            //     console.log("postalCode", postalInfo);
+
+            //     setFormData({
+            //         ...formData,
+            //         property_address_line_1,
+            //         property_address_line_2,
+            //         city,
+            //         country,
+            //         postal_code: postalInfo?.postalCode || postalCode || "",
+            //         state: postalInfo?.adminName1 || state || "",
+            //     });
+
+            //     console.log("Updated formData:", formData);
+            // }
         } catch (error) {
             console.error("Error selecting address:", error);
         }
@@ -401,7 +432,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
         setLoading(true);
         const data = new FormData();
         console.log("Form submitted:", formData);
-    
+
         Object.keys(formData).forEach((key) => {
             if (key === "certificate_photos" || key === "property_photos") {
                 if (formData[key]) {
@@ -422,17 +453,17 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 data.append(key, formData[key]);
             }
         });
-    
+
         if (formData.state) {
             data.append("state", formData.state);
         }
-    
+
         const csrfToken = document
             .querySelector('meta[name="csrf-token"]')
             .getAttribute("content");
-    
+
         console.log("CSRF Token:", csrfToken);
-    
+
         try {
             const response = await axios.post(
                 `/properties/${property.id}`,
@@ -456,8 +487,8 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
             }
         } finally {
             setLoading(false);
-        }
-    };
+        }
+    };
 
     const handleCloseSuccessModal = () => {
         setShowSuccessModal(false);
@@ -590,9 +621,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                                                                 <li
                                                                     key={index}
                                                                     onClick={() =>
-                                                                        onAddressSelect(
-                                                                            suggestion
-                                                                        )
+                                                                        onAddressSelect(suggestion.display_name)
                                                                     }
                                                                     className="p-2 hover:bg-gray-200 cursor-pointer"
                                                                 >

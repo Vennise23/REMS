@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MyPropertyController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.setup.submit');
 });
 
+// Profile & Account
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])
     ->name('profile.show');
@@ -75,6 +77,25 @@ Route::middleware('auth')->group(function () {
     // Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
     // Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+});
+
+// My Properties
+Route::middleware('auth')->group(function(){
+    // My Listing
+    Route::get('/my-properties', [MyPropertyController::class, 'showMyPropertyForm'])
+    ->name('my.properties');
+
+    // Property Application
+    Route::get('/property-management', [MyPropertyController::class, 'showPropertyManagementForm'])
+    ->name('manage.property');
+    Route::get('/check-property-name/{name}', [MyPropertyController::class, 'isPropertyNameAlreadyExist'])
+    ->name('manage.property-name');
+    Route::post('/apply-property', [MyPropertyController::class, 'saveNew'])
+    ->name('manage.save');
+    Route::post('/update-property/{id}', [MyPropertyController::class, 'update'])
+    ->name('manage.update');
+    Route::delete('/delete-property/{id}', [MyPropertyController::class, 'destroy'])
+    ->name('manage.delete');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

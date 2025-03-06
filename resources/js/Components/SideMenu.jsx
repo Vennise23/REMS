@@ -56,9 +56,6 @@ const SideMenu = ({ menuState, links = [], phoneOnlyLinks = [], smallScreenOnly 
                     className={`overflow-y-auto [&::-webkit-scrollbar]:w-1 overflow-x-hidden fixed  top-0 shadow-md min-h-screen transition-colors duration-500 ease-in-out max-h-full inline-block transition-[width,transform] duration-500 ease-in-out bg-white
                 ${menuState ? "w-[250px]" : "w-[70px]"}`}
                 >
-                    {phoneOnlyLinks.length != 0 && (
-                        <></>
-                    )}
                     {links.map((link, index) => {
                         if (link.type === "single") {
                             return (
@@ -94,7 +91,7 @@ const SideMenu = ({ menuState, links = [], phoneOnlyLinks = [], smallScreenOnly 
                                                 {link.label}
                                             </span>
                                         )}
-                                        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center space-x-0"  title={link.label}>
+                                        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center space-x-0" title={link.label}>
                                             {openMenus[link.id] ? (
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width='24' height='24'><path fill="currentColor" d="m7 10l5 5l5-5z" /></svg>
                                             ) : (
@@ -117,7 +114,7 @@ const SideMenu = ({ menuState, links = [], phoneOnlyLinks = [], smallScreenOnly 
                                                     href={child.href ? route(child.href) : "#"}
                                                     title={child.label}
                                                 >
-                                                    <span className={`flex-shrink-0 flex items-center justify-center ${menuState?"h-8 w-8 ":"focus:bg-gray-300 hover:bg-gray-300 h-[50px] rounded w-[50px]"}`}>
+                                                    <span className={`flex-shrink-0 flex items-center justify-center ${menuState ? "h-8 w-8 " : "focus:bg-gray-300 hover:bg-gray-300 h-[50px] rounded w-[50px]"}`}>
                                                         {child.icon}
                                                     </span>
                                                     <span

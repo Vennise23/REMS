@@ -568,8 +568,8 @@ export default function ProfileForm({ auth, user }) {
         <AuthenticatedLayout>
             <Head title={"Main"} />
 
-            <div className="flex-1 flex justify-center p-6 md:p-12">
-                <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-3 gap-8 bg-white p-8 rounded shadow-lg">
+            <div className="flex-1 flex justify-center p-6 ">
+                <div className="max-w-[1200px] w-full grid grid-cols-1 md:grid-cols-3 gap-8 p-8">
                     <div className="md:col-span-1 text-center">
                         <div
                             className="w-32 h-32 rounded-full mx-auto bg-cover bg-center"
