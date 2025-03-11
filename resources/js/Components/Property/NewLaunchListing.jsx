@@ -9,7 +9,7 @@ const NewLaunchListing = ({ properties }) => {
         .slice(0, 4);
 
     return (
-        <div className="pt-20 mt-12 mb-16 bg-gray-100 flex flex-col items-center w-full max-w-screen-lg">
+        <div className="pt-20  h-auto mt-12 mb-16 bg-gray-100 flex flex-col items-center w-full max-w-screen-lg">
             <div className="flex justify-between items-center w-full px-4">
                 <h2 className="text-2xl font-semibold text-left">New Launch Listings</h2>
                 <a href="/buy?saleType=New+Launch" className="view-more text-blue-500 hover:text-blue-700">

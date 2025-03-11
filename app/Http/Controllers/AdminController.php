@@ -258,7 +258,7 @@ class AdminController extends Controller
         $pendingCount = DB::table('properties')->where('approval_status', 'Pending')->count();
 
         $user = $property->user;
-        if ($user->role != 'seller') {
+        if ($user->role != 'seller' && $user->role != 'admin') {
             $user->role = 'seller';
             $user->save();
         }

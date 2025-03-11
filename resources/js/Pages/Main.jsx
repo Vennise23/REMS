@@ -719,7 +719,7 @@ export default function Main({ auth }) {
                     </div>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center overflow-hidden max-w-full mx-auto px-4">
+                <div className=" w-full bg-cover bg-center pb-8 h-auto bg-gray-100">
                     {loading ? (
                         <div className="flex justify-center items-center ">
                             <div className="w-16 h-16 border-t-4 border-red-500 border-solid rounded-full animate-spin"></div>
@@ -738,12 +738,7 @@ export default function Main({ auth }) {
                                             property.sale_type === "New Launch"
                                     ) && (
                                             <div className="">
-                                                <NewLaunchListing
-                                                    properties={propertyList.filter(
-                                                        (property) =>
-                                                            property.sale_type ===
-                                                            "New Launch"
-                                                    )}
+                                                <NewLaunchListing properties={propertyList.filter((property) =>property.sale_type ==="New Launch")}
                                                 />
                                             </div>
                                         )}
