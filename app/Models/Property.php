@@ -74,7 +74,7 @@ class Property extends Model
         'status' => 'available'
     ];
 
-    protected $with = ['user'];  // 自动加载 user 关系
+    protected $with = ['user']; 
 
     // 与卖家（所有者）的关联
     public function user()

@@ -52,6 +52,11 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
     const [title, setTitle] = useState("Add Property");
     const [route, setRoute] = useState(`apply-property`);
     const [confirmCallback, setConfirmCallback] = useState(null);
+    const [deletedPhotos, setDeletedPhotos] = useState({
+        certificate_photos: [],
+        property_photos: []
+    });
+    
 
     useEffect(() => {
         clearForm();
@@ -96,8 +101,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                     ) : []
             );
             setPropertyPhotoPreview(
-                property.property_photos
-                    ? property.property_photos.map((photo) => basePath + photo) : []
+                property.property_photos? property.property_photos.map((photo) => basePath + photo) : []
             );
         } else {
             setTitle("Add Property");
@@ -143,52 +147,56 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                 setData(name, value);
                 break;
             case "certificate_photos":
-                const currentPreviews = [...certificatePhotoPreview];
-                const currentFiles = [...data.certificate_photos];
-                const newFiles = Array.from(files);
-
-                if (currentFiles.length > MAX_CERTIFICATE_PHOTOS) {
+                const newCertificateFiles = Array.from(files);
+                const currCertificatePreview = [...certificatePhotoPreview];
+                const currCertificateFiles = [...data, certificate_photos];
+                if (newCertificateFiles.length > MAX_CERTIFICATE_PHOTOS) {
                     setError("certificate_photos", `Only upload up to ${MAX_CERTIFICATE_PHOTOS} certificate photos.`);
-                    e.target.value = null;
                     return;
                 }
-                const certificatePreviews = [];
-                for (const file of files) {
+
+                for (const file of newCertificateFiles) {
                     if (!validImageTypes.includes(file.type)) {
-                        setError("certificate_photos", "Only JPG and PNG files are allowed for certificate photo.");
-                        e.target.value = null;
+                        setError("certificate_photos", "Only JPG and PNG files are allowed.");
                         return;
                     }
-                    certificatePreviews.push(URL.createObjectURL(file));
+                    currCertificatePreview.push(URL.createObjectURL(file));
+                    currCertificateFiles.push(file);
                 }
-                setCertificatePhotoPreview(certificatePreviews);
-                setData(name, certificatePreviews);
+
+                setCertificatePhotoPreview(currCertificatePreview); // Preview
+                setData({ ...data, certificate_photos: currCertificateFiles }); // Store actual files
                 clearErrors("certificate_photos");
                 break;
             case "property_photos":
-                const propertyPreviews = [];
-                for (const file of files) {
+                const newPropertyFiles = Array.from(files);
+                const currPropertyPreview = [...propertyPhotoPreview];
+                const currPropertyFiles = [...data.property_photos];
+                for (const file of newPropertyFiles) {
                     if (!validImageTypes.includes(file.type)) {
-                        setError("property_photos", "Only JPG and PNG files are allowed for property photos.");
-                        e.target.value = null;
+                        setError("property_photos", "Only JPG and PNG files are allowed.");
                         return;
                     }
-                    propertyPreviews.push(URL.createObjectURL(file));
+                    currPropertyPreview.push(URL.createObjectURL(file));
+                    currPropertyFiles.push(file);
                 }
-                setPropertyPhotoPreview(propertyPreviews);
-                setData(name, propertyPreviews);
+
+                setPropertyPhotoPreview(currPropertyPreview); // Preview
+                setData({ ...data, property_photos: currPropertyFiles }); // Store actual files
                 clearErrors("property_photos");
                 break;
             case "property_styles":
             case "amenities":
-                value = data[name].includes(value) ? data[name].filter((item) => item !== value) : value;
-                setData(name, value);
+                setData({
+                    ...data, [name]: data[name].includes(value) ?
+                        data[name].filter((item) => item !== value)
+                        : [...data[name], value],
+                });
                 break;
             case "each_unit_has_furnace":
             case "each_unit_has_electrical_meter":
             case "has_onsite_caretaker":
-                value = value === "true";
-                setData(name, value);
+                setData(name, value === "true");
                 break;
             default:
                 setData(name, value);
@@ -246,39 +254,64 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
 
         const isConfirmed = await ConfirmModel(); // Wait for confirmation
         if (!isConfirmed) return;
-        setLoading(true);
-        await fetch(`${route}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-            },
-            body: JSON.stringify(data),
-        }).then(async response => {
-            console.log("Response Status:", response.status);
-            const contentType = response.headers.get("content-type");
+
+        const formData = new FormData();
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
+        formData.append("_token", csrfToken);
+
+        Object.keys(data).forEach((key) => {
+            if (key === "property_photos" || key === "certificate_photos") {
+                if (Array.isArray(data[key])) {
+                    data[key].forEach((file, index) => {
+                        if (file instanceof File) {
+                            // new file
+                            formData.append(`${key}[${index}]`, file);
+                        } else {
+                            // Picture that passed by link (previous data)
+                            // formData.append(`${key}[${index}]`,value);
+                        }
+                    });
+                }
+            } else if (Array.isArray(data[key])) {
+                data[key].forEach((item) => formData.append(`${key}[]`, item));
+            } else if (
+                key === "each_unit_has_furnace" ||
+                key === "each_unit_has_electrical_meter" ||
+                key === "has_onsite_caretaker"
+            ) {
+                const booleanValue = data[key] ? 1 : 0;
+                formData.append(key, booleanValue);
+            } else {
+                formData.append(key, data[key]);
+            }
+        });
+
+        Object.keys(deletedPhotos).forEach((key) => {
+            deletedPhotos[key].forEach((file, index) => {
+                formData.append(`deleted_photos[${key}][${index}]`, file);
+            });
+        });
+        
+        try {
+            const response = await fetch(route, {
+                method: "POST",
+                credentials: "include",
+                body: formData,
+            });
 
             if (!response.ok) {
-                console.warn("Error Response:", response);
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            if (contentType && contentType.includes("application/json")) {
-                return response.json();
-            } else {
-                const text = await response.text();
-                console.error("Received non-JSON response:", text);
-                throw new Error("Server returned non-JSON response");
-            }
-        })
-            .then(data => {
-                console.log("Form submitted successfully:", data);
-                setLoading(false);
-                onClose();
-            })
-            .catch(error => {
-                console.error("Error submitting form:", error);
-            });
+            console.log("Form submitted successfully:", response);
+            setLoading(false);
+            onClose();
+        } catch (error) {
+            console.error("Error submitting form:", error);
+            setLoading(false);
+        }
     };
+
 
     const ConfirmModel = () => {
         return new Promise((resolve) => {
@@ -341,29 +374,46 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
 
     const handleDeletePhoto = (photoType, index) => {
         let updatedPreview = [];
+        let updatedFiles = [];
+    
         if (photoType === "certificate") {
             updatedPreview = [...certificatePhotoPreview];
+            updatedFiles = [...data.certificate_photos];
+    
+            // Track deleted photos if it's a link (existing in DB)
+            if (typeof updatedFiles[index] === "string") {
+                setDeletedPhotos((prev) => ({
+                    ...prev,
+                    certificate_photos: [...prev.certificate_photos, updatedFiles[index]]
+                }));
+            }
+    
             updatedPreview.splice(index, 1);
-            setCertificatePhotoPreview(updatedPreview);
-
-            const updatedFiles = [...formData.certificate_photos];
             updatedFiles.splice(index, 1);
-            setFormData({
-                ...data,
-                certificate_photos: updatedFiles,
-            });
+    
+            setCertificatePhotoPreview(updatedPreview);
+            setData({ ...data, certificate_photos: updatedFiles });
+    
         } else if (photoType === "property") {
             updatedPreview = [...propertyPhotoPreview];
+            updatedFiles = [...data.property_photos];
+    
+            // Track deleted photos if it's a link (existing in DB)
+            if (typeof updatedFiles[index] === "string") {
+                setDeletedPhotos((prev) => ({
+                    ...prev,
+                    property_photos: [...prev.property_photos, updatedFiles[index]]
+                }));
+            }
+    
             updatedPreview.splice(index, 1);
-            setPropertyPhotoPreview(updatedPreview);
-            const updatedFiles = [...formData.property_photos];
             updatedFiles.splice(index, 1);
-            setFormData({
-                ...data,
-                property_photos: updatedFiles,
-            });
+    
+            setPropertyPhotoPreview(updatedPreview);
+            setData({ ...data, property_photos: updatedFiles });
         }
     };
+    
 
     if (!isOpen) return null;
 
@@ -561,6 +611,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 type="radio"
                                                 name="purchase"
                                                 value="For Sale"
+                                                checked={data.purchase === "For Sale"}
                                                 onChange={handleChange}
                                             />
                                             <span>For Sale</span>
@@ -570,6 +621,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 type="radio"
                                                 name="purchase"
                                                 value="For Rent"
+                                                checked={data.purchase === "For Rent"}
                                                 onChange={handleChange}
                                             />
                                             <span>For Rent</span>
@@ -588,6 +640,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                         type="radio"
                                                         name="sale_type"
                                                         value="New Launch"
+                                                        checked={data.sale_type === "New Launch"}
                                                         onChange={handleChange}
                                                     />
                                                     <span>New Launch</span>
@@ -597,6 +650,8 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                         type="radio"
                                                         name="sale_type"
                                                         value="Subsale"
+                                                        checked={data.sale_type === "Subsale"
+                                                        }
                                                         onChange={handleChange}
                                                     />
                                                     <span>Subsale</span>
@@ -639,10 +694,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                     name="number_of_units"
                                                     placeholder="Number of Units*"
                                                     onChange={(e) => {
-                                                        if (e.target.value < 0) {
-                                                            e.target.value = 0;
-                                                        }
-                                                        handleChange(e);
+                                                        if (e.target.value < 0) { e.target.value = 0; } handleChange(e);
                                                     }}
                                                     value={data.number_of_units}
                                                     required
@@ -652,13 +704,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                     pattern="[0-9]*"
                                                     className="p-2 border rounded-md w-full"
                                                     onKeyDown={(e) => {
-                                                        if (
-                                                            e.key === "." ||
-                                                            e.key === "," ||
-                                                            e.key === "e"
-                                                        ) {
-                                                            e.preventDefault();
-                                                        }
+                                                        if (e.key === "." || e.key === "," || e.key === "e") { e.preventDefault(); }
                                                     }}
                                                 />
                                                 <InputError
@@ -784,12 +830,29 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                     <div className="mt-4 grid grid-cols-3 gap-2">
                                                         {certificatePhotoPreview.map(
                                                             (src, index) => (
-                                                                <img
+                                                                <div
                                                                     key={index}
-                                                                    src={src}
-                                                                    alt={`Certificate Preview ${index}`}
-                                                                    className="w-full h-auto object-cover rounded-md"
-                                                                />
+                                                                    className="relative"
+                                                                >
+                                                                    <img
+                                                                        src={src}
+                                                                        alt={`Certificate Preview ${index}`}
+                                                                        className="w-full h-auto object-cover rounded-md"
+                                                                    />
+                                                                    {/* 删除按钮 */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            handleDeletePhoto(
+                                                                                "certificate",
+                                                                                index
+                                                                            )
+                                                                        }
+                                                                        className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                                                                    >
+                                                                        X
+                                                                    </button>
+                                                                </div>
                                                             )
                                                         )}
                                                     </div>
@@ -818,12 +881,25 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                             <div className="mt-4 grid grid-cols-3 gap-2">
                                                 {propertyPhotoPreview.map(
                                                     (src, index) => (
-                                                        <img
+                                                        <div
                                                             key={index}
-                                                            src={src}
-                                                            alt={`Property Preview ${index}`}
-                                                            className="w-full h-auto object-cover rounded-md"
-                                                        />
+                                                            className="relative"
+                                                        >
+                                                            <img
+                                                                src={src}
+                                                                alt={`Property Preview ${index}`}
+                                                                className="w-full h-auto object-cover rounded-md"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleDeletePhoto("property", index)
+                                                                }
+                                                                className="absolute top-0 right-0 bg-red-500 text-white text-[10px] rounded-full px-1 py-0.5"
+                                                            >
+                                                                X
+                                                            </button>
+                                                        </div>
                                                     )
                                                 )}
                                             </div>
@@ -854,6 +930,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="each_unit_has_furnace"
                                                 name="each_unit_has_furnace"
                                                 value={true}
+                                                checked={data.each_unit_has_furnace === true}
                                                 onChange={handleChange}
                                             />
                                             <span>Yes</span>
@@ -863,6 +940,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="each_unit_has_furnace"
                                                 name="each_unit_has_furnace"
                                                 value={false}
+                                                checked={data.each_unit_has_furnace === false}
                                                 onChange={handleChange}
                                             />
                                             <span>No</span>
@@ -876,6 +954,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="each_unit_has_electrical_meter"
                                                 name="each_unit_has_electrical_meter"
                                                 value={true}
+                                                checked={data.each_unit_has_electrical_meter === true}
                                                 onChange={handleChange}
                                             />
                                             <span>Yes</span>
@@ -885,6 +964,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="each_unit_has_electrical_meter"
                                                 name="each_unit_has_electrical_meter"
                                                 value={false}
+                                                checked={data.each_unit_has_electrical_meter === false}
                                                 onChange={handleChange}
                                             />
                                             <span>No</span>
@@ -898,6 +978,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="has_onsite_caretaker"
                                                 name="has_onsite_caretaker"
                                                 value={true}
+                                                checked={data.has_onsite_caretaker === true}
                                                 onChange={handleChange}
                                             />
                                             <span>Yes</span>
@@ -907,6 +988,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="has_onsite_caretaker"
                                                 name="has_onsite_caretaker"
                                                 value={false}
+                                                checked={data.has_onsite_caretaker === false}
                                                 onChange={handleChange}
                                             />
                                             <span>No</span>
@@ -920,6 +1002,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="parking"
                                                 name="parking"
                                                 value="Above ground"
+                                                checked={data.parking === "Above ground"}
                                                 onChange={handleChange}
                                             />
                                             <span>Above ground</span>
@@ -929,6 +1012,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="parking"
                                                 name="parking"
                                                 value="Underground"
+                                                checked={data.parking === "Underground"}
                                                 onChange={handleChange}
                                             />
                                             <span>Underground</span>
@@ -938,6 +1022,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                 id="parking"
                                                 name="parking"
                                                 value="Both"
+                                                checked={data.parking === "Both"}
                                                 onChange={handleChange}
                                             />
                                             <span>Both</span>
@@ -967,6 +1052,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                                     name="amenities"
                                                     value={amenity}
                                                     onChange={handleChange}
+                                                    checked={data.amenities.includes(amenity)}
                                                     className="text-red-500"
                                                 />
                                                 <span>{amenity}</span>
@@ -979,12 +1065,14 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                                         name="other_amenities"
                                         placeholder="Other - Please list"
                                         onChange={handleChange}
+                                        value={data.other_amenities}
                                         className="p-2 border rounded-md w-full mt-4"
                                     />
                                     <textarea
                                         name="additional_info"
                                         placeholder="Please provide any additional information or comments"
                                         onChange={handleChange}
+                                        value={data.additional_info}
                                         className="p-2 border rounded-md w-full mt-4"
                                     ></textarea>
                                 </div>

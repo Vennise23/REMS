@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Models\ChatRoom;
 
@@ -61,10 +62,10 @@ class MyPropertyController extends Controller
     // User Property Management --
     public function showPropertyManagementForm()
     {
-        $userid = Auth::id(); 
+        $userid = Auth::id();
         $properties = Property::where('user_id', $userid)
-                              ->orderBy('created_at', 'desc')
-                              ->paginate(10);
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
         return Inertia::render('Property/PropertyManagement', [
             'properties' => $properties,
         ]);
@@ -94,11 +95,12 @@ class MyPropertyController extends Controller
                 'number_of_units' => 'required|integer',
                 'square_feet' => 'nullable|integer',
                 'price' => 'required|numeric',
+                'certificate_photos' => 'nullable|array',
                 'property_photos' => 'nullable|array',
                 'each_unit_has_furnace' => 'nullable|boolean',
                 'each_unit_has_electrical_meter' => 'nullable|boolean',
                 'has_onsite_caretaker' => 'nullable|boolean',
-                'parking' => 'nullable|string|in:Above ground,Underground,Both',
+                'parking' => 'nullable|string|in:Above ground,Underground,Both,NULL',
                 'amenities' => 'nullable|array',
                 'other_amenities' => 'nullable|string|max:255',
                 'additional_info' => 'nullable|string',
@@ -121,6 +123,9 @@ class MyPropertyController extends Controller
             }
 
             if ($request->hasFile('certificate_photos')) {
+                if (!Storage::disk('public')->exists('certificate_photos')) {
+                    Storage::disk('public')->makeDirectory('certificate_photos');
+                }
                 $certificatePhotos = [];
                 foreach ($request->file('certificate_photos') as $photo) {
                     $certificatePhotos[] = $photo->store('certificate_photos', 'public');
@@ -129,6 +134,10 @@ class MyPropertyController extends Controller
             }
 
             if ($request->hasFile('property_photos')) {
+                if (!Storage::disk('public')->exists('property_photos')) {
+                    Storage::disk('public')->makeDirectory('property_photos');
+                }
+
                 $propertyPhotos = [];
                 foreach ($request->file('property_photos') as $photo) {
                     $propertyPhotos[] = $photo->store('property_photos', 'public');
@@ -137,6 +146,8 @@ class MyPropertyController extends Controller
             }
 
             Property::create($validatedData);
+
+
 
             return response()->json(['message' =>  'Property created successfully!']);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -166,54 +177,74 @@ class MyPropertyController extends Controller
                 'each_unit_has_furnace' => 'nullable|boolean',
                 'each_unit_has_electrical_meter' => 'nullable|boolean',
                 'has_onsite_caretaker' => 'nullable|boolean',
-                'parking' => 'nullable|string|in:Above ground,Underground,Both',
+                'parking' => 'nullable|string|in:Above ground,Underground,Both,NULL',
                 'amenities' => 'nullable|array',
                 'other_amenities' => 'nullable|string|max:255',
                 'additional_info' => 'nullable|string',
+                'deleted_photos' => 'nullable|array',
             ]);
-
+    
             $property = Property::findOrFail($id);
-
+    
             if ($property->user_id !== Auth::id()) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
-
+    
             if (isset($validatedData['amenities'])) {
-                $validatedData['amenities'] = array_map(function ($amenity) {
-                    return trim($amenity);
-                }, $validatedData['amenities']);
+                $validatedData['amenities'] = array_map(fn($amenity) => trim($amenity), $validatedData['amenities']);
             }
-
+    
+            $updatedPropertyPhotos = $property->property_photos ?? [];
+            $updatedCertificatePhotos = $property->certificate_photos ?? [];
+    
+            if ($request->has('deleted_photos')) {
+                foreach ($request->deleted_photos as $photoType => $photos) {
+                    foreach ($photos as $photo) {
+                        $filePath = storage_path('app/public/' . $photo);
+                        if (file_exists($filePath) && $filePath != storage_path('app/public/')) {
+                            unlink($filePath); // Delete file from storage
+                        }
+                    }
+    
+                    if ($photoType === 'property_photos') {
+                        $updatedPropertyPhotos = array_values(array_diff($updatedPropertyPhotos, $photos));
+                    } elseif ($photoType === 'certificate_photos') {
+                        $updatedCertificatePhotos = array_values(array_diff($updatedCertificatePhotos, $photos));
+                    }
+                }
+            }
+    
             if ($request->hasFile('certificate_photos')) {
-                $certificatePhotos = $property->certificate_photos ?: [];
                 foreach ($request->file('certificate_photos') as $photo) {
-                    $certificatePhotos[] = $photo->store('certificate_photos', 'public');
+                    $updatedCertificatePhotos[] = $photo->store('certificate_photos', 'public');
                 }
-                $validatedData['certificate_photos'] = $certificatePhotos;
             }
-
+    
             if ($request->hasFile('property_photos')) {
-                $propertyPhotos = $property->property_photos ?: [];
                 foreach ($request->file('property_photos') as $photo) {
-                    $propertyPhotos[] = $photo->store('property_photos', 'public');
+                    $updatedPropertyPhotos[] = $photo->store('property_photos', 'public');
                 }
-                $validatedData['property_photos'] = $propertyPhotos;
             }
-
-            $validatedData['approval_status'] = 'Pending';
-            $validatedData['is_read'] = '0';
-            $property->update($validatedData);
-
+    
+            $property->update([
+                'property_photos' => $updatedPropertyPhotos,
+                'certificate_photos' => $updatedCertificatePhotos,
+                'approval_status' => 'Pending',
+                'is_read' => '0',
+            ] + $validatedData);
+    
             return response()->json([
                 'message' => 'Property updated successfully',
                 'data' => $property,
             ]);
+    
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->validator->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+    
 
     public function destroy(int $id)
     {
@@ -221,7 +252,7 @@ class MyPropertyController extends Controller
 
         // Check authorization
         if ($property->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'.$property->user_id ."   ". Auth::id()], 403);
+            return response()->json(['message' => 'Unauthorized' . $property->user_id . "   " . Auth::id()], 403);
         }
 
         try {
