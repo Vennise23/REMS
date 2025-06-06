@@ -58,7 +58,7 @@ class PermanentEmailBuilder extends MailBuilder
         ]);
 
         // Use the setup-password route instead of reset-password
-        $setupPasswordUrl = route('password.setup', [
+        $setupPasswordUrl = route('password.setup.submit', [
             'token' => $token,
             'email' => $this->recipient
         ]);

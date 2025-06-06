@@ -73,7 +73,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 each_unit_has_electrical_meter:
                     property.each_unit_has_electrical_meter || "",
                 has_onsite_caretaker: property.has_onsite_caretaker || "",
-                parking: property.parking || "",
+                parking: property.parking || "Above ground",
                 amenities: property.amenities || [],
                 other_amenities: property.other_amenities || "",
                 additional_info: property.additional_info || "",
@@ -471,8 +471,9 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 {
                     headers: {
                         "Content-Type": "multipart/form-data",
-                        "X-CSRF-Token": csrfToken,
+                        "X-CSRF-TOKEN": csrfToken, 
                     },
+                    withCredentials: true,
                 }
             );
             setShowConfirmationModal(false);

@@ -54,16 +54,16 @@ export default function AdminUserMng({ auth, user }) {
             alert("Failed to load users. Please try refreshing the page.");
         }
     };
-    
+
     useEffect(() => {
         fetchUsers();
     }, []);
 
     const checkNameUniqueness = async (firstname, lastname) => {
         try {
-            const response = await axios.post('/api/check-name-availability', { 
-                firstname, 
-                lastname 
+            const response = await axios.post('/api/check-name-availability', {
+                firstname,
+                lastname
             });
             if (!response.data.available) {
                 setErrors(prev => ({
@@ -128,35 +128,35 @@ export default function AdminUserMng({ auth, user }) {
     const validatePhone = (phone) => {
         // Remove any non-digits
         const cleanPhone = phone.replace(/\D/g, '');
-        
+
         // Malaysian phone format: 01xxxxxxxx (10-11 digits)
         const myPhoneRegex = /^0[1][0-9]{8,9}$/;  // Starts with 01, followed by 8-9 digits
-        
+
         // International format (if starts with '+')
         const intlPhoneRegex = /^\+(\d{1,3})(\d{4,14})$/;
-        
+
         // If starts with '+', use international format, otherwise use Malaysian format
         if (phone.startsWith('+')) {
             return intlPhoneRegex.test(phone);
         }
-        
+
         return myPhoneRegex.test(cleanPhone);
     };
 
     // Add this helper function near the top of your component
     const formatDateString = (dateStr) => {
         if (!dateStr) return '';
-        
+
         // Remove any trailing dashes and clean up the string
         dateStr = dateStr.replace(/-+$/, '');
-        
+
         // Handle "NaN" case
         if (dateStr === 'NaN') return '';
 
         try {
             // Split the date string
             let parts = dateStr.split('-');
-            
+
             // Pad year to 4 digits if necessary
             if (parts[0] && parts[0].length <= 2) {
                 // If year is 2 digits, assume 20XX for years less than current year, 19XX otherwise
@@ -168,29 +168,29 @@ export default function AdminUserMng({ auth, user }) {
                     parts[0] = (yearNum + (currentCentury - 100)).toString();
                 }
             }
-            
+
             // Ensure month and day are padded with zeros
             if (parts[1]) {
                 parts[1] = parts[1].padStart(2, '0');
             } else {
                 parts[1] = '01';
             }
-            
+
             if (parts[2]) {
                 parts[2] = parts[2].padStart(2, '0');
             } else {
                 parts[2] = '01';
             }
-            
+
             // Join parts back together
             const formattedDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
-            
+
             // Validate the date
             const date = new Date(formattedDate);
             if (isNaN(date.getTime())) {
                 return '';
             }
-            
+
             return formattedDate;
         } catch (error) {
             console.error('Error formatting date:', error);
@@ -250,7 +250,7 @@ export default function AdminUserMng({ auth, user }) {
                 setNewUser(prev => ({ ...prev, email: value }));
                 // Enhanced email validation
                 const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-                
+
                 if (!value) {
                     setErrors(prev => ({
                         ...prev,
@@ -267,31 +267,31 @@ export default function AdminUserMng({ auth, user }) {
                 }
                 break;
 
-                case 'phone':
-                    // Only allow numbers
-                    let phoneValue = value.replace(/\D/g, '');
-                    
-                    // If it starts with '+', keep the '+'
-                    if (value.startsWith('+')) {
-                        phoneValue = '+' + phoneValue;
-                    }
-                    
-                    setNewUser(prev => ({ ...prev, phone: phoneValue }));
-                    
-                    if (phoneValue.length > 0 && !validatePhone(phoneValue)) {
-                        setErrors(prev => ({
-                            ...prev,
-                            phone: "Please enter a valid phone number"
-                        }));
-                    } else {
-                        setErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.phone;
-                            return newErrors;
-                        });
-                    }
-                    break;
-                
+            case 'phone':
+                // Only allow numbers
+                let phoneValue = value.replace(/\D/g, '');
+
+                // If it starts with '+', keep the '+'
+                if (value.startsWith('+')) {
+                    phoneValue = '+' + phoneValue;
+                }
+
+                setNewUser(prev => ({ ...prev, phone: phoneValue }));
+
+                if (phoneValue.length > 0 && !validatePhone(phoneValue)) {
+                    setErrors(prev => ({
+                        ...prev,
+                        phone: "Please enter a valid phone number"
+                    }));
+                } else {
+                    setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.phone;
+                        return newErrors;
+                    });
+                }
+                break;
+
 
             case 'ic_number':
                 // Only allow numbers
@@ -326,11 +326,11 @@ export default function AdminUserMng({ auth, user }) {
                 const month = numbersOnly.substring(2, 4);
                 const day = numbersOnly.substring(4, 6);
                 const genderDigit = parseInt(numbersOnly.charAt(11)); // Get the last digit for gender
-                
+
                 // Validate date components
                 const monthNum = parseInt(month);
                 const dayNum = parseInt(day);
-                
+
                 if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
                     setErrors(prev => ({
                         ...prev,
@@ -342,7 +342,7 @@ export default function AdminUserMng({ auth, user }) {
                 // Determine century
                 const fullYear = parseInt(year) > 23 ? `19${year}` : `20${year}`;
                 const bornDate = `${fullYear}-${month}-${day}`;
-                
+
                 // Calculate age
                 const today = new Date();
                 const birthDate = new Date(bornDate);
@@ -410,7 +410,7 @@ export default function AdminUserMng({ auth, user }) {
         if (!newUser.lastname) {
             newErrors.lastname = 'Last name is required';
         }
-        if (newUser.firstname && newUser.lastname && 
+        if (newUser.firstname && newUser.lastname &&
             newUser.firstname.toLowerCase() === newUser.lastname.toLowerCase()) {
             newErrors.name = 'First name and last name cannot be the same';
         }
@@ -471,7 +471,7 @@ export default function AdminUserMng({ auth, user }) {
 
     const handleAddUser = async (e) => {
         e.preventDefault();
-        
+
         try {
             setIsSubmitting(true);
             console.log('Starting user creation process...');
@@ -603,12 +603,11 @@ export default function AdminUserMng({ auth, user }) {
 
                 const { lat, lng } = data.results[0].geometry.location;
                 const address_line_1 = streetNumber
-                    ? `${streetNumber.long_name}, ${
-                          streetAddress_1 ? streetAddress_1.long_name : ""
-                      }`
+                    ? `${streetNumber.long_name}, ${streetAddress_1 ? streetAddress_1.long_name : ""
+                    }`
                     : streetAddress_1
-                    ? streetAddress_1.long_name
-                    : "";
+                        ? streetAddress_1.long_name
+                        : "";
 
                 return {
                     address_line_1,
@@ -788,7 +787,7 @@ export default function AdminUserMng({ auth, user }) {
     // Update the handleFileChange function
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        
+
         if (file) {
             if (validateFileType(file)) {
                 if (file.size <= 2 * 1024 * 1024) { // 2MB limit
@@ -824,15 +823,15 @@ export default function AdminUserMng({ auth, user }) {
     // Update form submission handler
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         try {
             setIsSubmitting(true);
-            
+
             // Log the form data to see what's being sent
             console.log('Form Data:', newUser);
-            
+
             const formData = new FormData();
-            
+
             // Make sure we're using firstname and lastname, not name
             formData.append('firstname', newUser.firstname);
             formData.append('lastname', newUser.lastname);
@@ -857,10 +856,18 @@ export default function AdminUserMng({ auth, user }) {
                 console.log(`${key}:`, value);
             }
 
+            const csrfToken = document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content");
+
+            console.log("CSRF Token:", csrfToken);
+
             const response = await axios.post("/api/users", formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
+                    'Content-Type': 'multipart/form-data',
+                    "X-CSRF-TOKEN": csrfToken,
+                },
+                withCredentials: true,
             });
 
             if (response.data.success) {
@@ -868,11 +875,23 @@ export default function AdminUserMng({ auth, user }) {
                 await fetchUsers();
                 resetForm();
                 setShowAddUserForm(false);
+            } else {
+                toast.error(response.data.message || 'Failed to create user');
             }
 
         } catch (error) {
-            console.error('Error details:', error.response?.data);
-            toast.error(error.response?.data?.message || 'Failed to create user');
+            console.error("Full error:", error); // Always log the full error first
+
+            if (error.response) {
+                console.error("Response error:", error.response.data);
+                toast.error(error.response.data?.message || 'Validation or server error.');
+            } else if (error.request) {
+                console.error("No response received:", error.request);
+                toast.error("No response from server.");
+            } else {
+                console.error("Error setting up request:", error.message);
+                toast.error("Unexpected error occurred.");
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -901,15 +920,14 @@ export default function AdminUserMng({ auth, user }) {
                             <form onSubmit={handleSubmit} className="mb-4 p-4 border rounded" encType="multipart/form-data">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="form-group">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="firstname"
-                                            value={newUser.firstname} 
+                                            value={newUser.firstname}
                                             onChange={handleInputChange}
                                             placeholder="First Name"
-                                            className={`w-full p-2 border rounded ${
-                                                errors.firstname || errors.name ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.firstname || errors.name ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.firstname && (
                                             <span className="text-red-500 text-sm mt-1">{errors.firstname}</span>
@@ -917,15 +935,14 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="lastname"
-                                            value={newUser.lastname} 
+                                            value={newUser.lastname}
                                             onChange={handleInputChange}
                                             placeholder="Last Name"
-                                            className={`w-full p-2 border rounded ${
-                                                errors.lastname || errors.name ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.lastname || errors.name ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.lastname && (
                                             <span className="text-red-500 text-sm mt-1">{errors.lastname}</span>
@@ -938,15 +955,14 @@ export default function AdminUserMng({ auth, user }) {
                                     )}
 
                                     <div className="form-group">
-                                        <input 
-                                            type="email" 
+                                        <input
+                                            type="email"
                                             name="email"
-                                            value={newUser.email} 
+                                            value={newUser.email}
                                             onChange={handleInputChange}
                                             placeholder="Email"
-                                            className={`w-full p-2 border rounded ${
-                                                errors.email ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.email ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.email && (
                                             <span className="text-red-500 text-sm">{errors.email}</span>
@@ -954,16 +970,15 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="phone"
-                                            value={newUser.phone} 
+                                            value={newUser.phone}
                                             onChange={handleInputChange}
                                             placeholder="Phone Number (e.g., 0123456789)"
                                             maxLength="15"
-                                            className={`w-full p-2 border rounded ${
-                                                errors.phone ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.phone && (
                                             <span className="text-red-500 text-sm mt-1">{errors.phone}</span>
@@ -1019,16 +1034,15 @@ export default function AdminUserMng({ auth, user }) {
 
                                         {documentType === 'ic' && (
                                             <div className="form-group">
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     name="ic_number"
-                                                    value={newUser.ic_number} 
+                                                    value={newUser.ic_number}
                                                     onChange={handleInputChange}
                                                     placeholder="IC Number (12 digits)"
                                                     maxLength="12"
-                                                    className={`w-full p-2 border rounded ${
-                                                        errors.ic_number ? 'border-red-500' : 'border-gray-300'
-                                                    }`}
+                                                    className={`w-full p-2 border rounded ${errors.ic_number ? 'border-red-500' : 'border-gray-300'
+                                                        }`}
                                                 />
                                                 {errors.ic_number && (
                                                     <span className="text-red-500 text-sm mt-1">{errors.ic_number}</span>
@@ -1036,15 +1050,14 @@ export default function AdminUserMng({ auth, user }) {
                                             </div>
                                         )}
                                         {documentType === 'passport' && (
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 name="passport_number"
-                                                value={newUser.passport_number || ''} 
+                                                value={newUser.passport_number || ''}
                                                 onChange={handleInputChange}
                                                 placeholder="Enter passport number"
-                                                className={`w-full p-2 border rounded ${
-                                                    errors.passport_number ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full p-2 border rounded ${errors.passport_number ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                         )}
                                         {errors.passport_number && documentType === 'passport' && (
@@ -1053,29 +1066,27 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             name="age"
-                                            value={newUser.age} 
+                                            value={newUser.age}
                                             onChange={handleInputChange}
                                             placeholder="Age"
                                             readOnly={documentType === 'ic'}
-                                            className={`w-full p-2 border rounded ${
-                                                documentType === 'ic' ? 'bg-gray-100' : ''
-                                            }`}
+                                            className={`w-full p-2 border rounded ${documentType === 'ic' ? 'bg-gray-100' : ''
+                                                }`}
                                         />
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="date" 
+                                        <input
+                                            type="date"
                                             name="born_date"
-                                            value={newUser.born_date} 
+                                            value={newUser.born_date}
                                             onChange={handleInputChange}
                                             readOnly={documentType === 'ic'}
-                                            className={`w-full p-2 border rounded ${
-                                                documentType === 'ic' ? 'bg-gray-100' : ''
-                                            }`}
+                                            className={`w-full p-2 border rounded ${documentType === 'ic' ? 'bg-gray-100' : ''
+                                                }`}
                                         />
                                     </div>
 
@@ -1085,9 +1096,8 @@ export default function AdminUserMng({ auth, user }) {
                                             value={newUser.gender}
                                             onChange={handleInputChange}
                                             disabled={documentType === 'ic'}
-                                            className={`w-full p-2 border rounded ${
-                                                documentType === 'ic' ? 'bg-gray-100' : ''
-                                            }`}
+                                            className={`w-full p-2 border rounded ${documentType === 'ic' ? 'bg-gray-100' : ''
+                                                }`}
                                         >
                                             <option value="">Select Gender</option>
                                             <option value="male">Male</option>
@@ -1097,8 +1107,8 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group relative">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="address_line_1"
                                             placeholder="Address Line 1*"
                                             value={newUser.address_line_1}
@@ -1124,15 +1134,14 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="address_line_2"
                                             placeholder="Address Line 2"
                                             value={newUser.address_line_2}
                                             onChange={handleChange}
-                                            className={`w-full p-2 border rounded ${
-                                                errors.address_line_2 ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.address_line_2 ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.address_line_2 && (
                                             <span className="text-red-500 text-sm">{errors.address_line_2}</span>
@@ -1140,15 +1149,14 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="city"
                                             placeholder="City*"
                                             value={newUser.city}
                                             onChange={handleChange}
-                                            className={`w-full p-2 border rounded ${
-                                                errors.city ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.city ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.city && (
                                             <span className="text-red-500 text-sm">{errors.city}</span>
@@ -1156,15 +1164,14 @@ export default function AdminUserMng({ auth, user }) {
                                     </div>
 
                                     <div className="form-group">
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             name="postal_code"
                                             placeholder="Postal Code*"
                                             value={newUser.postal_code}
                                             onChange={handleChange}
-                                            className={`w-full p-2 border rounded ${
-                                                errors.postal_code ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full p-2 border rounded ${errors.postal_code ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         {errors.postal_code && (
                                             <span className="text-red-500 text-sm">{errors.postal_code}</span>
@@ -1192,14 +1199,13 @@ export default function AdminUserMng({ auth, user }) {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="form-group">
-                                            <input 
+                                            <input
                                                 type="file"
                                                 name="profile_picture"
                                                 onChange={handleFileChange}
                                                 accept="image/*"
-                                                className={`w-full p-2 border rounded ${
-                                                    errors.profile_picture ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full p-2 border rounded ${errors.profile_picture ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                             {errors.profile_picture && (
                                                 <span className="text-red-500 text-sm">{errors.profile_picture}</span>
@@ -1210,9 +1216,9 @@ export default function AdminUserMng({ auth, user }) {
                                         </div>
                                         {profilePreview && (
                                             <div className="flex-shrink-0">
-                                                <img 
-                                                    src={profilePreview} 
-                                                    alt="Profile Preview" 
+                                                <img
+                                                    src={profilePreview}
+                                                    alt="Profile Preview"
                                                     className="w-24 h-24 object-cover rounded-full border"
                                                 />
                                             </div>
@@ -1222,11 +1228,10 @@ export default function AdminUserMng({ auth, user }) {
 
                                 <div className="flex justify-end mt-4">
                                     <button type="button" onClick={handleCancelAddUser} className="px-4 py-2 bg-gray-500 text-white rounded mr-2">Clear</button>
-                                    <button 
-                                        type="submit" 
-                                        className={`px-4 py-2 bg-green-600 text-white rounded ${
-                                            isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
-                                        }`}
+                                    <button
+                                        type="submit"
+                                        className={`px-4 py-2 bg-green-600 text-white rounded ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+                                            }`}
                                         disabled={isSubmitting}
                                     >
                                         {isSubmitting ? 'Adding User...' : 'Add User'}
@@ -1250,9 +1255,9 @@ export default function AdminUserMng({ auth, user }) {
                                     <tr key={user.id} className="border-b hover:bg-gray-50">
                                         <td className="px-4 py-2 flex items-center">
                                             {user.profile_picture ? (
-                                                <img 
-                                                    src={user.profile_picture ? `/storage/${user.profile_picture}` : null} 
-                                                    alt={`${user.firstname}'s profile`} 
+                                                <img
+                                                    src={user.profile_picture ? `/storage/${user.profile_picture}` : null}
+                                                    alt={`${user.firstname}'s profile`}
                                                     className="w-10 h-10 object-cover rounded-full mr-2"
                                                     onError={(e) => {
                                                         e.target.onerror = null;
@@ -1318,10 +1323,10 @@ export default function AdminUserMng({ auth, user }) {
             </div>
 
             {showEditModal && (
-                <EditUserModal 
-                    user={selectedUser} 
-                    onClose={() => setShowEditModal(false)} 
-                    onUpdate={fetchUsers} 
+                <EditUserModal
+                    user={selectedUser}
+                    onClose={() => setShowEditModal(false)}
+                    onUpdate={fetchUsers}
                 />
             )}
         </div>
