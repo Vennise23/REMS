@@ -447,11 +447,6 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                     </h2>
 
                     <form onSubmit={onSubmitHandler}>
-                        <input
-                            type="hidden"
-                            name="_token"
-                            value="{{ csrf_token() }}"
-                        />
                         <div>
                             <h3
                                 className="text-xl font-semibold mb-2 cursor-pointer flex justify-between items-center"
