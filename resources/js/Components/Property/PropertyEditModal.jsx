@@ -486,6 +486,7 @@ const PropertyEditModal = ({ isOpen, onClose, property }) => {
                 console.log("Submission Error:", error);
                 alert("Error submitting the form");
             }
+            
         } finally {
             setLoading(false);
         }

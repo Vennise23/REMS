@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ChatRoom;
+use Illuminate\Support\Facades\Log;
 
 class PropertyController extends Controller
 {
@@ -95,7 +96,7 @@ class PropertyController extends Controller
                 $query->where('status', '!=', 'cancelled');
             }
 
-            \Log::info('Sort Direction:', [
+            Log::info('Sort Direction:', [
                 'direction' => $request->input('sortDirection'),
                 'query' => $query->toSql(),
                 'bindings' => $query->getBindings()

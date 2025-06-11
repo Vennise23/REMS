@@ -111,6 +111,17 @@ export default function PropertyManagement({ auth }) {
                 .catch((error) => {
                     console.error("Error deleting property:", error);
                     alert("Failed to delete the property. Please try again.");
+
+                    if (error.response) {
+                        console.error("Response error:", error.response.data);
+                        toast.error(error.response.data?.message || 'Validation or server error.');
+                    } else if (error.request) {
+                        console.error("No response received:", error.request);
+                        toast.error("No response from server.");
+                    } else {
+                        console.error("Error setting up request:", error.message);
+                        toast.error("Unexpected error occurred.");
+                    }
                 })
                 .finally(() => {
                     setLoading(false);

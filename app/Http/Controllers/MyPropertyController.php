@@ -100,7 +100,7 @@ class MyPropertyController extends Controller
                 'each_unit_has_furnace' => 'nullable|boolean',
                 'each_unit_has_electrical_meter' => 'nullable|boolean',
                 'has_onsite_caretaker' => 'nullable|boolean',
-                'parking' => 'nullable|string|in:Above ground,Underground,Both,NULL',
+                'parking' => 'nullable|string|in:Above ground,Underground,Both',
                 'amenities' => 'nullable|array',
                 'other_amenities' => 'nullable|string|max:255',
                 'additional_info' => 'nullable|string',
@@ -149,7 +149,7 @@ class MyPropertyController extends Controller
 
 
 
-            return response()->json(['message' =>  'Property created successfully!']);
+            return response()->json(['message' =>  'Property created successfully!', 'data' => $validatedData]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json($e->validator->errors(), 422);
         } catch (\Exception $e) {
@@ -159,6 +159,9 @@ class MyPropertyController extends Controller
 
     public function update(Request $request, $id)
     {
+        $request->offsetSet('sale_type', $request->sale_type !== '' ? $request->sale_type : null);
+$request->offsetSet('parking', $request->parking !== '' ? $request->parking : null);
+
         try {
             $validatedData = $request->validate([
                 'property_name' => 'required|string|max:255',
@@ -177,26 +180,26 @@ class MyPropertyController extends Controller
                 'each_unit_has_furnace' => 'nullable|boolean',
                 'each_unit_has_electrical_meter' => 'nullable|boolean',
                 'has_onsite_caretaker' => 'nullable|boolean',
-                'parking' => 'nullable|string|in:Above ground,Underground,Both,NULL',
+                'parking' => 'nullable|string|in:Above ground,Underground,Both',
                 'amenities' => 'nullable|array',
                 'other_amenities' => 'nullable|string|max:255',
                 'additional_info' => 'nullable|string',
                 'deleted_photos' => 'nullable|array',
             ]);
-    
+
             $property = Property::findOrFail($id);
-    
+
             if ($property->user_id !== Auth::id()) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
-    
+
             if (isset($validatedData['amenities'])) {
                 $validatedData['amenities'] = array_map(fn($amenity) => trim($amenity), $validatedData['amenities']);
             }
-    
+
             $updatedPropertyPhotos = $property->property_photos ?? [];
             $updatedCertificatePhotos = $property->certificate_photos ?? [];
-    
+
             if ($request->has('deleted_photos')) {
                 foreach ($request->deleted_photos as $photoType => $photos) {
                     foreach ($photos as $photo) {
@@ -205,7 +208,7 @@ class MyPropertyController extends Controller
                             unlink($filePath); // Delete file from storage
                         }
                     }
-    
+
                     if ($photoType === 'property_photos') {
                         $updatedPropertyPhotos = array_values(array_diff($updatedPropertyPhotos, $photos));
                     } elseif ($photoType === 'certificate_photos') {
@@ -213,38 +216,37 @@ class MyPropertyController extends Controller
                     }
                 }
             }
-    
+
             if ($request->hasFile('certificate_photos')) {
                 foreach ($request->file('certificate_photos') as $photo) {
                     $updatedCertificatePhotos[] = $photo->store('certificate_photos', 'public');
                 }
             }
-    
+
             if ($request->hasFile('property_photos')) {
                 foreach ($request->file('property_photos') as $photo) {
                     $updatedPropertyPhotos[] = $photo->store('property_photos', 'public');
                 }
             }
-    
+
             $property->update([
                 'property_photos' => $updatedPropertyPhotos,
                 'certificate_photos' => $updatedCertificatePhotos,
                 'approval_status' => 'Pending',
                 'is_read' => '0',
             ] + $validatedData);
-    
+
             return response()->json([
                 'message' => 'Property updated successfully',
                 'data' => $property,
             ]);
-    
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->validator->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-    
+
 
     public function destroy(int $id)
     {

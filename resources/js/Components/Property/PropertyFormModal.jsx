@@ -56,7 +56,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
         certificate_photos: [],
         property_photos: []
     });
-    
+
 
     useEffect(() => {
         clearForm();
@@ -101,7 +101,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                     ) : []
             );
             setPropertyPhotoPreview(
-                property.property_photos? property.property_photos.map((photo) => basePath + photo) : []
+                property.property_photos ? property.property_photos.map((photo) => basePath + photo) : []
             );
         } else {
             setTitle("Add Property");
@@ -257,7 +257,7 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
 
         const formData = new FormData();
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
-        formData.append("_token", csrfToken);
+        // formData.append("_token", csrfToken);
 
         Object.keys(data).forEach((key) => {
             if (key === "property_photos" || key === "certificate_photos") {
@@ -281,6 +281,8 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
             ) {
                 const booleanValue = data[key] ? 1 : 0;
                 formData.append(key, booleanValue);
+            } else if ((key === "sale_type" || key === "parking") && data[key] === "") {
+                // Set empty sale_type or parking to NULL
             } else {
                 formData.append(key, data[key]);
             }
@@ -291,23 +293,37 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                 formData.append(`deleted_photos[${key}][${index}]`, file);
             });
         });
-        
+
         try {
             const response = await fetch(route, {
                 method: "POST",
                 credentials: "include",
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                },
                 body: formData,
             });
+            const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                console.error("Server error response:", result);
+                // Show a Dialog or Toast with the error message
+                if (result.errors) {
+                    Object.keys(result.errors).forEach((key) => {
+                        setError(key, result.errors[key].join(", "));
+                    });
+                } else {
+                    setError("general", "An error occurred while submitting the form.");
+                }
+                return;
             }
 
-            console.log("Form submitted successfully:", response);
+            console.log("Form submitted successfully:", result);
             setLoading(false);
             onClose();
+
         } catch (error) {
-            console.error("Error submitting form:", error);
+            console.error("Network or unexpected error:", error);
             setLoading(false);
         }
     };
@@ -375,11 +391,11 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
     const handleDeletePhoto = (photoType, index) => {
         let updatedPreview = [];
         let updatedFiles = [];
-    
+
         if (photoType === "certificate") {
             updatedPreview = [...certificatePhotoPreview];
             updatedFiles = [...data.certificate_photos];
-    
+
             // Track deleted photos if it's a link (existing in DB)
             if (typeof updatedFiles[index] === "string") {
                 setDeletedPhotos((prev) => ({
@@ -387,17 +403,17 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                     certificate_photos: [...prev.certificate_photos, updatedFiles[index]]
                 }));
             }
-    
+
             updatedPreview.splice(index, 1);
             updatedFiles.splice(index, 1);
-    
+
             setCertificatePhotoPreview(updatedPreview);
             setData({ ...data, certificate_photos: updatedFiles });
-    
+
         } else if (photoType === "property") {
             updatedPreview = [...propertyPhotoPreview];
             updatedFiles = [...data.property_photos];
-    
+
             // Track deleted photos if it's a link (existing in DB)
             if (typeof updatedFiles[index] === "string") {
                 setDeletedPhotos((prev) => ({
@@ -405,15 +421,15 @@ const PropertyFormModal = ({ isOpen, onClose, property = null }) => {
                     property_photos: [...prev.property_photos, updatedFiles[index]]
                 }));
             }
-    
+
             updatedPreview.splice(index, 1);
             updatedFiles.splice(index, 1);
-    
+
             setPropertyPhotoPreview(updatedPreview);
             setData({ ...data, property_photos: updatedFiles });
         }
     };
-    
+
 
     if (!isOpen) return null;
 
