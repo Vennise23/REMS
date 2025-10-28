@@ -223,8 +223,7 @@ git commit -m "Updated form validation"
 ```
 3. Always pull before you start coding.
 4. **Never commit directly to main.**
-
-Communicate with your team if a merge conflict appears.
+5. Communicate with your team if a merge conflict appears.
 ---
 # 👣 Project Senior Dashboard: Join us to leave a footprint on E-REAL!
 
