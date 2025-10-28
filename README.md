@@ -106,7 +106,7 @@ php artisan migrate
 
 ```
 ## 🌐 <b>8. Run the Project</b>
-Open a new terminel ```bash Ctrl ``` + ```bash Shift ``` + ```bash ` ```
+Open a new terminel ``` Ctrl ``` + ``` Shift ``` + ``` ` ```
 run the vite project
 ```bash
 npm run dev
