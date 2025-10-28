@@ -8,25 +8,25 @@ A step-by-step guide to set up and run the **REMS** Laravel project locally usin
 
 Before starting, install the following tools:
 
-### 🔹 Install Laragon version 6
+### 🔹 Install Laragon
 1. Go to the official site: [https://laragon.org/download/](https://laragon.org/download/)
 2. Download **Laragon Full (for PHP)**.
 3. Run the installer and install it to `C:\laragon`.
 4. After installation, start **Apache** and **MySQL** from the Laragon control panel.
-
+(Laragon used as database, if using PhpMyAdmin, it can work, but you will need to modify the database and insert the default data yourself)
 ---
 
 ### 🔹 Install Git
 1. Download from: [https://git-scm.com/downloads](https://git-scm.com/downloads)
 2. Install with default settings.
-
+(Incase you don't have the git installed only)
 ---
 
 ### 🔹 Install Composer
 1. Go to [https://getcomposer.org/download/](https://getcomposer.org/download/)
 2. Download **Composer-Setup.exe** (Windows Installer).
 3. Install it — it will automatically detect your PHP path from Laragon.
-
+(You can use vscode terminal to download also!)
 ---
 
 ### 🔹 Install Node.js (includes npm)
@@ -37,7 +37,105 @@ Before starting, install the following tools:
 ```bash
 node -v
 npm -v
+```
+---
 
-[6/24 下午5:01] Liz Wong: the project is Laravel plus react
-[6/24 下午5:01] Liz Wong: need to open two terminal
-one for backend Laravel, one for frontend
+### ⚙️ <b>2. Clone the Project</b>
+1. Open Git Bash or Laragon Terminal, navigate to the www directory:
+```bash
+cd C:\laragon\www
+git clone https://github.com/Vennise23/REMS.git
+cd REMS
+```
+---
+### 📦 <b>3. Install Dependencies</b>
+Backend (Laravel)
+```bash
+composer install
+
+```
+Frontend (need composer)
+```bash
+npm install
+
+```
+---
+Duplicate .env.example and rename it to .env:
+```bash
+cp .env.example .env
+
+```
+Open .env and edit the database section (default Laragon credentials):
+```bash
+APP_NAME=EREAL
+APP_ENV=local
+APP_KEY=base64:xt4c91HRQfDRQIOYv3LZ5muFwhhdtofjiPH7LWFI59s=
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
+LOG_CHANNEL=stderr
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=ereal
+DB_USERNAME=root
+DB_PASSWORD=
+```
+---
+### 🗄️ <b>5. Create Database in Laragon</b>
+
+Open Laragon → Click Database
+
+Create a new database called:
+```bash
+ereal
+
+```
+make sure you choose HeidiSQL if you given the selection to choose.
+
+---
+
+### 🔑 <b>6. Generate Application Key</b>
+Go back to vscode terminal:
+```bash
+php artisan key:generate
+
+```
+### 🧱 <b>7. Run Database Migration & Seeders</b>
+```bash
+php artisan migrate
+
+```
+---
+### 🌐 <b>8. Run the Project</b>
+run the vite project
+```bash
+npm run dev
+
+```
+run the laragon backend
+```bash
+php artisan serve
+
+```
+run the schedule which help message work
+```bash
+php artisan schedule:work
+
+```
+
+Option 1: Laravel built-in server
+Visit: http://127.0.0.1:8000 
+
+Option 2: Laragon auto domain
+
+If your project folder is named rems, Laragon will automatically create:
+http://rems.test
+
+---
+### 🧠 Tips
+
+Use ```bash php artisan migrate:fresh --seed ``` to reset and reseed your database.
