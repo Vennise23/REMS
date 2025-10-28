@@ -111,16 +111,19 @@ php artisan migrate
 ```
 ---
 ### 🌐 <b>8. Run the Project</b>
+Open a new terminel ```bash Ctrl ``` + ```bash Shift ``` + ```bash ` ```
 run the vite project
 ```bash
 npm run dev
 
 ```
+Open another new terminel,
 run the laragon backend
 ```bash
 php artisan serve
 
 ```
+To test chat function, open another new terminel again,
 run the schedule which help message work
 ```bash
 php artisan schedule:work
