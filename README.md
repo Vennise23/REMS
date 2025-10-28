@@ -143,7 +143,16 @@ http://rems.test
 
 Use ```bash php artisan migrate:fresh --seed ``` to reset and reseed your database.
 
+---
+### 👣 Project Senior Dashboard: Join us to leave a footprint on E-REAL!
+
 > 🌈 **Your lovely friendly senior _Liz Wong_ once said:**  
 > 💬 *The project is Laravel plus React — you’ll need two terminals: one for backend (Laravel) and one for frontend (React).*  
 > ✨💻🌸🌈💡🦋🌟
+
+> 💬 **Note from Vennise:**  
+> Liz has a *special talent* for dropping her personal info right in public places 🫠  
+> Don’t worry — I’ve cleaned it up!  
+> If you’re curious about what she spilled… just ask me.  
+> I promise — I won’t tell you 😉
 
