@@ -143,12 +143,7 @@ http://rems.test
 
 Use ```bash php artisan migrate:fresh --seed ``` to reset and reseed your database.
 
-<p align="center">
-🌸🌈✨🌟💻🌈🌸  
-<br>
-<b>Your lovely friendly senior <span style="color:#ff69b4;">Liz Wong</span> once said:</b><br>
-<i>The project is <b>Laravel</b> plus <b>React</b> — you’ll need two terminals: one for backend (Laravel), one for frontend (React).</i>  
-<br>
-🌸🌈✨🌟💻🌈🌸
-</p>
+> 🌈 **Your lovely friendly senior _Liz Wong_ once said:**  
+> 💬 *The project is Laravel plus React — you’ll need two terminals: one for backend (Laravel) and one for frontend (React).*  
+> ✨💻🌸🌈💡🦋🌟
 
