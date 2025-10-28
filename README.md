@@ -139,3 +139,27 @@ http://rems.test
 ### 🧠 Tips
 
 Use ```bash php artisan migrate:fresh --seed ``` to reset and reseed your database.
+
+<p align="center">
+  <span style="
+    font-size: 1.3rem;
+    font-weight: bold;
+    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  ">
+    🌈 Your lovely friendly senior <b>Liz Wong</b> once said:
+  </span>
+</p>
+
+<p align="center">
+  <span style="
+    font-size: 1.1rem;
+    font-style: italic;
+    color: #ff66cc;
+    text-shadow: 0 0 8px #ff66cc, 0 0 12px #ff99ff;
+  ">
+    “The project is Laravel plus React — you’ll need two terminals:
+    one for the backend (Laravel), and one for the frontend (React).”
+  </span>
+</p>
