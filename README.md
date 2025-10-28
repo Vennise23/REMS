@@ -156,3 +156,10 @@ Use ```bash php artisan migrate:fresh --seed ``` to reset and reseed your databa
 > If you’re curious about what she spilled… just ask me.  
 > I promise — I won’t tell you 😉
 
+> 📝 **Note from Wei Yang:**  
+> ~~(message deleted by Vennise)~~  
+> *Vennise said "I didn't delete such powerful message"*
+
+> 💬 **Message from Runshi 李润石 🇨🇳 (Exchange Student):**  
+> “I hope you all have your own life and help those in need around you.” 
+
