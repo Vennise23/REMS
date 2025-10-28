@@ -8,7 +8,7 @@ A step-by-step guide to set up and run the **REMS** Laravel project locally usin
 
 Before starting, install the following tools:
 
-### 🔹 Install Laragon
+### 🔹 Install Laragon version 6
 1. Go to the official site: [https://laragon.org/download/](https://laragon.org/download/)
 2. Download **Laragon Full (for PHP)**.
 3. Run the installer and install it to `C:\laragon`.
@@ -37,3 +37,7 @@ Before starting, install the following tools:
 ```bash
 node -v
 npm -v
+
+[6/24 下午5:01] Liz Wong: the project is Laravel plus react
+[6/24 下午5:01] Liz Wong: need to open two terminal
+one for backend Laravel, one for frontend
